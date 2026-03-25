@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>InvenTrack Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <h2 class="logo">InvenTrack</h2>
+    <p class="sub">Admin panel</p>
+
+    <ul>
+      <li class="active">Dashboard</li>
+      <li>Product list</li>
+      <li>Stock history</li>
+      <li>Stock in</li>
+      <li>Stock out</li>
+      <li>Adjustments</li>
+      <li>Suppliers</li>
+      <li>Purchase orders</li>
+      <li>Reorder list</li>
+      <li>Delivery log</li>
+      <li>Reports</li>
+    </ul>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- Top -->
+    <div class="topbar">
+      <h1>Dashboard</h1>
+
+      <div class="top-actions">
+        <button class="filter">Category: All</button>
+        <button class="add">+ Add product</button>
+        <div class="avatar">AD</div>
+      </div>
+    </div>
+
+    <!-- Cards -->
+    <div class="cards">
+
+      <div class="card">
+        <h4>Total products</h4>
+        <h2>142</h2>
+        <p>12 archived</p>
+      </div>
+
+      <div class="card">
+        <h4>Total stock value</h4>
+        <h2>Rs.50,000</h2>
+        <p>Updated just now</p>
+      </div>
+
+      <div class="card">
+        <h4>Low stock alerts</h4>
+        <h2 class="red">5</h2>
+        <p>Below minimum threshold</p>
+      </div>
+
+      <div class="card">
+        <h4>Pending orders</h4>
+        <h2 class="orange">3</h2>
+        <p>Purchase orders open</p>
+      </div>
+
+    </div>
+
+    <!-- Insight -->
+    <div class="insight">
+      <strong>AI sales insight</strong>
+      <p>
+        Sales increased 18% compared to last month, driven by Electronics category.
+        Three products account for 62% of total revenue.
+      </p>
+    </div>
+
+    <!-- Bottom -->
+    <div class="bottom">
+
+      <!-- Fake Chart -->
+      <div class="chart-card">
+        <h3>Stock vs minimum threshold</h3>
+
+        <div class="bars">
+          <div class="bar green" style="height:80px;"></div>
+          <div class="bar red" style="height:30px;"></div>
+          <div class="bar green" style="height:100px;"></div>
+          <div class="bar red" style="height:40px;"></div>
+          <div class="bar green" style="height:70px;"></div>
+        </div>
+      </div>
+
+      <!-- Activity -->
+      <div class="activity">
+        <h3>Recent activity</h3>
+
+        <div class="item">
+          <p><strong>Stock in</strong></p>
+          <span>USB Cables x200</span>
+        </div>
+
+        <div class="item">
+          <p><strong>Stock out</strong></p>
+          <span>A4 Paper x50</span>
+        </div>
+
+        <div class="item">
+          <p><strong>Adjustment</strong></p>
+          <span>Batteries</span>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+</div>
+
+</body>
+</html>
