@@ -1,0 +1,257 @@
+/* ============================================================
+   Inventra – Login Page Styles
+   ============================================================ */
+
+/* ── Reset & base ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:          #0f1117;
+  --surface:     #1a1d27;
+  --surface-2:   #23273a;
+  --border:      #2e3347;
+  --primary:     #6366f1;          /* indigo */
+  --primary-h:   #818cf8;
+  --primary-dim: rgba(99,102,241,.15);
+  --text:        #e2e8f0;
+  --text-muted:  #8892a4;
+  --error-bg:    rgba(239,68,68,.12);
+  --error-border:#ef4444;
+  --error-text:  #fca5a5;
+  --radius:      12px;
+  --radius-sm:   8px;
+  --transition:  .2s ease;
+  --shadow:      0 20px 60px rgba(0,0,0,.5);
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Google Font */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* ── Page wrapper ─────────────────────────────────────────── */
+.page-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  /* subtle radial glow behind the card */
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 40%,
+      rgba(99,102,241,.12) 0%,
+      transparent 70%),
+    var(--bg);
+}
+
+/* ── Brand logo row ───────────────────────────────────────── */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.brand-icon {
+  width: 38px; height: 38px;
+  background: var(--primary-dim);
+  border: 1px solid rgba(99,102,241,.3);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--primary-h);
+}
+.brand-icon svg { width: 20px; height: 20px; }
+
+.brand-name {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -.3px;
+  color: var(--text);
+}
+
+/* ── Card ─────────────────────────────────────────────────── */
+.card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 36px 32px;
+  box-shadow: var(--shadow);
+}
+
+.card-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -.4px;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.card-subtitle {
+  color: var(--text-muted);
+  font-size: .9rem;
+  margin-bottom: 28px;
+}
+
+/* ── Error banner ─────────────────────────────────────────── */
+.error-banner {
+  display: none;               /* shown by JS */
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--error-bg);
+  border: 1px solid var(--error-border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin-bottom: 22px;
+  color: var(--error-text);
+  font-size: .875rem;
+  animation: shake .4s ease;
+}
+.error-banner svg { flex-shrink: 0; margin-top: 1px; }
+.error-banner.visible { display: flex; }
+
+/* Shake animation for errors */
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20%      { transform: translateX(-6px); }
+  40%      { transform: translateX(6px); }
+  60%      { transform: translateX(-4px); }
+  80%      { transform: translateX(4px); }
+}
+
+/* ── Form fields ──────────────────────────────────────────── */
+.field-group {
+  margin-bottom: 18px;
+}
+
+.field-group label {
+  display: block;
+  font-size: .825rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-wrapper input {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 11px 42px 11px 40px;
+  color: var(--text);
+  font-size: .95rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.input-wrapper input::placeholder { color: #4a5168; }
+
+.input-wrapper input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-dim);
+}
+
+/* Leading icon */
+.input-icon {
+  position: absolute;
+  left: 12px;
+  width: 17px; height: 17px;
+  color: #4a5168;
+  pointer-events: none;
+  transition: color var(--transition);
+}
+.input-wrapper:focus-within .input-icon { color: var(--primary-h); }
+
+/* Eye toggle button */
+.toggle-pw {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: #4a5168;
+  display: flex; align-items: center;
+  transition: color var(--transition);
+}
+.toggle-pw:hover { color: var(--primary-h); }
+.toggle-pw svg { width: 17px; height: 17px; }
+
+/* ── Submit button ────────────────────────────────────────── */
+.btn-login {
+  width: 100%;
+  margin-top: 10px;
+  padding: 13px;
+  background: var(--primary);
+  color: #fff;
+  font-family: inherit;
+  font-size: .975rem;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  letter-spacing: .2px;
+  transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+}
+
+.btn-login:hover:not(:disabled) {
+  background: var(--primary-h);
+  box-shadow: 0 4px 20px rgba(99,102,241,.4);
+  transform: translateY(-1px);
+}
+
+.btn-login:active:not(:disabled) { transform: translateY(0); }
+
+.btn-login:disabled {
+  opacity: .65;
+  cursor: not-allowed;
+}
+
+/* Loading spinner */
+.btn-spinner {
+  display: none;
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+.btn-spinner.visible { display: block; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Footer note ──────────────────────────────────────────── */
+.footer-note {
+  margin-top: 28px;
+  color: #3a3f52;
+  font-size: .8rem;
+  text-align: center;
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 460px) {
+  .card { padding: 28px 20px; }
+}

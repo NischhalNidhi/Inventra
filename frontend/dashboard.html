@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard – Inventra</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117; --surface: #1a1d27; --border: #2e3347;
+      --primary: #6366f1; --primary-h: #818cf8;
+      --text: #e2e8f0; --text-muted: #8892a4;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background:
+        radial-gradient(ellipse 60% 50% at 50% 40%,
+          rgba(99,102,241,.1) 0%, transparent 70%),
+        var(--bg);
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 48px 40px;
+      max-width: 480px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,.5);
+    }
+
+    .status-dot {
+      width: 52px; height: 52px;
+      background: rgba(99,102,241,.15);
+      border: 1px solid rgba(99,102,241,.3);
+      border-radius: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      font-size: 1.5rem;
+    }
+
+    h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -.4px; margin-bottom: 10px; }
+
+    p  { color: var(--text-muted); font-size: .95rem; line-height: 1.6; margin-bottom: 8px; }
+
+    .role-badge {
+      display: inline-block;
+      background: rgba(99,102,241,.15);
+      border: 1px solid rgba(99,102,241,.3);
+      color: var(--primary-h);
+      padding: 3px 12px;
+      border-radius: 99px;
+      font-size: .8rem;
+      font-weight: 600;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      margin-top: 6px;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 28px 0;
+    }
+
+    .btn-logout {
+      padding: 11px 28px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: .9rem;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: border-color .2s, color .2s, background .2s;
+    }
+    .btn-logout:hover {
+      border-color: #ef4444;
+      color: #fca5a5;
+      background: rgba(239,68,68,.08);
+    }
+
+    .spinner {
+      display: none;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,.2);
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <div class="status-dot">📦</div>
+    <h1>You are logged in!</h1>
+    <p>Welcome to <strong>Inventra</strong> – your inventory management system.</p>
+
+    <p id="roleDisplay">
+      Role: <span class="role-badge" id="roleBadge">Loading…</span>
+    </p>
+
+    <hr class="divider" />
+
+    <p style="margin-bottom: 20px; font-size:.875rem;">
+      Your session is active. Click below to sign out.
+    </p>
+
+    <button class="btn-logout" id="logoutBtn">
+      <span class="spinner" id="logoutSpinner"></span>
+      Sign Out
+    </button>
+  </div>
+
+  <script>
+    // ── Show role from sessionStorage (set during login) ──────
+    const role = sessionStorage.getItem('role') || 'user';
+    document.getElementById('roleBadge').textContent = role;
+
+    // ── Logout ────────────────────────────────────────────────
+    const API_BASE = 'http://localhost/Inventory-Management-System/Inventra/backend/api';
+    const logoutBtn     = document.getElementById('logoutBtn');
+    const logoutSpinner = document.getElementById('logoutSpinner');
+
+    logoutBtn.addEventListener('click', async () => {
+      logoutBtn.disabled = true;
+      logoutSpinner.style.display = 'inline-block';
+
+      try {
+        const res = await fetch(`${API_BASE}/logout.php`, {
+          method: 'POST',
+          credentials: 'include'   // send session cookie
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+          sessionStorage.clear();
+          window.location.href = 'login.html';
+        }
+      } catch (err) {
+        alert('Logout failed – is XAMPP running?');
+        logoutBtn.disabled = false;
+        logoutSpinner.style.display = 'none';
+      }
+    });
+  </script>
+
+</body>
+</html>
