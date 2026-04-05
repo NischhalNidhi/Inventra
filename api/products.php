@@ -2,16 +2,11 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../includes/helpers.php';
-require_once __DIR__ . '/../config/db.php';
-require_once __DIR__ . '/../models/User.php';
-require_once __DIR__ . '/../models/Product.php';
-require_once __DIR__ . '/../controllers/authController.php';
+require_once __DIR__ . '/../core/dependencies.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
-$pdo = getDatabaseConnection();
-$authController = new AuthController(new User($pdo));
+extract(buildAppDependencies(), EXTR_SKIP);
 $authController->requireAuthentication();
 
 if (!$authController->can('products.view')) {
@@ -20,7 +15,6 @@ if (!$authController->can('products.view')) {
     exit;
 }
 
-$productModel = new Product($pdo);
 $filters = [
     'keyword' => trim($_GET['keyword'] ?? ''),
     'category' => trim($_GET['category'] ?? ''),
@@ -40,6 +34,7 @@ $data = array_map(
             'sku' => $product['sku'],
             'category' => $product['category_name'] ?? 'Unassigned',
             'supplier' => $product['supplier_name'] ?? 'Unassigned',
+            'price_npr' => (float) ($product['price_npr'] ?? 0),
             'quantity' => (int) $product['stock_quantity'],
             'min_stock' => (int) $product['min_threshold'],
             'status' => $low ? 'LOW STOCK' : 'IN STOCK',

@@ -2,47 +2,9 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../includes/helpers.php';
-require_once __DIR__ . '/../config/db.php';
-require_once __DIR__ . '/../models/User.php';
-require_once __DIR__ . '/../models/Category.php';
-require_once __DIR__ . '/../models/Supplier.php';
-require_once __DIR__ . '/../models/Product.php';
-require_once __DIR__ . '/../models/Stock.php';
-require_once __DIR__ . '/../models/PurchaseOrder.php';
-require_once __DIR__ . '/../models/Report.php';
-require_once __DIR__ . '/../models/ReportImportParser.php';
-require_once __DIR__ . '/../models/AccessRequest.php';
-require_once __DIR__ . '/../controllers/authController.php';
-require_once __DIR__ . '/../controllers/userController.php';
-require_once __DIR__ . '/../controllers/categoryController.php';
-require_once __DIR__ . '/../controllers/supplierController.php';
-require_once __DIR__ . '/../controllers/productController.php';
-require_once __DIR__ . '/../controllers/stockController.php';
-require_once __DIR__ . '/../controllers/purchaseOrderController.php';
-require_once __DIR__ . '/../controllers/reportController.php';
-require_once __DIR__ . '/../controllers/accessRequestController.php';
+require_once __DIR__ . '/../core/dependencies.php';
 
-$pdo = getDatabaseConnection();
-
-$userModel = new User($pdo);
-$categoryModel = new Category($pdo);
-$supplierModel = new Supplier($pdo);
-$productModel = new Product($pdo);
-$stockModel = new Stock($pdo);
-$poModel = new PurchaseOrder($pdo);
-$reportModel = new Report($pdo);
-$accessRequestModel = new AccessRequest($pdo);
-
-$authController = new AuthController($userModel);
-$userController = new UserController($userModel);
-$categoryController = new CategoryController($categoryModel);
-$supplierController = new SupplierController($supplierModel);
-$productController = new ProductController($productModel);
-$stockController = new StockController($stockModel);
-$poController = new PurchaseOrderController($poModel);
-$reportController = new ReportController($reportModel, new ReportImportParser());
-$accessRequestController = new AccessRequestController($accessRequestModel, $userModel);
+extract(buildAppDependencies(), EXTR_SKIP);
 
 $page = $_GET['page'] ?? 'dashboard';
 $errors = [];
@@ -69,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors = $result['errors'];
     }
 
-    if (!in_array($action, ['login', 'request_access', 'set_password_first_login'], true)) {
+    if (!in_array($action, ['login', 'set_password_first_login'], true)) {
         $authController->requireAuthentication();
     }
 
@@ -84,41 +46,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $userModel->create($validated['data']);
                     setFlash('success', 'User account created.');
                 }
-                redirectTo(basePath('index.php?page=users'));
-                break;
-
-            case 'approve_access_request':
-                $authController->authorize('users.create');
-                $requestId = (int) ($_POST['request_id'] ?? 0);
-                $approval = $accessRequestController->approveRequest(
-                    $requestId,
-                    (int) currentUser()['id'],
-                    trim($_POST['review_note'] ?? '') ?: null
-                );
-                setFlash(
-                    'success',
-                    sprintf(
-                        'Access request approved. Username: %s, Temporary password: %s. Password setup required on first login.',
-                        $approval['username'],
-                        $approval['temporary_password']
-                    )
-                );
-                redirectTo(basePath('index.php?page=users'));
-                break;
-
-            case 'reject_access_request':
-                $authController->authorize('users.create');
-                $requestId = (int) ($_POST['request_id'] ?? 0);
-                $request = $accessRequestModel->findById($requestId);
-                if (!$request || $request['status'] !== 'pending') {
-                    throw new RuntimeException('Access request not found or already processed.');
-                }
-                $accessRequestModel->reject(
-                    $requestId,
-                    (int) currentUser()['id'],
-                    trim($_POST['review_note'] ?? '') ?: null
-                );
-                setFlash('success', 'Access request rejected.');
                 redirectTo(basePath('index.php?page=users'));
                 break;
 
@@ -342,18 +269,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 redirectTo(basePath('index.php'));
                 break;
 
-            case 'request_access':
-                $validation = $accessRequestController->validateCreate($_POST);
-                if ($validation['errors']) {
-                    $errors = $validation['errors'];
-                    $page = 'request-access';
-                } else {
-                    $accessRequestModel->create($validation['data']);
-                    setFlash('success', 'Access request submitted. A manager will review your request.');
-                    redirectTo(basePath('index.php'));
-                }
-                break;
-
             case 'set_password_first_login':
                 $result = $authController->completeFirstLoginPasswordSetup(
                     (string) ($_POST['password'] ?? ''),
@@ -375,105 +290,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 if (!isLoggedIn()) {
     $requestedMode = $_GET['mode'] ?? '';
-    $authMode = 'login';
-    if (($requestedMode === 'set-password' || $page === 'set-password') && $authController->hasPendingPasswordSetup()) {
-        $authMode = 'set-password';
-    } elseif ($requestedMode === 'request-access' || $page === 'request-access') {
-        $authMode = 'request-access';
-    }
+    $authMode = (($requestedMode === 'set-password' || $page === 'set-password') && $authController->hasPendingPasswordSetup())
+        ? 'set-password'
+        : 'login';
     $passwordSetupUser = $authMode === 'set-password' ? $authController->getPendingPasswordSetupUser() : null;
-    ?>
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Inventra Access</title>
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
-        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="<?= e(basePath('css/style.css')); ?>">
-    </head>
-    <body class="login-body" data-theme-enabled="true">
-    <div class="auth-shell">
-        <section class="auth-left">
-            <div class="auth-left-content">
-                <img class="auth-logo" src="<?= e(appRootPath('logo/inventra%20with%20logo.png')); ?>" alt="Inventra logo">
-                <h1>Manage your inventory easily</h1>
-                <ul class="auth-feature-list">
-                    <li><span class="material-symbols-outlined">check_circle</span><div><strong>Real-time Tracking</strong><small>Monitor stock levels across multiple warehouses instantly.</small></div></li>
-                    <li><span class="material-symbols-outlined">check_circle</span><div><strong>Automated Restocking</strong><small>Set intelligent thresholds for zero-stock prevention.</small></div></li>
-                    <li><span class="material-symbols-outlined">check_circle</span><div><strong>Detailed Analytics</strong><small>Predictive insights into turnover and demand trends.</small></div></li>
-                </ul>
-            </div>
-        </section>
-        <section class="auth-right">
-            <div class="auth-card">
-                <h2>
-                    <?= $authMode === 'request-access'
-                        ? 'Request Access'
-                        : ($authMode === 'set-password' ? 'Set New Password' : 'Sign In'); ?>
-                </h2>
-                <p>
-                    <?= $authMode === 'request-access'
-                        ? 'Submit your details to request access approval from a manager.'
-                        : ($authMode === 'set-password'
-                            ? 'Set your permanent password to activate your approved account.'
-                            : 'Enter your credentials to access your ledger.'); ?>
-                </p>
-                <?php foreach ($errors as $error): ?>
-                    <p class="error-line"><?= e($error); ?></p>
-                <?php endforeach; ?>
-
-                <?php if ($authMode === 'request-access'): ?>
-                    <form class="login-form" method="post" action="<?= e(basePath('index.php?mode=request-access')); ?>">
-                        <input type="hidden" name="csrf_token" value="<?= e(csrfToken()); ?>">
-                        <input type="hidden" name="action" value="request_access">
-                        <label><span>Full Name</span><input type="text" name="full_name" required></label>
-                        <label><span>Email</span><input type="email" name="email" required></label>
-                        <label>
-                            <span>Desired Role</span>
-                            <select name="desired_role" required>
-                                <option value="Supervisor">Supervisor</option>
-                                <option value="Salesman">Salesman</option>
-                                <option value="Logistic Handler">Logistic Handler</option>
-                            </select>
-                        </label>
-                        <label><span>Message (Optional)</span><textarea name="message" rows="3" placeholder="Tell us your warehouse/team context"></textarea></label>
-                        <button class="button primary wide" type="submit">Submit Request</button>
-                    </form>
-                    <div class="auth-footer-note">Already have access? <a href="<?= e(basePath('index.php')); ?>">Sign In</a></div>
-                <?php elseif ($authMode === 'set-password' && $passwordSetupUser): ?>
-                    <form class="login-form" method="post" action="<?= e(basePath('index.php?mode=set-password')); ?>">
-                        <input type="hidden" name="csrf_token" value="<?= e(csrfToken()); ?>">
-                        <input type="hidden" name="action" value="set_password_first_login">
-                        <label><span>Account</span><input type="text" value="<?= e((string) $passwordSetupUser['email']); ?>" readonly></label>
-                        <label><span>New Password</span><input type="password" name="password" required></label>
-                        <label><span>Confirm Password</span><input type="password" name="password_confirm" required></label>
-                        <button class="button primary wide" type="submit">Save Password</button>
-                    </form>
-                    <div class="auth-footer-note"><a href="<?= e(basePath('index.php')); ?>">Back to Sign In</a></div>
-                <?php else: ?>
-                    <form class="login-form" method="post" action="<?= e(basePath('index.php')); ?>">
-                        <input type="hidden" name="csrf_token" value="<?= e(csrfToken()); ?>">
-                        <input type="hidden" name="action" value="login">
-                        <label><span>Email</span><input type="text" name="identifier" placeholder="name@company.com" required></label>
-                        <label><span>Password</span><input type="password" name="password" required></label>
-                        <div class="auth-aux-row">
-                            <label class="auth-checkbox"><input type="checkbox"> Keep me signed in</label>
-                            <a href="<?= e(basePath('index.php?mode=request-access')); ?>">Request Access</a>
-                        </div>
-                        <button class="button primary wide" type="submit">Sign In <span class="material-symbols-outlined">arrow_forward</span></button>
-                    </form>
-                <?php endif; ?>
-            </div>
-        </section>
-    </div>
-    <script src="<?= e(basePath('js/app.js')); ?>"></script>
-    </body>
-    </html>
-    <?php
+    require __DIR__ . '/../dev2/views/auth/index.php';
     exit;
 }
 
@@ -487,10 +308,9 @@ switch ($page) {
     case 'users':
         $authController->authorize('users.view');
         $users = $userModel->getAll($pagination['limit'], $pagination['offset']);
-        $pendingAccessRequests = $accessRequestModel->getAllPending();
         $title = 'Inventra | Users';
         $currentPage = 'users';
-        require __DIR__ . '/../views/users/index.php';
+        require __DIR__ . '/../dev2/views/users/index.php';
         break;
 
     case 'categories':
@@ -498,7 +318,7 @@ switch ($page) {
         $categories = $categoryModel->getAll();
         $title = 'Inventra | Categories';
         $currentPage = 'categories';
-        require __DIR__ . '/../views/categories/index.php';
+        require __DIR__ . '/../dev1/views/categories/index.php';
         break;
 
     case 'suppliers':
@@ -506,7 +326,7 @@ switch ($page) {
         $suppliers = $supplierModel->getAll();
         $title = 'Inventra | Suppliers';
         $currentPage = 'suppliers';
-        require __DIR__ . '/../views/suppliers/index.php';
+        require __DIR__ . '/../dev3/views/suppliers/index.php';
         break;
 
     case 'products':
@@ -521,7 +341,7 @@ switch ($page) {
         $categories = $productModel->getCategories();
         $title = 'Inventra | Inventory';
         $currentPage = 'products';
-        require __DIR__ . '/../views/products/index.php';
+        require __DIR__ . '/../dev1/views/products/index.php';
         break;
 
     case 'new-entry':
@@ -539,7 +359,7 @@ switch ($page) {
         $suppliers = $productModel->getSuppliers();
         $title = 'Inventra | New Entry';
         $currentPage = 'new-entry';
-        require __DIR__ . '/../views/products/form.php';
+        require __DIR__ . '/../dev1/views/products/form.php';
         break;
 
     case 'stock':
@@ -548,7 +368,7 @@ switch ($page) {
         $history = $stockModel->getRecentHistory(20);
         $title = 'Inventra | Stock';
         $currentPage = 'stock';
-        require __DIR__ . '/../views/stock/index.php';
+        require __DIR__ . '/../dev4/views/stock/index.php';
         break;
 
     case 'purchase-orders':
@@ -596,7 +416,7 @@ switch ($page) {
 
         $title = 'Inventra | Reports';
         $currentPage = 'reports';
-        require __DIR__ . '/../views/reports/index.php';
+        require __DIR__ . '/../dev2/views/reports/index.php';
         break;
 
     case 'logout':
@@ -613,6 +433,6 @@ switch ($page) {
         $recentActivity = $stockModel->getRecentHistory(8);
         $title = 'Inventra | Dashboard';
         $currentPage = 'dashboard';
-        require __DIR__ . '/../views/dashboard/index.php';
+        require __DIR__ . '/../dev3/views/dashboard/index.php';
         break;
 }

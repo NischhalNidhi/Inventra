@@ -2,18 +2,9 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../includes/helpers.php';
-require_once __DIR__ . '/../config/db.php';
-require_once __DIR__ . '/../models/User.php';
-require_once __DIR__ . '/../models/Report.php';
-require_once __DIR__ . '/../controllers/authController.php';
-require_once __DIR__ . '/../controllers/reportController.php';
-require_once __DIR__ . '/../models/ReportImportParser.php';
+require_once __DIR__ . '/../core/dependencies.php';
 
-$pdo = getDatabaseConnection();
-$authController = new AuthController(new User($pdo));
-$reportModel = new Report($pdo);
-$reportController = new ReportController($reportModel, new ReportImportParser());
+extract(buildAppDependencies(), EXTR_SKIP);
 $authController->requireAuthentication();
 
 $type = trim($_GET['type'] ?? '');

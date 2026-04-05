@@ -2,17 +2,9 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../includes/helpers.php';
-require_once __DIR__ . '/../config/db.php';
-require_once __DIR__ . '/../models/User.php';
-require_once __DIR__ . '/../models/PurchaseOrder.php';
-require_once __DIR__ . '/../controllers/authController.php';
-require_once __DIR__ . '/../controllers/purchaseOrderController.php';
+require_once __DIR__ . '/../core/dependencies.php';
 
-$pdo = getDatabaseConnection();
-$authController = new AuthController(new User($pdo));
-$poModel = new PurchaseOrder($pdo);
-$poController = new PurchaseOrderController($poModel);
+extract(buildAppDependencies(), EXTR_SKIP);
 $authController->requireAuthentication();
 $authController->authorize('po.view');
 

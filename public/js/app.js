@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (!products.length) {
-            tableBody.innerHTML = '<tr><td colspan="5">No products match the current filters.</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="6">No products match the current filters.</td></tr>';
             return;
         }
 
@@ -70,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </td>
                 <td style="font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;font-size:0.8rem;">${escapeHtml(product.sku)}</td>
+                <td style="font-weight:700;">${formatCurrency(product.price_npr)}</td>
                 <td style="font-weight:800;">${product.quantity}</td>
                 <td><span class="badge ${product.status_class}">${product.status_class === 'low' ? 'Low Stock Level' : 'Stable Stock'}</span></td>
                 <td class="action-group">${buildActionButtons(product)}</td>
@@ -255,4 +256,9 @@ function escapeHtml(value) {
     const div = document.createElement('div');
     div.textContent = value ?? '';
     return div.innerHTML;
+}
+
+function formatCurrency(value) {
+    const amount = Number.parseFloat(value ?? '0');
+    return `NPR ${Number.isFinite(amount) ? amount.toFixed(2) : '0.00'}`;
 }

@@ -2,17 +2,11 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../includes/helpers.php';
-require_once __DIR__ . '/../config/db.php';
-require_once __DIR__ . '/../models/User.php';
-require_once __DIR__ . '/../models/Stock.php';
-require_once __DIR__ . '/../controllers/authController.php';
-require_once __DIR__ . '/../controllers/stockController.php';
+require_once __DIR__ . '/../core/dependencies.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
-$pdo = getDatabaseConnection();
-$authController = new AuthController(new User($pdo));
+extract(buildAppDependencies(), EXTR_SKIP);
 $authController->requireAuthentication();
 
 if (!$authController->can('stock.in') && !$authController->can('stock.out')) {
@@ -39,8 +33,6 @@ if ($movementType === 'out' && !$authController->can('stock.out')) {
     echo json_encode(['error' => 'Stock out not allowed for this role.']);
     exit;
 }
-
-$stockController = new StockController(new Stock($pdo));
 
 try {
     $result = $stockController->handleAdjustment($_POST, (int) currentUser()['id']);

@@ -2,18 +2,7 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../includes/helpers.php';
-require_once __DIR__ . '/../config/db.php';
-require_once __DIR__ . '/../models/User.php';
-require_once __DIR__ . '/../models/Category.php';
-require_once __DIR__ . '/../models/Supplier.php';
-require_once __DIR__ . '/../models/Product.php';
-require_once __DIR__ . '/../models/Stock.php';
-require_once __DIR__ . '/../models/PurchaseOrder.php';
-require_once __DIR__ . '/../models/Report.php';
-require_once __DIR__ . '/../models/AccessRequest.php';
-require_once __DIR__ . '/../controllers/authController.php';
-require_once __DIR__ . '/../controllers/accessRequestController.php';
+require_once __DIR__ . '/../core/dependencies.php';
 
 function assertTrue(bool $condition, string $message): void
 {
@@ -22,19 +11,29 @@ function assertTrue(bool $condition, string $message): void
     }
 }
 
+function resetTestDatabase(): void
+{
+    $schema = file_get_contents(__DIR__ . '/../database/schema.sql');
+    if ($schema === false) {
+        throw new RuntimeException('Unable to read schema.sql');
+    }
+
+    $pdo = getDatabaseConnection();
+    $statements = array_filter(array_map('trim', explode(';', $schema)), static fn (string $sql): bool => $sql !== '');
+
+    foreach ($statements as $statement) {
+        $normalized = strtoupper(trim($statement));
+        if (str_starts_with($normalized, 'CREATE DATABASE') || str_starts_with($normalized, 'USE ')) {
+            continue;
+        }
+        $pdo->exec($statement);
+    }
+}
+
 function runBackendAndIntegrationTests(): void
 {
-    $pdo = getDatabaseConnection();
-    $userModel = new User($pdo);
-    $auth = new AuthController($userModel);
-    $categoryModel = new Category($pdo);
-    $supplierModel = new Supplier($pdo);
-    $productModel = new Product($pdo);
-    $stockModel = new Stock($pdo);
-    $poModel = new PurchaseOrder($pdo);
-    $reportModel = new Report($pdo);
-    $accessRequestModel = new AccessRequest($pdo);
-    $accessRequestController = new AccessRequestController($accessRequestModel, $userModel);
+    extract(buildAppDependencies(), EXTR_SKIP);
+    $auth = $authController;
 
     $suffix = (string) random_int(100000, 999999);
     $manager = $userModel->findByIdentifier('manager');
@@ -65,6 +64,7 @@ function runBackendAndIntegrationTests(): void
         'image_name' => null,
         'stock_quantity' => 10,
         'min_threshold' => 3,
+        'price_npr' => 1499.99,
         'category_id' => $categoryId,
         'supplier_id' => $supplierId,
     ], (int) $manager['id']);
@@ -115,37 +115,31 @@ function runBackendAndIntegrationTests(): void
     $inventory = $reportModel->getInventoryReport();
     assertTrue(count($inventory) >= 1, 'Inventory report should return rows');
 
-    $accessRequestId = $accessRequestModel->create([
-        'full_name' => 'Request User ' . $suffix,
-        'email' => 'request' . $suffix . '@inventra.local',
-        'desired_role' => 'Supervisor',
-        'message' => 'integration test',
-    ]);
-    $approval = $accessRequestController->approveRequest($accessRequestId, (int) $manager['id'], 'approved by test');
-    assertTrue((bool) ($approval['username'] ?? null), 'Approval should create username');
-    assertTrue((bool) ($approval['temporary_password'] ?? null), 'Approval should generate temporary password');
+    $newUserData = [
+        'full_name' => 'Refactor User ' . $suffix,
+        'email' => 'refactor' . $suffix . '@inventra.local',
+        'username' => 'refactor' . $suffix,
+        'password_hash' => password_hash('StrongPass#123', PASSWORD_BCRYPT, ['cost' => 12]),
+        'role' => 'Supervisor',
+    ];
+    $newUserId = $userModel->create($newUserData);
+    assertTrue($newUserId > 0, 'Manager should be able to create staff accounts');
 
     $_SESSION = [];
-    $firstLogin = $auth->login((string) $approval['username'], (string) $approval['temporary_password']);
-    assertTrue(!empty($firstLogin['requires_password_setup']), 'Approved access request should require first login password setup');
+    $newUserLogin = $auth->login($newUserData['username'], 'StrongPass#123');
+    assertTrue($newUserLogin['success'] === true, 'Created user should be able to log in');
 
-    $setupResult = $auth->completeFirstLoginPasswordSetup('NewPass#123', 'NewPass#123');
-    assertTrue($setupResult['success'] === true, 'First login password setup should succeed');
-
-    $_SESSION = [];
-    $secondLogin = $auth->login((string) $approval['username'], 'NewPass#123');
-    assertTrue($secondLogin['success'] === true, 'User should log in with new password after setup');
-    assertTrue(empty($secondLogin['requires_password_setup']), 'Second login should not require password setup');
+    $createdProduct = $productModel->findById($productId);
+    assertTrue((float) $createdProduct['price_npr'] === 1499.99, 'Products should persist NPR price');
 }
 
 function runFrontendSmokeChecks(): void
 {
     $files = [
-        __DIR__ . '/../inventra_new_entry_refined.html',
-        __DIR__ . '/../inventra_inventory_ledger_unique.html',
-        __DIR__ . '/../views/products/form.php',
-        __DIR__ . '/../views/products/index.php',
-        __DIR__ . '/../views/reports/index.php',
+        __DIR__ . '/../dev1/views/products/form.php',
+        __DIR__ . '/../dev1/views/products/index.php',
+        __DIR__ . '/../dev2/views/reports/index.php',
+        __DIR__ . '/../dev2/views/auth/index.php',
     ];
 
     foreach ($files as $file) {
@@ -154,12 +148,21 @@ function runFrontendSmokeChecks(): void
         assertTrue($content !== '', 'Frontend file is empty: ' . $file);
     }
 
+    $authView = (string) file_get_contents(__DIR__ . '/../dev2/views/auth/index.php');
+    assertTrue(str_contains($authView, 'Forgot Password'), 'Auth UI should show forgot password placeholder');
+    assertTrue(!str_contains($authView, 'Request Access'), 'Auth UI should no longer show request access');
+
+    $productForm = (string) file_get_contents(__DIR__ . '/../dev1/views/products/form.php');
+    assertTrue(str_contains($productForm, 'price_npr'), 'Product form should include NPR price field');
+
     $js = (string) file_get_contents(__DIR__ . '/../public/js/app.js');
     assertTrue(str_contains($js, 'fetchProducts'), 'Frontend JS should include live search');
     assertTrue(str_contains($js, 'ajax-stock-form'), 'Frontend JS should include stock AJAX form behavior');
+    assertTrue(str_contains($js, 'formatCurrency'), 'Frontend JS should format product price');
 }
 
 try {
+    resetTestDatabase();
     runBackendAndIntegrationTests();
     runFrontendSmokeChecks();
     echo "All tests passed.\n";

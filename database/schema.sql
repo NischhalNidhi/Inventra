@@ -5,7 +5,6 @@ SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS report_import_row_errors;
 DROP TABLE IF EXISTS report_import_batches;
 DROP TABLE IF EXISTS sales_transactions;
-DROP TABLE IF EXISTS access_requests;
 DROP TABLE IF EXISTS delivery_logs;
 DROP TABLE IF EXISTS po_line_items;
 DROP TABLE IF EXISTS purchase_orders;
@@ -147,6 +146,7 @@ CREATE TABLE IF NOT EXISTS sales_transactions (
     CONSTRAINT fk_sales_user FOREIGN KEY (created_by) REFERENCES users(id)
 );
 
+<<<<<<< Updated upstream
 <<<<<<< HEAD
 CREATE TABLE IF NOT EXISTS access_requests (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -164,6 +164,8 @@ CREATE TABLE IF NOT EXISTS access_requests (
 
 =======
 >>>>>>> 852434b589abba0bafe28d124996a032be2a96d0
+=======
+>>>>>>> Stashed changes
 CREATE TABLE IF NOT EXISTS report_import_batches (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     file_name VARCHAR(255) NOT NULL,
