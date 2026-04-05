@@ -106,9 +106,9 @@ class Product
     {
         $stmt = $this->pdo->prepare(
             'INSERT INTO products
-             (name, sku, description, image_name, stock_quantity, min_threshold, category_id, supplier_id, created_by, updated_by)
+             (name, sku, description, image_name, stock_quantity, min_threshold, unit_price, category_id, supplier_id, created_by, updated_by)
              VALUES
-             (:name, :sku, :description, :image_name, :stock_quantity, :min_threshold, :category_id, :supplier_id, :created_by, :updated_by)'
+             (:name, :sku, :description, :image_name, :stock_quantity, :min_threshold, :unit_price, :category_id, :supplier_id, :created_by, :updated_by)'
         );
         $stmt->execute([
             'name' => $data['name'],
@@ -117,6 +117,10 @@ class Product
             'image_name' => $data['image_name'],
             'stock_quantity' => $data['stock_quantity'],
             'min_threshold' => $data['min_threshold'],
+<<<<<<< HEAD
+=======
+            'unit_price' => $data['unit_price'],
+>>>>>>> 852434b589abba0bafe28d124996a032be2a96d0
             'category_id' => $data['category_id'],
             'supplier_id' => $data['supplier_id'],
             'created_by' => $userId,
@@ -136,6 +140,7 @@ class Product
                  image_name = :image_name,
                  stock_quantity = :stock_quantity,
                  min_threshold = :min_threshold,
+                    unit_price = :unit_price,
                  category_id = :category_id,
                  supplier_id = :supplier_id,
                  updated_by = :updated_by
@@ -149,6 +154,7 @@ class Product
             'image_name' => $data['image_name'],
             'stock_quantity' => $data['stock_quantity'],
             'min_threshold' => $data['min_threshold'],
+            'unit_price' => $data['unit_price'],
             'category_id' => $data['category_id'],
             'supplier_id' => $data['supplier_id'],
             'updated_by' => $userId,

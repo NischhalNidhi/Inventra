@@ -17,6 +17,7 @@ class ProductController
         $supplierId = filter_var($input['supplier_id'] ?? null, FILTER_VALIDATE_INT);
         $stockQuantity = filter_var($input['stock_quantity'] ?? null, FILTER_VALIDATE_INT);
         $minThreshold = filter_var($input['min_threshold'] ?? null, FILTER_VALIDATE_INT);
+        $unitPrice = filter_var($input['unit_price'] ?? null, FILTER_VALIDATE_FLOAT);
         $imageName = trim($input['image_name'] ?? '');
 
         $errors = [];
@@ -41,6 +42,10 @@ class ProductController
             $errors[] = 'Minimum stock must be zero or greater.';
         }
 
+        if ($unitPrice === false || $unitPrice < 0) {
+            $errors[] = 'Unit price must be zero or greater.';
+        }
+
         if ($supplierId !== false && $supplierId !== null && $supplierId < 1) {
             $errors[] = 'Supplier must be valid when selected.';
         }
@@ -59,6 +64,7 @@ class ProductController
                 'supplier_id' => $supplierId ? (int) $supplierId : null,
                 'stock_quantity' => (int) $stockQuantity,
                 'min_threshold' => (int) $minThreshold,
+                'unit_price' => (float) $unitPrice,
                 'image_name' => $imageName,
             ],
         ];

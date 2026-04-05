@@ -1,6 +1,7 @@
-.env
-vendor/
 node_modules/
+vendor/
+.env
+.DS_Store
 uploads/
 uploads/products/
 tests/_output/

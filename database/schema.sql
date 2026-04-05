@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS products (
     image_name VARCHAR(255) DEFAULT NULL,
     stock_quantity INT UNSIGNED NOT NULL DEFAULT 0,
     min_threshold INT UNSIGNED NOT NULL DEFAULT 0,
+    unit_price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     is_archived TINYINT(1) NOT NULL DEFAULT 0,
     category_id INT UNSIGNED DEFAULT NULL,
     supplier_id INT UNSIGNED DEFAULT NULL,
@@ -79,6 +80,7 @@ CREATE TABLE IF NOT EXISTS stock_movements (
     new_quantity INT NOT NULL,
     reason VARCHAR(255) DEFAULT NULL,
     source_ref VARCHAR(120) DEFAULT NULL,
+    unit_price DECIMAL(10,2) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_movements_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
     CONSTRAINT fk_movements_user FOREIGN KEY (user_id) REFERENCES users(id)
@@ -108,6 +110,10 @@ CREATE TABLE IF NOT EXISTS po_line_items (
     product_id INT UNSIGNED NOT NULL,
     quantity_ordered INT UNSIGNED NOT NULL,
     quantity_received INT UNSIGNED DEFAULT NULL,
+<<<<<<< HEAD
+=======
+    unit_price DECIMAL(10,2) DEFAULT NULL,
+>>>>>>> 852434b589abba0bafe28d124996a032be2a96d0
     CONSTRAINT fk_po_lines_po FOREIGN KEY (po_id) REFERENCES purchase_orders(id) ON DELETE CASCADE,
     CONSTRAINT fk_po_lines_product FOREIGN KEY (product_id) REFERENCES products(id)
 );
@@ -141,6 +147,7 @@ CREATE TABLE IF NOT EXISTS sales_transactions (
     CONSTRAINT fk_sales_user FOREIGN KEY (created_by) REFERENCES users(id)
 );
 
+<<<<<<< HEAD
 CREATE TABLE IF NOT EXISTS access_requests (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     full_name VARCHAR(120) NOT NULL,
@@ -155,6 +162,8 @@ CREATE TABLE IF NOT EXISTS access_requests (
     CONSTRAINT fk_access_review_user FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
+=======
+>>>>>>> 852434b589abba0bafe28d124996a032be2a96d0
 CREATE TABLE IF NOT EXISTS report_import_batches (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     file_name VARCHAR(255) NOT NULL,
