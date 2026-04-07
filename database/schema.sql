@@ -5,7 +5,6 @@ SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS report_import_row_errors;
 DROP TABLE IF EXISTS report_import_batches;
 DROP TABLE IF EXISTS sales_transactions;
-DROP TABLE IF EXISTS access_requests;
 DROP TABLE IF EXISTS delivery_logs;
 DROP TABLE IF EXISTS po_line_items;
 DROP TABLE IF EXISTS purchase_orders;
@@ -110,7 +109,10 @@ CREATE TABLE IF NOT EXISTS po_line_items (
     product_id INT UNSIGNED NOT NULL,
     quantity_ordered INT UNSIGNED NOT NULL,
     quantity_received INT UNSIGNED DEFAULT NULL,
+<<<<<<< HEAD
+=======
     unit_price DECIMAL(10,2) DEFAULT NULL,
+>>>>>>> 852434b589abba0bafe28d124996a032be2a96d0
     CONSTRAINT fk_po_lines_po FOREIGN KEY (po_id) REFERENCES purchase_orders(id) ON DELETE CASCADE,
     CONSTRAINT fk_po_lines_product FOREIGN KEY (product_id) REFERENCES products(id)
 );
@@ -144,6 +146,26 @@ CREATE TABLE IF NOT EXISTS sales_transactions (
     CONSTRAINT fk_sales_user FOREIGN KEY (created_by) REFERENCES users(id)
 );
 
+<<<<<<< Updated upstream
+<<<<<<< HEAD
+CREATE TABLE IF NOT EXISTS access_requests (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    full_name VARCHAR(120) NOT NULL,
+    email VARCHAR(120) NOT NULL,
+    desired_role ENUM('Supervisor', 'Salesman', 'Logistic Handler') NOT NULL,
+    message VARCHAR(255) DEFAULT NULL,
+    status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+    review_note VARCHAR(255) DEFAULT NULL,
+    reviewed_by INT UNSIGNED DEFAULT NULL,
+    reviewed_at TIMESTAMP NULL DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_access_review_user FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+=======
+>>>>>>> 852434b589abba0bafe28d124996a032be2a96d0
+=======
+>>>>>>> Stashed changes
 CREATE TABLE IF NOT EXISTS report_import_batches (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     file_name VARCHAR(255) NOT NULL,

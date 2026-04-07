@@ -50,7 +50,7 @@ $user = currentUser();
                         <ul class="notif-list" data-notif-list>
                             <li><span class="material-symbols-outlined">inventory</span><div><strong>Low Stock Alert</strong><small>3 products are below threshold.</small></div></li>
                             <li><span class="material-symbols-outlined">local_shipping</span><div><strong>PO In Transit</strong><small>PO-20260331-1142 updated to in transit.</small></div></li>
-                            <li><span class="material-symbols-outlined">person_add</span><div><strong>Access Request</strong><small>New access request awaiting review.</small></div></li>
+                            <li><span class="material-symbols-outlined">analytics</span><div><strong>Inventory Report</strong><small>Latest metrics are ready for review.</small></div></li>
                         </ul>
                     </div>
                 </div>
