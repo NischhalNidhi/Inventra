@@ -1,4 +1,8 @@
+<<<<<<< HEAD
+<?php require __DIR__ . '/../../includes/header.php'; ?>
+=======
 <?php require __DIR__ . '/../../core/layout/header.php'; ?>
+>>>>>>> c693994f150c6bf96d00faef170e39b16d550508
 
 <header class="topbar">
     <div>

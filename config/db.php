@@ -2,7 +2,11 @@
 
 declare(strict_types=1);
 
+<<<<<<< HEAD
+require_once __DIR__ . '/../includes/helpers.php';
+=======
 require_once __DIR__ . '/../core/helpers.php';
+>>>>>>> c693994f150c6bf96d00faef170e39b16d550508
 
 function getDatabaseConnection(): PDO
 {

@@ -2,6 +2,17 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../includes/helpers.php';
+require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../models/User.php';
+require_once __DIR__ . '/../models/Supplier.php';
+require_once __DIR__ . '/../controllers/authController.php';
+require_once __DIR__ . '/../controllers/supplierController.php';
+
+$pdo = getDatabaseConnection();
+$authController = new AuthController(new User($pdo));
+$supplierModel = new Supplier($pdo);
+$supplierController = new SupplierController($supplierModel);
 require_once __DIR__ . '/../core/dependencies.php';
 
 extract(buildAppDependencies(), EXTR_SKIP);
