@@ -1,4 +1,4 @@
-<?php require __DIR__ . '/../../includes/header.php'; ?>
+<?php require __DIR__ . '/../../core/layout/header.php'; ?>
 
 <header class="topbar split">
     <div>
@@ -23,6 +23,7 @@
 <form class="entry-grid" method="post" enctype="multipart/form-data" action="<?= e(basePath('index.php?page=new-entry' . ($editingProduct ? '&id=' . $editingProduct['id'] : ''))); ?>">
     <input type="hidden" name="csrf_token" value="<?= e(csrfToken()); ?>">
     <input type="hidden" name="action" value="<?= $editingProduct ? 'update_product' : 'create_product'; ?>">
+    <input type="hidden" name="image_name" value="<?= e((string) ($editingProduct['image_name'] ?? '')); ?>">
     <?php if ($editingProduct): ?>
         <input type="hidden" name="product_id" value="<?= e((string) $editingProduct['id']); ?>">
     <?php endif; ?>
@@ -55,6 +56,24 @@
             <span>Description</span>
             <textarea name="description" rows="4"><?= $editingProduct ? e((string) $editingProduct['description']) : old('description'); ?></textarea>
         </label>
+        <div class="inline-fields">
+            <label>
+                <span>Supplier</span>
+                <select name="supplier_id">
+                    <option value="">Unassigned Supplier</option>
+                    <?php $currentSupplierId = (string) ($editingProduct['supplier_id'] ?? ($_SESSION['old']['supplier_id'] ?? '')); ?>
+                    <?php foreach ($suppliers as $supplier): ?>
+                        <option value="<?= e((string) $supplier['id']); ?>" <?= selectedIf($currentSupplierId, (string) $supplier['id']); ?>>
+                            <?= e($supplier['name']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <label>
+                <span>Unit Price (NPR)</span>
+                <input type="number" name="unit_price" min="0" step="0.01" value="<?= $editingProduct ? e((string) $editingProduct['unit_price']) : old('unit_price', '0.00'); ?>" required>
+            </label>
+        </div>
     </section>
 
     <section class="entry-card upload-card">
@@ -70,20 +89,8 @@
             </div>
         </label>
         <label>
-            <span>Supplier</span>
-            <select name="supplier_id">
-                <option value="">Select Supplier</option>
-                <?php $currentSupplierId = (string) ($editingProduct['supplier_id'] ?? ($_SESSION['old']['supplier_id'] ?? '')); ?>
-                <?php foreach ($suppliers as $supplier): ?>
-                    <option value="<?= e((string) $supplier['id']); ?>" <?= selectedIf($currentSupplierId, (string) $supplier['id']); ?>>
-                        <?= e($supplier['name']); ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <label>
-            <span>Storage Zone</span>
-            <input type="text" name="storage_zone" placeholder="B-14-R" value="<?= old('storage_zone'); ?>">
+            <span>Current Asset Image</span>
+            <input type="text" value="<?= e((string) ($editingProduct['image_name'] ?? 'No file uploaded')); ?>" readonly>
         </label>
     </section>
 

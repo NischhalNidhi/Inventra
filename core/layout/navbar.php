@@ -18,12 +18,6 @@ $user = currentUser();
                 <span>New Entry</span>
             </a>
         <?php endif; ?>
-        <?php if ($authController->can('stock.view')): ?>
-            <a class="nav-link <?= $currentPage === 'stock' ? 'active' : ''; ?>" href="<?= e(basePath('index.php?page=stock')); ?>" title="Stock">
-                <span class="material-symbols-outlined nav-icon">sync_alt</span>
-                <span>Stock</span>
-            </a>
-        <?php endif; ?>
         <?php if ($authController->can('users.view')): ?>
             <a class="nav-link <?= $currentPage === 'users' ? 'active' : ''; ?>" href="<?= e(basePath('index.php?page=users')); ?>" title="Users">
                 <span class="material-symbols-outlined nav-icon">group</span>

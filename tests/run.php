@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../core/dependencies.php';
+require_once __DIR__ . '/../database/bootstrap.php';
 
 function assertTrue(bool $condition, string $message): void
 {
@@ -13,21 +14,7 @@ function assertTrue(bool $condition, string $message): void
 
 function resetTestDatabase(): void
 {
-    $schema = file_get_contents(__DIR__ . '/../database/schema.sql');
-    if ($schema === false) {
-        throw new RuntimeException('Unable to read schema.sql');
-    }
-
-    $pdo = getDatabaseConnection();
-    $statements = array_filter(array_map('trim', explode(';', $schema)), static fn (string $sql): bool => $sql !== '');
-
-    foreach ($statements as $statement) {
-        $normalized = strtoupper(trim($statement));
-        if (str_starts_with($normalized, 'CREATE DATABASE') || str_starts_with($normalized, 'USE ')) {
-            continue;
-        }
-        $pdo->exec($statement);
-    }
+    initializeConfiguredDatabase();
 }
 
 function runBackendAndIntegrationTests(): void
@@ -64,21 +51,10 @@ function runBackendAndIntegrationTests(): void
         'image_name' => null,
         'stock_quantity' => 10,
         'min_threshold' => 3,
-        'price_npr' => 1499.99,
+        'unit_price' => 1499.99,
         'category_id' => $categoryId,
         'supplier_id' => $supplierId,
     ], (int) $manager['id']);
-
-    $stockResult = $stockModel->adjustStock($productId, 'out', 4, 'test out', (int) $manager['id']);
-    assertTrue($stockResult['new_quantity'] === 6, 'Stock out should update quantity');
-
-    $negativeBlocked = false;
-    try {
-        $stockModel->adjustStock($productId, 'out', 1000, 'overdraw test', (int) $manager['id']);
-    } catch (RuntimeException) {
-        $negativeBlocked = true;
-    }
-    assertTrue($negativeBlocked, 'Negative stock must be blocked');
 
     $poId = $poModel->create($supplierId, [['product_id' => $productId, 'quantity_ordered' => 5]], (int) $manager['id'], null);
     $poDetail = $poModel->findById($poId);
@@ -130,16 +106,16 @@ function runBackendAndIntegrationTests(): void
     assertTrue($newUserLogin['success'] === true, 'Created user should be able to log in');
 
     $createdProduct = $productModel->findById($productId);
-    assertTrue((float) $createdProduct['price_npr'] === 1499.99, 'Products should persist NPR price');
+    assertTrue((float) $createdProduct['unit_price'] === 1499.99, 'Products should persist unit price');
 }
 
 function runFrontendSmokeChecks(): void
 {
     $files = [
-        __DIR__ . '/../dev1/views/products/form.php',
-        __DIR__ . '/../dev1/views/products/index.php',
-        __DIR__ . '/../dev2/views/reports/index.php',
-        __DIR__ . '/../dev2/views/auth/index.php',
+        __DIR__ . '/../views/products/form.php',
+        __DIR__ . '/../views/products/index.php',
+        __DIR__ . '/../views/reports/index.php',
+        __DIR__ . '/../views/auth/index.php',
     ];
 
     foreach ($files as $file) {
@@ -148,16 +124,15 @@ function runFrontendSmokeChecks(): void
         assertTrue($content !== '', 'Frontend file is empty: ' . $file);
     }
 
-    $authView = (string) file_get_contents(__DIR__ . '/../dev2/views/auth/index.php');
+    $authView = (string) file_get_contents(__DIR__ . '/../views/auth/index.php');
     assertTrue(str_contains($authView, 'Forgot Password'), 'Auth UI should show forgot password placeholder');
     assertTrue(!str_contains($authView, 'Request Access'), 'Auth UI should no longer show request access');
 
-    $productForm = (string) file_get_contents(__DIR__ . '/../dev1/views/products/form.php');
-    assertTrue(str_contains($productForm, 'price_npr'), 'Product form should include NPR price field');
+    $productForm = (string) file_get_contents(__DIR__ . '/../views/products/form.php');
+    assertTrue(str_contains($productForm, 'unit_price'), 'Product form should include unit price field');
 
     $js = (string) file_get_contents(__DIR__ . '/../public/js/app.js');
     assertTrue(str_contains($js, 'fetchProducts'), 'Frontend JS should include live search');
-    assertTrue(str_contains($js, 'ajax-stock-form'), 'Frontend JS should include stock AJAX form behavior');
     assertTrue(str_contains($js, 'formatCurrency'), 'Frontend JS should format product price');
 }
 

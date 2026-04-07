@@ -168,7 +168,7 @@ class AuthController
     public function getLandingPageForRole(string $role): string
     {
         return match ($role) {
-            'Salesman' => 'stock',
+            'Salesman' => 'products',
             'Logistic Handler' => 'purchase-orders',
             default => 'dashboard',
         };

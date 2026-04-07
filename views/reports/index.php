@@ -1,4 +1,4 @@
-<?php require __DIR__ . '/../../../core/layout/header.php'; ?>
+<?php require __DIR__ . '/../../core/layout/header.php'; ?>
 
 <header class="topbar">
     <div>
@@ -86,7 +86,7 @@
                     <td><?= e($row['name']); ?></td>
                     <td><?= e($row['sku']); ?></td>
                     <td><?= e((string) $row['category_name']); ?></td>
-                    <td><?= e(number_format((float) ($row['price_npr'] ?? 0), 2)); ?></td>
+                    <td><?= e(number_format((float) ($row['unit_price'] ?? 0), 2)); ?></td>
                     <td><?= e((string) $row['stock_quantity']); ?></td>
                     <td><?= e((string) $row['min_threshold']); ?></td>
                     <td><?= e($row['updated_at']); ?></td>

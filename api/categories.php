@@ -2,24 +2,9 @@
 
 declare(strict_types=1);
 
-<<<<<<< HEAD
-require_once __DIR__ . '/../includes/helpers.php';
-require_once __DIR__ . '/../config/db.php';
-require_once __DIR__ . '/../models/User.php';
-require_once __DIR__ . '/../models/Category.php';
-require_once __DIR__ . '/../models/Product.php';
-require_once __DIR__ . '/../controllers/authController.php';
-require_once __DIR__ . '/../controllers/categoryController.php';
-
-$pdo = getDatabaseConnection();
-$authController = new AuthController(new User($pdo));
-$categoryModel = new Category($pdo);
-$categoryController = new CategoryController($categoryModel);
-=======
 require_once __DIR__ . '/../core/dependencies.php';
 
 extract(buildAppDependencies(), EXTR_SKIP);
->>>>>>> dev
 $authController->requireAuthentication();
 $authController->authorize('categories.view');
 

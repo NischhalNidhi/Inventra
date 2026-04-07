@@ -41,7 +41,7 @@ class Report
         }
 
         $stmt = $this->pdo->prepare(
-            'SELECT p.name, p.sku, p.price_npr, p.stock_quantity, p.min_threshold, c.name AS category_name, p.updated_at
+            'SELECT p.name, p.sku, p.unit_price, p.stock_quantity, p.min_threshold, c.name AS category_name, p.updated_at
              FROM products p
              LEFT JOIN categories c ON c.id = p.category_id
              WHERE ' . implode(' AND ', $conditions) . '

@@ -106,38 +106,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 redirectTo(basePath('index.php?page=categories'));
                 break;
 
-            case 'create_supplier':
-                $authController->authorize('suppliers.manage');
-                $validated = $supplierController->validate($_POST);
-                if ($validated['errors']) {
-                    setFlash('error', implode(' ', $validated['errors']));
-                } else {
-                    $supplierModel->create($validated['data']);
-                    setFlash('success', 'Supplier created.');
-                }
-                redirectTo(basePath('index.php?page=suppliers'));
-                break;
-
-            case 'update_supplier':
-                $authController->authorize('suppliers.manage');
-                $supplierId = (int) ($_POST['supplier_id'] ?? 0);
-                $validated = $supplierController->validate($_POST);
-                if ($validated['errors']) {
-                    setFlash('error', implode(' ', $validated['errors']));
-                } else {
-                    $supplierModel->update($supplierId, $validated['data']);
-                    setFlash('success', 'Supplier updated.');
-                }
-                redirectTo(basePath('index.php?page=suppliers'));
-                break;
-
-            case 'deactivate_supplier':
-                $authController->authorize('suppliers.manage');
-                $supplierModel->deactivate((int) ($_POST['supplier_id'] ?? 0));
-                setFlash('success', 'Supplier deactivated.');
-                redirectTo(basePath('index.php?page=suppliers'));
-                break;
-
             case 'create_product':
                 $authController->authorize('products.create');
                 persistOldInput($_POST);
@@ -180,23 +148,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 redirectTo(basePath('index.php?page=products'));
                 break;
 
-            case 'adjust_stock':
-                $movementType = $_POST['movement_type'] ?? '';
-                if ($movementType === 'in') {
-                    $authController->authorize('stock.in');
-                }
-                if ($movementType === 'out') {
-                    $authController->authorize('stock.out');
-                }
-                $result = $stockController->handleAdjustment($_POST, (int) currentUser()['id']);
-                if ($result['success']) {
-                    setFlash('success', $result['message']);
-                    redirectTo(basePath('index.php?page=stock'));
-                }
-                setFlash('error', implode(' ', $result['errors']));
-                redirectTo(basePath('index.php?page=stock'));
-                break;
-
             case 'create_purchase_order':
                 $authController->authorize('po.create');
                 $validated = $poController->validateCreate($_POST);
@@ -212,6 +163,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     setFlash('success', 'Purchase order created.');
                 }
                 redirectTo(basePath('index.php?page=purchase-orders'));
+                break;
+
+            case 'create_supplier':
+                $authController->authorize('suppliers.manage');
+                $validated = $supplierController->validate($_POST);
+                if ($validated['errors']) {
+                    setFlash('error', implode(' ', $validated['errors']));
+                } else {
+                    $supplierModel->create($validated['data']);
+                    setFlash('success', 'Supplier created.');
+                }
+                redirectTo(basePath('index.php?page=suppliers'));
+                break;
+
+            case 'deactivate_supplier':
+                $authController->authorize('suppliers.manage');
+                $supplierModel->deactivate((int) ($_POST['supplier_id'] ?? 0));
+                setFlash('success', 'Supplier deactivated.');
+                redirectTo(basePath('index.php?page=suppliers'));
                 break;
 
             case 'update_po_tracking':
@@ -294,7 +264,7 @@ if (!isLoggedIn()) {
         ? 'set-password'
         : 'login';
     $passwordSetupUser = $authMode === 'set-password' ? $authController->getPendingPasswordSetupUser() : null;
-    require __DIR__ . '/../dev2/views/auth/index.php';
+    require __DIR__ . '/../views/auth/index.php';
     exit;
 }
 
@@ -310,7 +280,7 @@ switch ($page) {
         $users = $userModel->getAll($pagination['limit'], $pagination['offset']);
         $title = 'Inventra | Users';
         $currentPage = 'users';
-        require __DIR__ . '/../dev2/views/users/index.php';
+        require __DIR__ . '/../views/users/index.php';
         break;
 
     case 'categories':
@@ -318,15 +288,7 @@ switch ($page) {
         $categories = $categoryModel->getAll();
         $title = 'Inventra | Categories';
         $currentPage = 'categories';
-        require __DIR__ . '/../dev1/views/categories/index.php';
-        break;
-
-    case 'suppliers':
-        $authController->authorize('suppliers.view');
-        $suppliers = $supplierModel->getAll();
-        $title = 'Inventra | Suppliers';
-        $currentPage = 'suppliers';
-        require __DIR__ . '/../dev3/views/suppliers/index.php';
+        require __DIR__ . '/../views/categories/index.php';
         break;
 
     case 'products':
@@ -341,7 +303,7 @@ switch ($page) {
         $categories = $productModel->getCategories();
         $title = 'Inventra | Inventory';
         $currentPage = 'products';
-        require __DIR__ . '/../dev1/views/products/index.php';
+        require __DIR__ . '/../views/products/index.php';
         break;
 
     case 'new-entry':
@@ -356,26 +318,17 @@ switch ($page) {
             $authController->authorize('products.create');
         }
         $categories = $productModel->getCategories();
-        $suppliers = $productModel->getSuppliers();
+        $suppliers = $supplierModel->getAll(true);
         $title = 'Inventra | New Entry';
         $currentPage = 'new-entry';
-        require __DIR__ . '/../dev1/views/products/form.php';
-        break;
-
-    case 'stock':
-        $authController->authorize('stock.view');
-        $products = $productModel->getAll(['archived' => '0'], 200, 0);
-        $history = $stockModel->getRecentHistory(20);
-        $title = 'Inventra | Stock';
-        $currentPage = 'stock';
-        require __DIR__ . '/../dev4/views/stock/index.php';
+        require __DIR__ . '/../views/products/form.php';
         break;
 
     case 'purchase-orders':
         $authController->authorize('po.view');
         $purchaseOrders = $poModel->getAll(trim($_GET['status'] ?? '') ?: null);
-        $suppliers = $supplierModel->getAll(true);
         $products = $productModel->getAll(['archived' => '0'], 200, 0);
+        $suppliers = $supplierModel->getAll(true);
         $selectedPo = isset($_GET['id']) ? $poModel->findById((int) $_GET['id']) : null;
         $title = 'Inventra | Purchase Orders';
         $currentPage = 'purchase-orders';
@@ -416,7 +369,15 @@ switch ($page) {
 
         $title = 'Inventra | Reports';
         $currentPage = 'reports';
-        require __DIR__ . '/../dev2/views/reports/index.php';
+        require __DIR__ . '/../views/reports/index.php';
+        break;
+
+    case 'suppliers':
+        $authController->authorize('suppliers.view');
+        $suppliers = $supplierModel->getAll();
+        $title = 'Inventra | Suppliers';
+        $currentPage = 'suppliers';
+        require __DIR__ . '/../views/suppliers/index.php';
         break;
 
     case 'logout':
@@ -430,9 +391,9 @@ switch ($page) {
         $stats = $productModel->getDashboardStats();
         $featuredProducts = $productModel->getFeaturedProducts();
         $alertGraph = $productModel->getAlertGraphData();
-        $recentActivity = $stockModel->getRecentHistory(8);
+        $recentActivity = [];
         $title = 'Inventra | Dashboard';
         $currentPage = 'dashboard';
-        require __DIR__ . '/../dev3/views/dashboard/index.php';
+        require __DIR__ . '/../views/dashboard/index.php';
         break;
 }

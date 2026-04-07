@@ -18,7 +18,7 @@ $icon = $isLow ? 'precision_manufacturing' : 'architecture';
     </td>
     <td style="font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;font-size:0.8rem;"><?= e($product['sku']); ?></td>
     <td style="font-weight:800;"><?= e((string) $product['stock_quantity']); ?></td>
-    <td style="text-align:right;font-weight:600;">NRP<?= e(number_format((float) $product['unit_price'], 2)); ?></td>
+    <td style="text-align:right;font-weight:600;">NPR <?= e(number_format((float) $product['unit_price'], 2)); ?></td>
     <td>
         <span class="badge <?= $isLow ? 'low' : 'healthy'; ?>">
             <?= $isLow ? 'Low Stock Level' : 'Stable Stock'; ?>
