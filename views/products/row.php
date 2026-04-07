@@ -45,8 +45,4 @@ $icon = $isLow ? 'precision_manufacturing' : 'architecture';
             </form>
         <?php endif; ?>
     </td>
-<<<<<<< HEAD
 </tr>
-=======
-</tr>
->>>>>>> 852434b589abba0bafe28d124996a032be2a96d0

@@ -117,10 +117,7 @@ class Product
             'image_name' => $data['image_name'],
             'stock_quantity' => $data['stock_quantity'],
             'min_threshold' => $data['min_threshold'],
-<<<<<<< HEAD
-=======
             'unit_price' => $data['unit_price'],
->>>>>>> 852434b589abba0bafe28d124996a032be2a96d0
             'category_id' => $data['category_id'],
             'supplier_id' => $data['supplier_id'],
             'created_by' => $userId,
