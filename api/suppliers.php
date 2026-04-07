@@ -13,6 +13,9 @@ $pdo = getDatabaseConnection();
 $authController = new AuthController(new User($pdo));
 $supplierModel = new Supplier($pdo);
 $supplierController = new SupplierController($supplierModel);
+require_once __DIR__ . '/../core/dependencies.php';
+
+extract(buildAppDependencies(), EXTR_SKIP);
 $authController->requireAuthentication();
 $authController->authorize('suppliers.view');
 
