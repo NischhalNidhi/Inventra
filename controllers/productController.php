@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 class ProductController
 {
-    public function __construct(private readonly Product $productModel)
+    private Product $productModel;
+
+    public function __construct(Product $productModel)
     {
+        $this->productModel = $productModel;
     }
 
     public function validate(array $input, ?int $productId = null): array

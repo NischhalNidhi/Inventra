@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 class ReportController
 {
+    private Report $reportModel;
+    private ReportImportParser $importParser;
+
     public function __construct(
-        private readonly Report $reportModel,
-        private readonly ReportImportParser $importParser
+        Report $reportModel,
+        ReportImportParser $importParser
     ) {
+        $this->reportModel = $reportModel;
+        $this->importParser = $importParser;
     }
 
     public function validateSale(array $input): array
