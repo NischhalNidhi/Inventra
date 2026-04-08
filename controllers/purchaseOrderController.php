@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 class PurchaseOrderController
 {
-    public function __construct(private readonly PurchaseOrder $poModel)
+    private PurchaseOrder $poModel;
+
+    public function __construct(PurchaseOrder $poModel)
     {
+        $this->poModel = $poModel;
     }
 
     public function validateCreate(array $input): array

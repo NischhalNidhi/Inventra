@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 class Supplier
 {
-    public function __construct(private readonly PDO $pdo)
+    private PDO $pdo;
+
+    public function __construct(PDO $pdo)
     {
+        $this->pdo = $pdo;
     }
 
     public function getAll(bool $activeOnly = false): array

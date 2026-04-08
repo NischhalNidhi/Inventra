@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 class CategoryController
 {
-    public function __construct(private readonly Category $categoryModel)
+    private Category $categoryModel;
+
+    public function __construct(Category $categoryModel)
     {
+        $this->categoryModel = $categoryModel;
     }
 
     public function validate(array $input): array

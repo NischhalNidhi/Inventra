@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 class SupplierController
 {
-    public function __construct(private readonly Supplier $supplierModel)
+    private Supplier $supplierModel;
+
+    public function __construct(Supplier $supplierModel)
     {
+        $this->supplierModel = $supplierModel;
     }
 
     public function validate(array $input): array
