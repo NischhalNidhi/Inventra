@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 class UserController
 {
-    public function __construct(private readonly User $userModel)
+    private User $userModel;
+
+    public function __construct(User $userModel)
     {
+        $this->userModel = $userModel;
     }
 
     public function validateCreate(array $input): array

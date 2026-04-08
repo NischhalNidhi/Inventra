@@ -40,8 +40,11 @@ class AuthController
         ],
     ];
 
-    public function __construct(private readonly User $userModel)
+    private User $userModel;
+
+    public function __construct(User $userModel)
     {
+        $this->userModel = $userModel;
     }
 
     public function login(string $identifier, string $password): array
