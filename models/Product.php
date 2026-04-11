@@ -59,23 +59,42 @@ class Product
         return $stmt->fetchAll();
     }
 
-    public function getAll(array $filters = [], int $limit = 25, int $offset = 0): array
+    public function getAll(int $page = 1, int $perPage = 25, string $search = '', array $filters = []): array
     {
+        $offset = ($page - 1) * $perPage;
+        if ($search !== '') {
+            $filters['keyword'] = $search;
+        }
+
         [$whereSql, $params] = $this->buildFilterQuery($filters);
+        
+        $countStmt = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM products p
+             LEFT JOIN categories c ON c.id = p.category_id
+             LEFT JOIN suppliers s ON s.id = p.supplier_id ' . $whereSql
+        );
+        $countStmt->execute($params);
+        $total = (int) $countStmt->fetchColumn();
+
         $sql = 'SELECT p.*, c.name AS category_name, s.name AS supplier_name
                 FROM products p
                 LEFT JOIN categories c ON c.id = p.category_id
                 LEFT JOIN suppliers s ON s.id = p.supplier_id ' . $whereSql . '
                 ORDER BY p.updated_at DESC, p.name ASC
                 LIMIT :limit OFFSET :offset';
+        
         $stmt = $this->pdo->prepare($sql);
         foreach ($params as $key => $value) {
             $stmt->bindValue(':' . $key, $value);
         }
-        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetchAll();
+        
+        return [
+            'data' => $stmt->fetchAll(),
+            'total' => $total,
+        ];
     }
 
     public function countAll(array $filters = []): int

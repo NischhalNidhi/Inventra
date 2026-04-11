@@ -101,9 +101,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     headers: { 'X-Requested-With': 'XMLHttpRequest' },
                 });
 
-                // PHP redirects on success — follow to the new URL
-                if (response.ok || response.redirected) {
-                    window.location.href = response.url || loginForm.action;
+                const payload = await response.json().catch(() => ({}));
+
+                if (response.ok && payload.redirect) {
+                    window.location.href = payload.redirect;
                     return;
                 }
 

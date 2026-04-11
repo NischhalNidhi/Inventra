@@ -30,6 +30,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'login') {
         $result = $authController->login($_POST['identifier'] ?? '', $_POST['password'] ?? '');
         if ($result['success']) {
+            if (($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest') {
+                if (!empty($result['requires_password_setup'])) {
+                    jsonResponse(['redirect' => basePath('index.php?mode=set-password')]);
+                }
+                jsonResponse(['redirect' => basePath('index.php?page=' . $result['landing_page'])]);
+            }
             if (!empty($result['requires_password_setup'])) {
                 setFlash('success', 'First-time login detected. Set your account password to continue.');
                 redirectTo(basePath('index.php?mode=set-password'));
@@ -37,10 +43,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             setFlash('success', 'Welcome back to Inventra.');
             redirectTo(basePath('index.php?page=' . $result['landing_page']));
         }
+        if (($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest') {
+            jsonResponse(['error' => implode(' ', $result['errors']), 'code' => 'AUTH_INVALID'], 401);
+        }
         $errors = $result['errors'];
     }
 
-    if (!in_array($action, ['login', 'set_password_first_login'], true)) {
+    if (!in_array($action, ['login', 'request_password_reset', 'set_password_with_token', 'reset_password_with_token', 'set_password_first_login'], true)) {
         $authController->requireAuthentication();
     }
 
@@ -52,10 +61,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($validated['errors']) {
                     setFlash('error', implode(' ', $validated['errors']));
                 } else {
-                    $userModel->create($validated['data']);
-                    setFlash('success', 'User account created.');
+                    $userModel->createPendingSetup($validated['data']);
+                    $createdUser = $userModel->findByIdentifier((string) $validated['data']['email']);
+                    $mailResult = $createdUser ? $authController->sendAccountSetupEmail($createdUser) : ['success' => false];
+                    if ($mailResult['success']) {
+                        setFlash('success', 'User account created. A setup link was sent to the staff member.');
+                    } else {
+                        setFlash('error', 'User account created, but the setup email could not be sent. Check mail configuration.');
+                    }
                 }
                 redirectTo(basePath('index.php?page=users'));
+                break;
+
+            case 'request_password_reset':
+                $result = $authController->requestPasswordReset((string) ($_POST['email'] ?? ''));
+                if ($result['success']) {
+                    setFlash('success', $result['message']);
+                    redirectTo(basePath('index.php?mode=forgot-password'));
+                }
+                $errors = $result['errors'];
+                $page = 'forgot-password';
+                break;
+
+            case 'set_password_with_token':
+                $result = $authController->completePasswordTokenSetup(
+                    (string) ($_POST['token'] ?? ''),
+                    'account_setup',
+                    (string) ($_POST['password'] ?? ''),
+                    (string) ($_POST['password_confirm'] ?? '')
+                );
+                if ($result['success']) {
+                    setFlash('success', 'Password set successfully. You can now sign in.');
+                    redirectTo(basePath('index.php'));
+                }
+                $errors = $result['errors'];
+                $page = 'set-password';
+                break;
+
+            case 'reset_password_with_token':
+                $result = $authController->completePasswordTokenSetup(
+                    (string) ($_POST['token'] ?? ''),
+                    'password_reset',
+                    (string) ($_POST['password'] ?? ''),
+                    (string) ($_POST['password_confirm'] ?? '')
+                );
+                if ($result['success']) {
+                    setFlash('success', 'Password reset successfully. You can now sign in.');
+                    redirectTo(basePath('index.php'));
+                }
+                $errors = $result['errors'];
+                $page = 'reset-password';
                 break;
 
             case 'update_user':
@@ -302,9 +357,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 if (!isLoggedIn()) {
     $requestedMode = $_GET['mode'] ?? '';
-    $authMode = (($requestedMode === 'set-password' || $page === 'set-password') && $authController->hasPendingPasswordSetup())
-        ? 'set-password'
-        : 'login';
+    $authMode = match (true) {
+        $requestedMode === 'forgot-password' || $page === 'forgot-password' => 'forgot-password',
+        $requestedMode === 'reset-password' || $page === 'reset-password' => 'reset-password',
+        $requestedMode === 'set-password' || $page === 'set-password' || $authController->hasPendingPasswordSetup() => 'set-password',
+        default => 'login',
+    };
+    $authToken = (string) ($_GET['token'] ?? $_POST['token'] ?? '');
+    $tokenState = ['valid' => false, 'expired' => false, 'user' => null];
+    if ($authToken !== '' && $authMode === 'set-password') {
+        $tokenState = $authController->getTokenState($authToken, 'account_setup');
+    } elseif ($authToken !== '' && $authMode === 'reset-password') {
+        $tokenState = $authController->getTokenState($authToken, 'password_reset');
+    }
     $passwordSetupUser = $authMode === 'set-password' ? $authController->getPendingPasswordSetupUser() : null;
     require __DIR__ . '/../views/auth/index.php';
     exit;
@@ -327,7 +392,12 @@ switch ($page) {
 
     case 'categories':
         $authController->authorize('categories.view');
-        $categories = $categoryModel->getAll();
+        $search = trim($_GET['search'] ?? '');
+        $categoriesData = $categoryModel->getAll($pagination['page'], $pagination['limit'], $search);
+        $categories = $categoriesData['data'];
+        $totalItems = $categoriesData['total'];
+        $currentPageNum = $pagination['page'];
+        $perPage = $pagination['limit'];
         $title = 'Inventra | Categories';
         $currentPage = 'categories';
         require __DIR__ . '/../views/categories/index.php';
@@ -341,7 +411,12 @@ switch ($page) {
             'stock_level' => trim($_GET['stock_level'] ?? ''),
             'archived' => trim($_GET['archived'] ?? ''),
         ];
-        $products = $productModel->getAll($filters, $pagination['limit'], $pagination['offset']);
+        $search = trim($_GET['search'] ?? '');
+        $productsData = $productModel->getAll($pagination['page'], $pagination['limit'], $search, $filters);
+        $products = $productsData['data'];
+        $totalItems = $productsData['total'];
+        $currentPageNum = $pagination['page'];
+        $perPage = $pagination['limit'];
         $categories = $productModel->getCategories();
         $title = 'Inventra | Inventory';
         $currentPage = 'products';
@@ -360,7 +435,8 @@ switch ($page) {
             $authController->authorize('products.create');
         }
         $categories = $productModel->getCategories();
-        $suppliers = $supplierModel->getAll(true);
+        $suppliersData = $supplierModel->getAll(1, 200, '', true);
+        $suppliers = $suppliersData['data'];
         $title = 'Inventra | New Entry';
         $currentPage = 'new-entry';
         require __DIR__ . '/../views/products/form.php';
@@ -368,9 +444,17 @@ switch ($page) {
 
     case 'purchase-orders':
         $authController->authorize('po.view');
-        $purchaseOrders = $poModel->getAll(trim($_GET['status'] ?? '') ?: null);
-        $products = $productModel->getAll(['archived' => '0'], 200, 0);
-        $suppliers = $supplierModel->getAll(true);
+        $search = trim($_GET['search'] ?? '');
+        $status = trim($_GET['status'] ?? '') ?: null;
+        $poData = $poModel->getAll($pagination['page'], $pagination['limit'], $search, $status);
+        $purchaseOrders = $poData['data'];
+        $totalItems = $poData['total'];
+        $currentPageNum = $pagination['page'];
+        $perPage = $pagination['limit'];
+        $productsData = $productModel->getAll(1, 200, '', ['archived' => '0']);
+        $products = $productsData['data'];
+        $suppliersData = $supplierModel->getAll(1, 200, '', true);
+        $suppliers = $suppliersData['data'];
         $selectedPo = isset($_GET['id']) ? $poModel->findById((int) $_GET['id']) : null;
         $title = 'Inventra | Purchase Orders';
         $currentPage = 'purchase-orders';
@@ -407,7 +491,8 @@ switch ($page) {
         $lowStockReport = $canViewLow ? $reportModel->getLowStockReport() : [];
         $movementSummary = $canViewMovement ? $reportModel->getStockMovementSummary($fromDate ?: null, $toDate ?: null) : [];
         $importBatches = $authController->can('reports.import') ? $reportModel->getImportBatches(12) : [];
-        $products = $productModel->getAll(['archived' => '0'], 200, 0);
+        $productsData = $productModel->getAll(1, 200, '', ['archived' => '0']);
+        $products = $productsData['data'];
 
         $title = 'Inventra | Reports';
         $currentPage = 'reports';
@@ -416,7 +501,12 @@ switch ($page) {
 
     case 'suppliers':
         $authController->authorize('suppliers.view');
-        $suppliers = $supplierModel->getAll();
+        $search = trim($_GET['search'] ?? '');
+        $suppliersData = $supplierModel->getAll($pagination['page'], $pagination['limit'], $search);
+        $suppliers = $suppliersData['data'];
+        $totalItems = $suppliersData['total'];
+        $currentPageNum = $pagination['page'];
+        $perPage = $pagination['limit'];
         $title = 'Inventra | Suppliers';
         $currentPage = 'suppliers';
         require __DIR__ . '/../views/suppliers/index.php';

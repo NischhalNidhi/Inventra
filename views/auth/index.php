@@ -20,6 +20,7 @@ $isLogin           = $authMode === 'login';
 $authToken         = $authToken ?? '';
 $tokenState        = $tokenState ?? ['valid' => false, 'expired' => false, 'user' => null];
 $passwordSetupUser = $passwordSetupUser ?? null;
+$flash             = getFlash();
 
 // Used to decide whether to show the left panel
 $showLeftPanel = $isLogin;
@@ -219,6 +220,14 @@ if ($isSetPassword) {
             <div class="md:hidden mb-10">
                 <img src="<?= e(appRootPath('logo/inventra%20with%20logo.png')); ?>" alt="Inventra" class="h-12 rounded-xl">
             </div>
+
+            <?php if ($flash): ?>
+                <?php $isFlashError = ($flash['type'] ?? '') === 'error'; ?>
+                <div class="mb-6 <?= $isFlashError ? 'bg-error-container text-on-error-container' : 'bg-primary-container text-on-primary-container'; ?> p-4 rounded-xl flex items-start gap-3" role="alert">
+                    <span class="material-symbols-outlined text-xl mt-0.5 w-5 h-5 flex-shrink-0"><?= $isFlashError ? 'error' : 'check_circle'; ?></span>
+                    <p class="text-sm font-medium"><?= e((string) ($flash['message'] ?? '')); ?></p>
+                </div>
+            <?php endif; ?>
 
             <?php if ($isLogin): ?>
             <!-- MODE: LOGIN -->

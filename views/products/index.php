@@ -66,6 +66,12 @@
             <tr>
                 <th>Product</th>
                 <th>SKU</th>
+    <div class="table-wrap">
+        <table>
+            <thead>
+            <tr>
+                <th>Product</th>
+                <th>SKU</th>
                 <th>Qty</th>
                 <th>Price</th>
                 <th>Status</th>
@@ -82,6 +88,7 @@
             <?php endif; ?>
             </tbody>
         </table>
+        <?php require __DIR__ . '/../partials/pagination.php'; ?>
     </div>
 </section>
 

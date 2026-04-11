@@ -4,6 +4,7 @@ USE inventra;
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS report_import_row_errors;
 DROP TABLE IF EXISTS report_import_batches;
+DROP TABLE IF EXISTS login_attempts;
 DROP TABLE IF EXISTS password_tokens;
 DROP TABLE IF EXISTS password_reset_requests;
 DROP TABLE IF EXISTS sales_transactions;
@@ -42,6 +43,13 @@ CREATE TABLE IF NOT EXISTS password_tokens (
     expires_at DATETIME NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_password_tokens_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS login_attempts (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    ip VARCHAR(45) NOT NULL,
+    attempted_at DATETIME NOT NULL,
+    INDEX idx_login_attempts_ip_attempted_at (ip, attempted_at)
 );
 
 CREATE TABLE IF NOT EXISTS categories (
