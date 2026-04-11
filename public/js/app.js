@@ -1,14 +1,156 @@
 document.addEventListener('DOMContentLoaded', () => {
     const body = document.body;
     const basePath = body.dataset.basePath || '';
+    const appRoot = basePath.endsWith('/public') ? basePath.slice(0, -7) : '';
+    const apiBase = `${appRoot}/api`;
     const csrfToken = body.dataset.csrfToken || '';
     const storedTheme = window.localStorage.getItem('inventra_theme') || 'light';
     body.classList.toggle('theme-dark', storedTheme === 'dark');
 
-    const searchInput = document.querySelector('#live-search');
+    // ---------------------------------------------------------------
+    // LOGIN FORM — §5 client-side validation + loading spinner + AJAX
+    // ---------------------------------------------------------------
+    const loginForm = document.getElementById('login-form');
+    if (loginForm) {
+        const emailInput    = document.getElementById('login-email');
+        const passwordInput = document.getElementById('login-password');
+        const submitBtn     = document.getElementById('login-submit');
+        const btnIcon       = document.getElementById('login-btn-icon');
+        const spinner       = document.getElementById('login-spinner');
+        const errorBanner   = document.getElementById('auth-error-banner');
+        const emailError    = document.getElementById('email-error');
+        const passwordError = document.getElementById('password-error');
+
+        /** Hide the error banner and clear inline errors */
+        const clearErrors = () => {
+            if (errorBanner)   { errorBanner.classList.add('hidden'); }
+            if (emailError)    { emailError.classList.remove('visible'); emailError.textContent = ''; }
+            if (passwordError) { passwordError.classList.remove('visible'); passwordError.textContent = ''; }
+            emailInput?.classList.remove('field-error');
+            passwordInput?.classList.remove('field-error');
+        };
+
+        /** Show inline error below a field */
+        const showFieldError = (input, errorEl, message) => {
+            input.classList.add('field-error');
+            errorEl.textContent = message;
+            errorEl.classList.add('visible');
+            input.focus();
+        };
+
+        /** Show the generic error banner (§4.6) — always generic message */
+        const showBanner = (message) => {
+            if (!errorBanner) { return; }
+            const msgEl = errorBanner.querySelector('p');
+            if (msgEl) { msgEl.textContent = message; }
+            errorBanner.classList.remove('hidden');
+        };
+
+        /** Enter loading state — §4.5 */
+        const setLoading = (loading) => {
+            if (!submitBtn) { return; }
+            submitBtn.setAttribute('aria-busy', loading ? 'true' : 'false');
+            submitBtn.classList.toggle('loading', loading);
+            if (btnIcon) { btnIcon.style.display = loading ? 'none' : ''; }
+            if (spinner) { spinner.style.display  = loading ? ''     : 'none'; }
+        };
+
+        // Clear errors the moment user starts typing in either field (§4.6)
+        [emailInput, passwordInput].forEach((el) => {
+            if (el) {
+                el.addEventListener('input',   clearErrors);
+                el.addEventListener('keydown', clearErrors);
+            }
+        });
+
+        loginForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            clearErrors();
+
+            const email    = (emailInput?.value    || '').trim();
+            const password = (passwordInput?.value || '').trim();
+
+            // Client-side pre-flight validation (§5)
+            let hasError = false;
+            if (!email) {
+                showFieldError(emailInput, emailError, 'Email is required.');
+                hasError = true;
+            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                showFieldError(emailInput, emailError, 'Enter a valid email address.');
+                hasError = true;
+            }
+            if (!password) {
+                if (!hasError) {
+                    showFieldError(passwordInput, passwordError, 'Password is required.');
+                } else {
+                    passwordInput.classList.add('field-error');
+                    passwordError.textContent = 'Password is required.';
+                    passwordError.classList.add('visible');
+                }
+                hasError = true;
+            }
+            if (hasError) { return; }
+
+            setLoading(true);
+
+            try {
+                const formData = new FormData(loginForm);
+                const response = await fetch(loginForm.getAttribute('action'), {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                });
+
+                // PHP redirects on success — follow to the new URL
+                if (response.ok || response.redirected) {
+                    window.location.href = response.url || loginForm.action;
+                    return;
+                }
+
+                // Handle error statuses (§5 Server-Side Response Handling)
+                if (response.status === 401) {
+                    showBanner('Invalid email or password.');
+                } else if (response.status === 429) {
+                    showBanner('Too many attempts. Please wait a moment.');
+                } else {
+                    showBanner('Something went wrong. Please try again.');
+                }
+            } catch (_err) {
+                showBanner('Something went wrong. Please try again.');
+            } finally {
+                setLoading(false);
+            }
+        });
+    }
+
+    // ---------------------------------------------------------------
+    // PASSWORD VISIBILITY TOGGLE — shared across all auth forms
+    // Works with both .auth-password-input wrappers (new) and any
+    // wrapper containing [data-password-input] (legacy).
+    // ---------------------------------------------------------------
+    document.querySelectorAll('[data-password-toggle]').forEach((button) => {
+        const wrapper = button.closest('.auth-password-input');
+        const input   = wrapper?.querySelector('[data-password-input]');
+        const icon    = button.querySelector('.material-symbols-outlined');
+
+        if (!input || !icon) { return; }
+
+        button.addEventListener('click', () => {
+            const isHidden = input.getAttribute('type') === 'password';
+            input.setAttribute('type', isHidden ? 'text' : 'password');
+            icon.textContent = isHidden ? 'visibility_off' : 'visibility';
+            button.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+        });
+    });
+
+    // ---------------------------------------------------------------
+    // PRODUCT TABLE LIVE SEARCH
+    // ---------------------------------------------------------------
+    const searchInput    = document.querySelector('#live-search');
     const categoryFilter = document.querySelector('#category-filter');
-    const stockFilter = document.querySelector('#stock-filter');
-    const tableBody = document.querySelector('#product-table-body');
+    const stockFilter    = document.querySelector('#stock-filter');
+    const archivedFilter = document.querySelector('select[name="archived"]');
+    const tableBody      = document.querySelector('#product-table-body');
 
     const buildActionButtons = (product) => {
         const actions = [];
@@ -43,9 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const renderProducts = (products) => {
-        if (!tableBody) {
-            return;
-        }
+        if (!tableBody) { return; }
 
         if (!products.length) {
             tableBody.innerHTML = '<tr><td colspan="6">No products match the current filters.</td></tr>';
@@ -56,10 +196,13 @@ document.addEventListener('DOMContentLoaded', () => {
             <tr data-product-id="${product.id}">
                 <td>
                     <div style="display:flex;align-items:center;gap:12px;">
-                        <div style="width:44px;height:44px;border-radius:10px;background:var(--surface-mid);display:grid;place-items:center;">
-                            <span class="material-symbols-outlined" style="color:${product.status_class === 'low' ? 'var(--error)' : 'var(--primary)'};">
-                                ${product.status_class === 'low' ? 'precision_manufacturing' : 'architecture'}
-                            </span>
+                        <div style="width:44px;height:44px;border-radius:10px;background:var(--surface-mid);display:grid;place-items:center;overflow:hidden;">
+                            ${product.image_name 
+                                ? `<img src="${basePath}/uploads/products/${escapeHtml(product.image_name)}" alt="Product" style="width:100%;height:100%;object-fit:cover;">`
+                                : `<span class="material-symbols-outlined" style="color:${product.status_class === 'low' ? 'var(--error)' : 'var(--primary)'};">
+                                ${product.status_class === 'low' ? 'warning' : 'inventory_2'}
+                            </span>`
+                            }
                         </div>
                         <div>
                             <div style="font-weight:700;">${escapeHtml(product.name)}</div>
@@ -72,31 +215,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td style="font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;font-size:0.8rem;">${escapeHtml(product.sku)}</td>
                 <td style="font-weight:800;">${product.quantity}</td>
                 <td style="font-weight:700;">${formatCurrency(product.unit_price)}</td>
-                <td><span class="badge ${product.status_class}">${product.status_class === 'low' ? 'Low Stock Level' : 'Stable Stock'}</span></td>
+                <td><span class="badge ${product.status_class}">${product.status_class === 'low' ? 'Low Stock' : 'In Stock'}</span></td>
                 <td class="action-group">${buildActionButtons(product)}</td>
             </tr>
         `).join('');
     };
 
     const fetchProducts = debounce(async () => {
-        if (!searchInput || !tableBody) {
-            return;
-        }
+        if (!searchInput || !tableBody) { return; }
 
         const params = new URLSearchParams({
-            keyword: searchInput.value.trim(),
-            category: categoryFilter ? categoryFilter.value : '',
-            stock_level: stockFilter ? stockFilter.value : '',
+            keyword:     searchInput.value.trim(),
+            category:    categoryFilter ? categoryFilter.value : '',
+            stock_level: stockFilter    ? stockFilter.value    : '',
+            archived:    archivedFilter ? archivedFilter.value : '',
         });
 
         try {
-            const response = await fetch(`${basePath}/../api/products.php?${params.toString()}`, {
+            const response = await fetch(`${apiBase}/products.php?${params.toString()}`, {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' },
             });
 
-            if (!response.ok) {
-                return;
-            }
+            if (!response.ok) { return; }
 
             const payload = await response.json();
             renderProducts(payload.products || []);
@@ -105,39 +245,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 250);
 
-    [searchInput, categoryFilter, stockFilter].forEach((element) => {
+    [searchInput, categoryFilter, stockFilter, archivedFilter].forEach((element) => {
         if (element) {
-            element.addEventListener('input', fetchProducts);
+            element.addEventListener('input',  fetchProducts);
             element.addEventListener('change', fetchProducts);
         }
     });
 
-    document.querySelectorAll('.stepper-btn').forEach((button) => {
-        button.addEventListener('click', () => {
-            const targetId = button.dataset.stepperTarget;
-            const step = parseInt(button.dataset.step || '0', 10);
-            const input = document.getElementById(targetId);
-
-            if (!input) {
-                return;
-            }
-
-            const currentValue = parseInt(input.value || '0', 10);
-            input.value = Math.max(0, currentValue + step);
-        });
-    });
-
-    const stockForm = document.querySelector('.ajax-stock-form');
+    // ---------------------------------------------------------------
+    // STOCK FORM (AJAX)
+    // ---------------------------------------------------------------
+    const stockForm     = document.querySelector('.ajax-stock-form');
     const stockFeedback = document.querySelector('#stock-feedback');
-    const profileMenu = document.querySelector('[data-profile-menu]');
-    const profileTrigger = document.querySelector('[data-profile-trigger]');
-    const notificationsMenu = document.querySelector('[data-notifications-menu]');
-    const notificationsTrigger = document.querySelector('[data-notifications-trigger]');
-    const settingsMenu = document.querySelector('[data-settings-menu]');
-    const settingsTrigger = document.querySelector('[data-settings-trigger]');
-    const themeToggle = document.querySelector('[data-theme-toggle]');
-    const clearNotificationsButton = document.querySelector('[data-clear-notifications]');
-    const notifList = document.querySelector('[data-notif-list]');
 
     if (stockForm) {
         stockForm.addEventListener('submit', async (event) => {
@@ -145,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const formData = new FormData(stockForm);
             try {
-                const response = await fetch(`${basePath}/../api/stock.php`, {
+                const response = await fetch(`${apiBase}/stock.php`, {
                     method: 'POST',
                     body: formData,
                     headers: { 'X-Requested-With': 'XMLHttpRequest' },
@@ -164,6 +283,35 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // ---------------------------------------------------------------
+    // STEPPER BUTTONS
+    // ---------------------------------------------------------------
+    document.querySelectorAll('.stepper-btn').forEach((button) => {
+        button.addEventListener('click', () => {
+            const targetId = button.dataset.stepperTarget;
+            const step     = parseInt(button.dataset.step || '0', 10);
+            const input    = document.getElementById(targetId);
+
+            if (!input) { return; }
+
+            const currentValue = parseInt(input.value || '0', 10);
+            input.value = Math.max(0, currentValue + step);
+        });
+    });
+
+    // ---------------------------------------------------------------
+    // PROFILE / NOTIFICATIONS / SETTINGS MENUS + THEME TOGGLE
+    // ---------------------------------------------------------------
+    const profileMenu          = document.querySelector('[data-profile-menu]');
+    const profileTrigger       = document.querySelector('[data-profile-trigger]');
+    const notificationsMenu    = document.querySelector('[data-notifications-menu]');
+    const notificationsTrigger = document.querySelector('[data-notifications-trigger]');
+    const settingsMenu         = document.querySelector('[data-settings-menu]');
+    const settingsTrigger      = document.querySelector('[data-settings-trigger]');
+    const themeToggle          = document.querySelector('[data-theme-toggle]');
+    const clearNotificationsButton = document.querySelector('[data-clear-notifications]');
+    const notifList            = document.querySelector('[data-notif-list]');
 
     if (profileMenu && profileTrigger) {
         const closeAllMenus = () => {
@@ -231,18 +379,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         document.addEventListener('click', (event) => {
-            if (!profileMenu.contains(event.target) && !notificationsMenu?.contains(event.target) && !settingsMenu?.contains(event.target)) {
+            if (
+                !profileMenu.contains(event.target) &&
+                !notificationsMenu?.contains(event.target) &&
+                !settingsMenu?.contains(event.target)
+            ) {
                 closeAllMenus();
             }
         });
 
         document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') {
-                closeAllMenus();
-            }
+            if (event.key === 'Escape') { closeAllMenus(); }
         });
     }
 });
+
+// ---------------------------------------------------------------
+// UTILITIES
+// ---------------------------------------------------------------
 
 function debounce(callback, wait) {
     let timeoutId;

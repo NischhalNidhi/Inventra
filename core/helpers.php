@@ -67,6 +67,16 @@ if (session_status() === PHP_SESSION_NONE) {
             session_save_path($fallbackSessionPath);
         }
     }
+
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'domain' => $_SERVER['HTTP_HOST'] ?? '',
+        'secure' => ($_ENV['APP_ENV'] ?? '') === 'production',
+        'httponly' => true,
+        'samesite' => 'Strict'
+    ]);
+
     session_start();
 }
 

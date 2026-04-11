@@ -17,7 +17,6 @@ class UserController
         $email = strtolower(trim($input['email'] ?? ''));
         $username = strtolower(trim($input['username'] ?? ''));
         $role = trim($input['role'] ?? '');
-        $password = (string) ($input['password'] ?? '');
 
         $errors = [];
         if ($fullName === '') {
@@ -32,9 +31,6 @@ class UserController
         if (!in_array($role, ['Manager', 'Supervisor', 'Salesman', 'Logistic Handler'], true)) {
             $errors[] = 'Invalid role.';
         }
-        if (strlen($password) < 8) {
-            $errors[] = 'Password must be at least 8 characters.';
-        }
         if ($this->userModel->usernameOrEmailExists($username, $email)) {
             $errors[] = 'Email or username already exists.';
         }
@@ -46,7 +42,7 @@ class UserController
                 'email' => $email,
                 'username' => $username,
                 'role' => $role,
-                'password_hash' => password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]),
+                'password_hash' => password_hash(bin2hex(random_bytes(32)), PASSWORD_BCRYPT, ['cost' => 12]),
             ],
         ];
     }

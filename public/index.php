@@ -4,6 +4,15 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../core/dependencies.php';
 
+$cspHeader = ($_ENV['APP_ENV'] ?? '') === 'production' 
+    ? 'Content-Security-Policy' 
+    : 'Content-Security-Policy-Report-Only';
+
+header($cspHeader . ": default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self';");
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header('Referrer-Policy: same-origin');
+
 extract(buildAppDependencies(), EXTR_SKIP);
 
 $page = $_GET['page'] ?? 'dashboard';
@@ -239,6 +248,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 redirectTo(basePath('index.php'));
                 break;
 
+            case 'update_profile':
+                $userId = (int) currentUser()['id'];
+                $userRec = $userModel->findById($userId);
+                $fullName = trim($_POST['full_name'] ?? '');
+
+                if ($fullName !== '') {
+                    $userModel->update($userId, [
+                        'full_name' => $fullName,
+                        'email' => $userRec['email'],
+                        'role' => $userRec['role'],
+                    ]);
+                    $_SESSION['user']['full_name'] = $fullName;
+                }
+
+                if (!empty($_FILES['profile_image']['name']) && $_FILES['profile_image']['error'] === UPLOAD_ERR_OK) {
+                    $ext = strtolower(pathinfo($_FILES['profile_image']['name'], PATHINFO_EXTENSION));
+                    if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) {
+                        $newName = 'avatar_' . $userId . '_' . time() . '.' . $ext;
+                        if (move_uploaded_file($_FILES['profile_image']['tmp_name'], __DIR__ . '/uploads/avatars/' . $newName)) {
+                            if (!empty($userRec['profile_image']) && is_file(__DIR__ . '/uploads/avatars/' . $userRec['profile_image'])) {
+                                @unlink(__DIR__ . '/uploads/avatars/' . $userRec['profile_image']);
+                            }
+                            $userModel->updateProfileImage($userId, $newName);
+                            $_SESSION['user']['profile_image'] = $newName;
+                        }
+                    } else {
+                        setFlash('error', 'Invalid image format. Supported: JPG, PNG, WEBP.');
+                    }
+                }
+                setFlash('success', 'Profile updated.');
+                redirectTo(basePath('index.php?page=profile'));
+                break;
+
             case 'set_password_first_login':
                 $result = $authController->completeFirstLoginPasswordSetup(
                     (string) ($_POST['password'] ?? ''),
@@ -385,13 +427,20 @@ switch ($page) {
         redirectTo(basePath('index.php'));
         break;
 
+    case 'profile':
+        $title = 'Inventra | My Profile';
+        $currentPage = 'profile';
+        require __DIR__ . '/../views/profile/index.php';
+        break;
+
     case 'dashboard':
     default:
         $authController->authorize('dashboard');
         $stats = $productModel->getDashboardStats();
         $featuredProducts = $productModel->getFeaturedProducts();
         $alertGraph = $productModel->getAlertGraphData();
-        $recentActivity = [];
+        $dashboardAlerts = $productModel->getDashboardAlerts();
+        $recentActivity = $authController->can('dashboard.activity') ? $productModel->getRecentActivity() : [];
         $title = 'Inventra | Dashboard';
         $currentPage = 'dashboard';
         require __DIR__ . '/../views/dashboard/index.php';

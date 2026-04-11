@@ -14,16 +14,18 @@ function buildAppDependencies(): array
     $poModel = new PurchaseOrder($pdo);
     $reportModel = new Report($pdo);
     $supplierModel = new Supplier($pdo);
+    $mailer = new Mailer();
 
     return [
         'pdo' => $pdo,
+        'mailer' => $mailer,
         'userModel' => $userModel,
         'categoryModel' => $categoryModel,
         'productModel' => $productModel,
         'poModel' => $poModel,
         'reportModel' => $reportModel,
         'supplierModel' => $supplierModel,
-        'authController' => new AuthController($userModel),
+        'authController' => new AuthController($userModel, $mailer, $pdo),
         'userController' => new UserController($userModel),
         'categoryController' => new CategoryController($categoryModel),
         'productController' => new ProductController($productModel),
