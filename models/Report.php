@@ -54,6 +54,25 @@ class Report
         return $stmt->fetchAll();
     }
 
+    public function getInventorySummary(): array
+    {
+        $summary = $this->pdo->query(
+            'SELECT COUNT(*) AS total_skus,
+                    SUM(CASE WHEN stock_quantity <= min_threshold THEN 1 ELSE 0 END) AS low_stock_count,
+                    SUM(CASE WHEN stock_quantity = 0 THEN 1 ELSE 0 END) AS out_of_stock_count,
+                    SUM(stock_quantity * unit_price) AS inventory_value
+             FROM products
+             WHERE is_archived = 0'
+        )->fetch();
+
+        return [
+            'total_skus' => (int) ($summary['total_skus'] ?? 0),
+            'low_stock_count' => (int) ($summary['low_stock_count'] ?? 0),
+            'out_of_stock_count' => (int) ($summary['out_of_stock_count'] ?? 0),
+            'inventory_value' => round((float) ($summary['inventory_value'] ?? 0), 2),
+        ];
+    }
+
     public function getMonthlySales(?string $fromDate = null, ?string $toDate = null): array
     {
         $conditions = [];

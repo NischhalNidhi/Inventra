@@ -22,20 +22,41 @@ class PurchaseOrder
         return $poNumber;
     }
 
-    public function getAll(?string $status = null): array
+    public function getAll(int $page = 1, int $perPage = 25, string $search = '', ?string $status = null): array
     {
-        $sql = 'SELECT po.*, s.name AS supplier_name
-                FROM purchase_orders po
-                INNER JOIN suppliers s ON s.id = po.supplier_id';
+        $offset = ($page - 1) * $perPage;
+        $conditions = [];
         $params = [];
+
         if ($status) {
-            $sql .= ' WHERE po.status = :status';
+            $conditions[] = 'po.status = :status';
             $params['status'] = $status;
         }
-        $sql .= ' ORDER BY po.created_at DESC';
+        if ($search !== '') {
+            $conditions[] = '(po.po_number LIKE :search OR s.name LIKE :search)';
+            $params['search'] = '%' . $search . '%';
+        }
+
+        $joinSql = 'INNER JOIN suppliers s ON s.id = po.supplier_id';
+        $whereSql = $conditions ? 'WHERE ' . implode(' AND ', $conditions) : '';
+
+        $countStmt = $this->pdo->prepare("SELECT COUNT(*) FROM purchase_orders po $joinSql $whereSql");
+        $countStmt->execute($params);
+        $total = (int) $countStmt->fetchColumn();
+
+        $sql = "SELECT po.*, s.name AS supplier_name FROM purchase_orders po $joinSql $whereSql ORDER BY po.created_at DESC LIMIT :limit OFFSET :offset";
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($params);
-        return $stmt->fetchAll();
+        foreach ($params as $key => $value) {
+            $stmt->bindValue(":$key", $value);
+        }
+        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return [
+            'data' => $stmt->fetchAll(),
+            'total' => $total,
+        ];
     }
 
     public function findById(int $id): ?array

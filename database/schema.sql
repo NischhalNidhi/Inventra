@@ -4,6 +4,9 @@ USE inventra;
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS report_import_row_errors;
 DROP TABLE IF EXISTS report_import_batches;
+DROP TABLE IF EXISTS login_attempts;
+DROP TABLE IF EXISTS password_tokens;
+DROP TABLE IF EXISTS password_reset_requests;
 DROP TABLE IF EXISTS sales_transactions;
 DROP TABLE IF EXISTS access_requests;
 DROP TABLE IF EXISTS delivery_logs;
@@ -17,6 +20,7 @@ DROP TABLE IF EXISTS categories;
 DROP TABLE IF EXISTS users;
 SET FOREIGN_KEY_CHECKS = 1;
 
+
 CREATE TABLE IF NOT EXISTS users (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     full_name VARCHAR(120) NOT NULL,
@@ -24,10 +28,28 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(50) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     role ENUM('Manager', 'Supervisor', 'Salesman', 'Logistic Handler') NOT NULL,
+    profile_image VARCHAR(255) DEFAULT NULL,
     must_change_password TINYINT(1) NOT NULL DEFAULT 0,
     is_active TINYINT(1) NOT NULL DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS password_tokens (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    token_hash CHAR(64) NOT NULL UNIQUE,
+    purpose ENUM('account_setup', 'password_reset') NOT NULL,
+    expires_at DATETIME NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_password_tokens_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS login_attempts (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    ip VARCHAR(45) NOT NULL,
+    attempted_at DATETIME NOT NULL,
+    INDEX idx_login_attempts_ip_attempted_at (ip, attempted_at)
 );
 
 CREATE TABLE IF NOT EXISTS categories (
@@ -180,13 +202,15 @@ CREATE TABLE IF NOT EXISTS report_import_row_errors (
 
 INSERT INTO categories (name, description)
 SELECT * FROM (
-    SELECT 'Electronics' AS name, 'Electronic modules and controls' AS description
+    SELECT 'Grocery Staples' AS name, 'Daily pantry items and packaged essentials' AS description
     UNION ALL
-    SELECT 'Mechanical', 'Mechanical and machine components'
+    SELECT 'Beverages', 'Cold drinks, juices, water, and ready-to-serve beverages'
     UNION ALL
-    SELECT 'Safety', 'Safety and compliance equipment'
+    SELECT 'Snacks', 'Biscuits, chips, confectionery, and quick-grab treats'
     UNION ALL
-    SELECT 'Logistics', 'Warehouse and logistics equipment'
+    SELECT 'Household', 'Cleaning supplies, paper goods, and home-care items'
+    UNION ALL
+    SELECT 'Personal Care', 'Toiletries, hygiene, and self-care products'
 ) AS seed_categories
 WHERE NOT EXISTS (SELECT 1 FROM categories WHERE categories.name = seed_categories.name);
 

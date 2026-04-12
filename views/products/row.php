@@ -1,12 +1,16 @@
 <?php
 $isLow = (int) $product['stock_quantity'] <= (int) $product['min_threshold'];
-$icon = $isLow ? 'precision_manufacturing' : 'architecture';
+$icon = $isLow ? 'warning' : 'inventory_2';
 ?>
 <tr data-product-id="<?= e((string) $product['id']); ?>">
     <td>
         <div style="display:flex;align-items:center;gap:12px;">
-            <div style="width:44px;height:44px;border-radius:10px;background:var(--surface-mid);display:grid;place-items:center;">
-                <span class="material-symbols-outlined" style="color:<?= $isLow ? 'var(--error)' : 'var(--primary)'; ?>;"><?= e($icon); ?></span>
+            <div style="width:44px;height:44px;border-radius:10px;background:var(--surface-mid);display:grid;place-items:center;overflow:hidden;">
+                <?php if (!empty($product['image_name'])): ?>
+                    <img src="<?= e(basePath('uploads/products/' . $product['image_name'])); ?>" alt="Product" style="width:100%;height:100%;object-fit:cover;">
+                <?php else: ?>
+                    <span class="material-symbols-outlined" style="color:<?= $isLow ? 'var(--error)' : 'var(--primary)'; ?>;"><?= e($icon); ?></span>
+                <?php endif; ?>
             </div>
             <div>
                 <div style="font-weight:700;"><?= e($product['name']); ?></div>
@@ -21,7 +25,7 @@ $icon = $isLow ? 'precision_manufacturing' : 'architecture';
     <td style="text-align:right;font-weight:600;">NPR <?= e(number_format((float) $product['unit_price'], 2)); ?></td>
     <td>
         <span class="badge <?= $isLow ? 'low' : 'healthy'; ?>">
-            <?= $isLow ? 'Low Stock Level' : 'Stable Stock'; ?>
+            <?= $isLow ? 'Low Stock' : 'In Stock'; ?>
         </span>
     </td>
     <td class="action-group">

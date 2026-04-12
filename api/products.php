@@ -32,6 +32,7 @@ $data = array_map(
             'id' => (int) $product['id'],
             'name' => $product['name'],
             'sku' => $product['sku'],
+            'image_name' => $product['image_name'] ?? null,
             'category' => $product['category_name'] ?? 'Unassigned',
             'supplier' => $product['supplier_name'] ?? 'Unassigned',
             'unit_price' => (float) ($product['unit_price'] ?? 0),

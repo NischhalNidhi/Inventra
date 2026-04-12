@@ -2,9 +2,7 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../includes/helpers.php';
-require_once __DIR__ . '/../config/db.php';
-require_once __DIR__ . '/../models/User.php';
+require_once __DIR__ . '/../core/bootstrap.php';
 
 $pdo = getDatabaseConnection();
 $userModel = new User($pdo);

@@ -30,9 +30,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($validated['errors']) {
         jsonResponse(['error' => implode(' ', $validated['errors']), 'code' => 'VALIDATION_ERROR'], 422);
     }
-    $newId = $userModel->create($validated['data']);
-    jsonResponse(['user' => $userModel->findById($newId)], 201);
+
+    // BUG FIX (Task 3): Previously called $userModel->create() which skipped token
+    // generation and welcome email dispatch entirely. Now uses createPendingSetup()
+    // (is_active=0) to match the form-based flow, then fires the welcome email.
+    $newId       = $userModel->createPendingSetup($validated['data']);
+    $createdUser = $userModel->findById($newId);
+
+    // --- Respond first, then send email ---
+    // Flush the HTTP response to the client immediately so the Manager's UI
+    // is unblocked even if the mail server is slow.
+    $responseBody = json_encode(['user' => $createdUser], JSON_UNESCAPED_SLASHES);
+    http_response_code(201);
+    header('Content-Type: application/json; charset=utf-8');
+    header('Content-Length: ' . strlen($responseBody));
+    echo $responseBody;
+
+    // Signal to the SAPI that the response is complete (works on FastCGI/FPM).
+    // Falls back silently on Apache mod_php where this function does not exist.
+    if (function_exists('fastcgi_finish_request')) {
+        fastcgi_finish_request();
+    } else {
+        // Flush all output buffers so Apache sends the response payload.
+        if (ob_get_level() > 0) {
+            ob_end_flush();
+        }
+        flush();
+    }
+
+    // --- Send welcome email (fire-and-forget) ---
+    // Failures are logged but must never roll back the already-created account.
+    if ($createdUser) {
+        $mailResult = $authController->sendAccountSetupEmail($createdUser);
+        if (!$mailResult['success']) {
+            error_log('[Inventra] Welcome email failed for user ID ' . ((int) $createdUser['id']) . ': ' . implode('; ', $mailResult['errors'] ?? ['Unknown error']));
+        }
+    }
+
+    exit;
 }
+
+
 
 if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
     parse_str((string) file_get_contents('php://input'), $input);

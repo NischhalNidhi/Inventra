@@ -10,12 +10,12 @@ $user = currentUser();
         </a>
         <a class="nav-link <?= $currentPage === 'products' ? 'active' : ''; ?>" href="<?= e(basePath('index.php?page=products')); ?>" title="Inventory">
             <span class="material-symbols-outlined nav-icon">inventory_2</span>
-            <span>Inventory</span>
+            <span>Store Inventory</span>
         </a>
         <?php if ($authController->can('products.create')): ?>
             <a class="nav-link <?= $currentPage === 'new-entry' ? 'active' : ''; ?>" href="<?= e(basePath('index.php?page=new-entry')); ?>" title="New Entry">
                 <span class="material-symbols-outlined nav-icon">add</span>
-                <span>New Entry</span>
+                <span>Add Product</span>
             </a>
         <?php endif; ?>
         <?php if ($authController->can('users.view')): ?>
@@ -39,7 +39,7 @@ $user = currentUser();
         <?php if ($authController->can('po.view')): ?>
             <a class="nav-link <?= $currentPage === 'purchase-orders' ? 'active' : ''; ?>" href="<?= e(basePath('index.php?page=purchase-orders')); ?>" title="PO Tracker">
                 <span class="material-symbols-outlined nav-icon">local_shipping</span>
-                <span>PO Tracker</span>
+                <span>Purchase Orders</span>
             </a>
         <?php endif; ?>
         <?php if ($authController->can('logistics.delivery_log')): ?>

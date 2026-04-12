@@ -11,11 +11,34 @@ class Category
         $this->pdo = $pdo;
     }
 
-    public function getAll(): array
+    public function getAll(int $page = 1, int $perPage = 25, string $search = ''): array
     {
-        return $this->pdo->query(
-            'SELECT id, name, description, created_at FROM categories ORDER BY name ASC'
-        )->fetchAll();
+        $offset = ($page - 1) * $perPage;
+        
+        $where = '';
+        $params = [];
+        if ($search !== '') {
+            $where = 'WHERE name LIKE :search OR description LIKE :search';
+            $params['search'] = '%' . $search . '%';
+        }
+        
+        $countStmt = $this->pdo->prepare("SELECT COUNT(*) FROM categories $where");
+        $countStmt->execute($params);
+        $total = (int) $countStmt->fetchColumn();
+
+        $sql = "SELECT id, name, description, created_at FROM categories $where ORDER BY name ASC LIMIT :limit OFFSET :offset";
+        $stmt = $this->pdo->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue(":$key", $value);
+        }
+        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return [
+            'data' => $stmt->fetchAll(),
+            'total' => $total,
+        ];
     }
 
     public function create(string $name, ?string $description): int
