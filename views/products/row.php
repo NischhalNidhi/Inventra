@@ -6,7 +6,11 @@ $icon = $isLow ? 'precision_manufacturing' : 'architecture';
     <td>
         <div style="display:flex;align-items:center;gap:12px;">
             <div style="width:44px;height:44px;border-radius:10px;background:var(--surface-mid);display:grid;place-items:center;">
-                <span class="material-symbols-outlined" style="color:<?= $isLow ? 'var(--error)' : 'var(--primary)'; ?>;"><?= e($icon); ?></span>
+                <?php if (!empty($product['image_name'])): ?>
+                    <img src="<?= e(appRootPath('uploads/products/' . $product['image_name'])); ?>" alt="<?= e($product['name']); ?>" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">
+                <?php else: ?>
+                    <span class="material-symbols-outlined" style="color:<?= $isLow ? 'var(--error)' : 'var(--primary)'; ?>;"><?= e($icon); ?></span>
+                <?php endif; ?>
             </div>
             <div>
                 <div style="font-weight:700;"><?= e($product['name']); ?></div>

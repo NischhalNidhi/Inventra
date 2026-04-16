@@ -1,85 +1,98 @@
-<?php require __DIR__ . '/../../core/layout/header.php'; ?>
+<?php require __DIR__ . '/../../includes/header.php'; ?>
 
 <header class="topbar">
     <div>
-        <p class="eyebrow">SYSTEM CORE / INVENTORY</p>
-        <h1>Inventory Ledger</h1>
-        <p class="lead">Search, monitor, and manage active product records from a single operational view.</p>
+        <p class="eyebrow">SYSTEM CORE / REGISTRY</p>
+        <h1>High Precision Ledger</h1>
+        <p class="lead">Real-time architectural overview of structural assets and stock condition.</p>
+    </div>
+    <div class="topbar-actions">
+        <a class="button ghost" href="<?= e(basePath('index.php?page=products')); ?>">Category Filter</a>
+        <?php if ($authController->can('products.create')): ?>
+            <a class="button primary" href="<?= e(basePath('index.php?page=new-entry')); ?>"><span class="material-symbols-outlined">add</span>Provision New Asset</a>
+        <?php endif; ?>
     </div>
 </header>
 
+<section class="stats-grid">
+    <article class="stat-card primary">
+        <span class="stat-label">Active Components</span>
+        <strong><?= e((string) count($products)); ?></strong>
+        <small>Current filtered records</small>
+    </article>
+    <article class="stat-card muted">
+        <span class="stat-label">Supply Integrity</span>
+        <?php
+        $safeCount = 0;
+        foreach ($products as $item) {
+            if ((int) $item['stock_quantity'] > (int) $item['min_threshold']) {
+                $safeCount++;
+            }
+        }
+        $integrity = count($products) > 0 ? round(($safeCount / count($products)) * 100, 1) : 100;
+        ?>
+        <strong><?= e((string) $integrity); ?>%</strong>
+        <small>Products above threshold</small>
+    </article>
+    <article class="stat-card danger">
+        <span class="stat-label">Action Required</span>
+        <?php
+        $criticalCount = 0;
+        foreach ($products as $item) {
+            if ((int) $item['stock_quantity'] <= (int) $item['min_threshold']) {
+                $criticalCount++;
+            }
+        }
+        ?>
+        <strong><?= e((string) $criticalCount); ?></strong>
+        <small>Items below threshold</small>
+    </article>
+</section>
+
 <section class="panel">
-    <div class="panel-header">
-        <div>
-            <h2>Inventory Search</h2>
-            <p>Filter products by name, category, or stock state.</p>
-        </div>
-        <?php if ($authController->can('products.create')): ?>
-            <a class="button primary" href="<?= e(basePath('index.php?page=new-entry')); ?>">New Entry</a>
-        <?php endif; ?>
-    </div>
-    <form class="form-grid" method="get" action="<?= e(basePath('index.php')); ?>">
-        <input type="hidden" name="page" value="products">
-        <label>
+    <div class="panel-header filter-grid">
+        <label class="search-field">
             <span>Keyword</span>
-            <input id="live-search" type="text" name="keyword" value="<?= e($filters['keyword']); ?>" placeholder="Search name or SKU">
+            <input type="text" id="live-search" placeholder="Search name, SKU, category..." value="<?= e($filters['keyword'] ?? ''); ?>">
         </label>
-        <label>
-            <span>Category</span>
-            <select id="category-filter" name="category">
+        <label class="search-field">
+            <span>Category Filter</span>
+            <select id="category-filter">
                 <option value="">All Categories</option>
                 <?php foreach ($categories as $category): ?>
-                    <option value="<?= e((string) $category['id']); ?>" <?= selectedIf($filters['category'], (string) $category['id']); ?>>
+                    <option value="<?= e((string) $category['id']); ?>" <?= selectedIf($filters['category'] ?? '', (string) $category['id']); ?>>
                         <?= e($category['name']); ?>
                     </option>
                 <?php endforeach; ?>
             </select>
         </label>
-        <label>
-            <span>Stock State</span>
-            <select id="stock-filter" name="stock_level">
+        <label class="search-field">
+            <span>Stock Level</span>
+            <select id="stock-filter">
                 <option value="">All Levels</option>
-                <option value="healthy" <?= selectedIf($filters['stock_level'], 'healthy'); ?>>Healthy</option>
-                <option value="critical" <?= selectedIf($filters['stock_level'], 'critical'); ?>>Low Stock</option>
-                <option value="empty" <?= selectedIf($filters['stock_level'], 'empty'); ?>>Out of Stock</option>
+                <option value="healthy" <?= selectedIf($filters['stock_level'] ?? '', 'healthy'); ?>>Healthy</option>
+                <option value="critical" <?= selectedIf($filters['stock_level'] ?? '', 'critical'); ?>>Critical</option>
+                <option value="empty" <?= selectedIf($filters['stock_level'] ?? '', 'empty'); ?>>Out of Stock</option>
             </select>
         </label>
-        <label>
-            <span>Archive State</span>
-            <select name="archived">
-                <option value="" <?= selectedIf($filters['archived'], ''); ?>>Active Only</option>
-                <option value="0" <?= selectedIf($filters['archived'], '0'); ?>>Active</option>
-                <option value="1" <?= selectedIf($filters['archived'], '1'); ?>>Archived</option>
-            </select>
-        </label>
-        <button class="button ghost" type="submit">Apply Filters</button>
-    </form>
-</section>
-
-<section class="panel">
-    <div class="panel-header">
-        <h2>Product Inventory</h2>
     </div>
+
     <div class="table-wrap">
         <table>
             <thead>
             <tr>
-                <th>Product</th>
-                <th>SKU</th>
-                <th>Qty</th>
-                <th>Price</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th>Asset Specification</th>
+                <th>SKU Identifier</th>
+                <th>Quantity</th>
+                <th>Unit Price</th>
+                <th>Status Marker</th>
+                <th>Utility</th>
             </tr>
             </thead>
             <tbody id="product-table-body">
-            <?php if ($products): ?>
-                <?php foreach ($products as $product): ?>
-                    <?php require __DIR__ . '/row.php'; ?>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <tr><td colspan="6">No products match the current filters.</td></tr>
-            <?php endif; ?>
+            <?php foreach ($products as $product): ?>
+                <?php require __DIR__ . '/row.php'; ?>
+            <?php endforeach; ?>
             </tbody>
         </table>
     </div>

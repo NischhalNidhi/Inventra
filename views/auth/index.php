@@ -17,7 +17,7 @@ $title = 'Inventra Access';
 <div class="auth-shell">
     <section class="auth-left">
         <div class="auth-left-content">
-            <img class="auth-logo" src="<?= e(appRootPath('logo/inventra%20with%20logo.png')); ?>" alt="Inventra logo">
+            <img class="auth-logo" src="<?= e(appRootPath('logo/inventra_with_logo.png')); ?>" alt="Inventra logo">
             <h1>Manage your inventory easily</h1>
             <ul class="auth-feature-list">
                 <li><span class="material-symbols-outlined">check_circle</span><div><strong>Real-time Tracking</strong><small>Monitor stock levels across multiple warehouses instantly.</small></div></li>

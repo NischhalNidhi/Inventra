@@ -20,7 +20,8 @@
     </section>
 <?php endif; ?>
 
-<form class="entry-grid" method="post" enctype="multipart/form-data" action="<?= e(basePath('index.php?page=new-entry' . ($editingProduct ? '&id=' . $editingProduct['id'] : ''))); ?>">
+<form class="entry-grid" method="post" enctype="multipart/form-data"
+    action="<?= e(basePath('index.php?page=new-entry' . ($editingProduct ? '&id=' . $editingProduct['id'] : ''))); ?>">
     <input type="hidden" name="csrf_token" value="<?= e(csrfToken()); ?>">
     <input type="hidden" name="action" value="<?= $editingProduct ? 'update_product' : 'create_product'; ?>">
     <input type="hidden" name="image_name" value="<?= e((string) ($editingProduct['image_name'] ?? '')); ?>">
@@ -32,12 +33,14 @@
         <div class="section-title">Product Identity</div>
         <label>
             <span>Nominal Designation</span>
-            <input type="text" name="name" placeholder="e.g. Industrial Turbine G-400" value="<?= $editingProduct ? e($editingProduct['name']) : old('name'); ?>" required>
+            <input type="text" name="name" placeholder="e.g. Industrial Turbine G-400"
+                value="<?= $editingProduct ? e($editingProduct['name']) : old('name'); ?>" required>
         </label>
         <div class="inline-fields">
             <label>
                 <span>Internal SKU</span>
-                <input type="text" name="sku" placeholder="INV-000-0000" value="<?= $editingProduct ? e($editingProduct['sku']) : old('sku'); ?>" required>
+                <input type="text" name="sku" placeholder="INV-000-0000"
+                    value="<?= $editingProduct ? e($editingProduct['sku']) : old('sku'); ?>" required>
             </label>
             <label>
                 <span>Category</span>
@@ -54,7 +57,8 @@
         </div>
         <label>
             <span>Description</span>
-            <textarea name="description" rows="4"><?= $editingProduct ? e((string) $editingProduct['description']) : old('description'); ?></textarea>
+            <textarea name="description"
+                rows="4"><?= $editingProduct ? e((string) $editingProduct['description']) : old('description'); ?></textarea>
         </label>
         <div class="inline-fields">
             <label>
@@ -71,7 +75,9 @@
             </label>
             <label>
                 <span>Unit Price (NPR)</span>
-                <input type="number" name="unit_price" min="0" step="0.01" value="<?= $editingProduct ? e((string) $editingProduct['unit_price']) : old('unit_price', '0.00'); ?>" required>
+                <input type="number" name="unit_price" min="0" step="0.01"
+                    value="<?= $editingProduct ? e((string) $editingProduct['unit_price']) : old('unit_price', '0.00'); ?>"
+                    required>
             </label>
         </div>
     </section>
@@ -90,7 +96,15 @@
         </label>
         <label>
             <span>Current Asset Image</span>
-            <input type="text" value="<?= e((string) ($editingProduct['image_name'] ?? 'No file uploaded')); ?>" readonly>
+            <?php if ($editingProduct && !empty($editingProduct['image_name'])): ?>
+                <div style="margin-top: 10px;">
+                    <img src="<?= e(appRootPath('uploads/products/' . $editingProduct['image_name'])); ?>"
+                        alt="Current Asset"
+                        style="max-height: 150px; border-radius: 8px; border: 1px solid var(--border-color);">
+                </div>
+            <?php else: ?>
+                <input type="text" value="No file uploaded" readonly>
+            <?php endif; ?>
         </label>
     </section>
 
@@ -100,14 +114,20 @@
             <label>
                 <span>Initial Count</span>
                 <div class="stepper">
-                    <button type="button" class="stepper-btn" data-stepper-target="stock_quantity" data-step="-1">-</button>
-                    <input type="number" id="stock_quantity" name="stock_quantity" min="0" value="<?= $editingProduct ? e((string) $editingProduct['stock_quantity']) : old('stock_quantity', '0'); ?>" required>
-                    <button type="button" class="stepper-btn" data-stepper-target="stock_quantity" data-step="1">+</button>
+                    <button type="button" class="stepper-btn" data-stepper-target="stock_quantity"
+                        data-step="-1">-</button>
+                    <input type="number" id="stock_quantity" name="stock_quantity" min="0"
+                        value="<?= $editingProduct ? e((string) $editingProduct['stock_quantity']) : old('stock_quantity', '0'); ?>"
+                        required>
+                    <button type="button" class="stepper-btn" data-stepper-target="stock_quantity"
+                        data-step="1">+</button>
                 </div>
             </label>
             <label>
                 <span>Safety Threshold (Min)</span>
-                <input type="number" name="min_threshold" min="0" value="<?= $editingProduct ? e((string) $editingProduct['min_threshold']) : old('min_threshold', '0'); ?>" required>
+                <input type="number" name="min_threshold" min="0"
+                    value="<?= $editingProduct ? e((string) $editingProduct['min_threshold']) : old('min_threshold', '0'); ?>"
+                    required>
             </label>
         </div>
     </section>
@@ -116,13 +136,15 @@
         <p class="section-title inverse">Transaction Ready</p>
         <h2><?= $editingProduct ? 'Update Inventory Record' : 'Commit to Inventory'; ?></h2>
         <p>Verify all parameters before committing this asset to the global ledger.</p>
-        <button class="button wide light" type="submit"><?= $editingProduct ? 'Save Product Update' : 'Commit to Inventory'; ?></button>
+        <button class="button wide light"
+            type="submit"><?= $editingProduct ? 'Save Product Update' : 'Commit to Inventory'; ?></button>
     </aside>
 </form>
 
- </div>
+</div>
 </main>
 </div>
 <script src="<?= e(basePath('js/app.js')); ?>"></script>
 </body>
+
 </html>

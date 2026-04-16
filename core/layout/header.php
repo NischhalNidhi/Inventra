@@ -23,7 +23,7 @@ $user = currentUser();
         <header class="top-nav">
             <div class="top-nav-left">
                 <a class="top-brand-logo" href="<?= e(basePath('index.php?page=dashboard')); ?>" aria-label="Inventra Home">
-                    <img src="<?= e(appRootPath('logo/inventra%20with%20logo.png')); ?>" alt="Inventra">
+                    <img src="<?= e(appRootPath('logo/inventra_with_logo.png')); ?>" alt="Inventra">
                 </a>
                 <nav class="top-nav-links">
                     <a class="<?= $currentPage === 'dashboard' ? 'active' : ''; ?>" href="<?= e(basePath('index.php?page=dashboard')); ?>">Dashboard</a>
