@@ -62,12 +62,14 @@
     </div>
     <div class="table-wrap">
         <table>
-            <thead>
-            <tr>
-                <th>Product</th>
-                <th>SKU</th>
-    <div class="table-wrap">
-        <table>
+            <colgroup>
+                <col style="width: auto;">          <!-- Product (fills remaining space) -->
+                <col style="width: 150px;">         <!-- SKU -->
+                <col style="width: 72px;">          <!-- Qty -->
+                <col style="width: 130px;">         <!-- Price -->
+                <col style="width: 110px;">         <!-- Status -->
+                <col style="width: 220px;">         <!-- Actions -->
+            </colgroup>
             <thead>
             <tr>
                 <th>Product</th>
@@ -95,6 +97,6 @@
  </div>
 </main>
 </div>
-<script src="<?= e(basePath('js/app.js')); ?>"></script>
+<script src="<?= e(assetPath('js/app.js')); ?>"></script>
 </body>
 </html>
