@@ -67,6 +67,16 @@ if (session_status() === PHP_SESSION_NONE) {
             session_save_path($fallbackSessionPath);
         }
     }
+
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'domain' => $_SERVER['HTTP_HOST'] ?? '',
+        'secure' => ($_ENV['APP_ENV'] ?? '') === 'production',
+        'httponly' => true,
+        'samesite' => 'Strict'
+    ]);
+
     session_start();
 }
 
@@ -90,10 +100,31 @@ function basePath(string $path = ''): string
     return $path === '' ? $base : $base . '/' . ltrim($path, '/');
 }
 
+function assetPath(string $path): string
+{
+    $relativePath = ltrim($path, '/');
+    $publicPath = dirname(__DIR__) . '/public/' . $relativePath;
+    $version = is_file($publicPath) ? (string) filemtime($publicPath) : (string) time();
+
+    return basePath($relativePath) . '?v=' . $version;
+}
+
 function appRootPath(string $path = ''): string
 {
     $root = preg_replace('#/public$#', '', basePath()) ?: '/inventory-system';
     return $path === '' ? $root : $root . '/' . ltrim($path, '/');
+}
+
+function appUrl(string $path = ''): string
+{
+    $baseUrl = rtrim(env('APP_URL', ''), '/');
+    if ($baseUrl === '') {
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $baseUrl = $scheme . '://' . $host . basePath();
+    }
+
+    return $path === '' ? $baseUrl : $baseUrl . '/' . ltrim($path, '/');
 }
 
 function redirectTo(string $path): void
@@ -176,7 +207,7 @@ function selectedIf(string $actual, string $expected): string
 
 function parsePagination(array $input): array
 {
-    $page = max(1, (int) ($input['page'] ?? 1));
+    $page = max(1, (int) ($input['p'] ?? 1));
     $limit = max(1, min(100, (int) ($input['limit'] ?? 25)));
     $offset = ($page - 1) * $limit;
 

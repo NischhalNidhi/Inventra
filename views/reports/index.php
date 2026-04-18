@@ -2,27 +2,52 @@
 
 <header class="topbar">
     <div>
-        <p class="eyebrow">ANALYTICS / REPORTING</p>
-        <h1>Reports Center</h1>
-        <p class="lead">Sales, inventory, low-stock, and stock movement reporting with manual import support.</p>
+        <p class="eyebrow">MANAGER TOOLS / REPORTS</p>
+        <h1>Store Reports</h1>
+        <p class="lead">Generate inventory summaries, review low-stock items, and track sales activity with clearer store-ready reporting.</p>
     </div>
 </header>
 
+<?php if (!empty($inventorySummary)): ?>
+<section class="stats-grid">
+    <article class="stat-card primary">
+        <span class="stat-label">Total SKUs</span>
+        <strong><?= e((string) $inventorySummary['total_skus']); ?></strong>
+        <small>Active products in the catalog</small>
+    </article>
+    <article class="stat-card danger">
+        <span class="stat-label">Low Stock</span>
+        <strong><?= e((string) $inventorySummary['low_stock_count']); ?></strong>
+        <small>Items at or below minimum stock</small>
+    </article>
+    <article class="stat-card muted">
+        <span class="stat-label">Out Of Stock</span>
+        <strong><?= e((string) $inventorySummary['out_of_stock_count']); ?></strong>
+        <small>Items needing immediate replenishment</small>
+    </article>
+    <article class="stat-card primary">
+        <span class="stat-label">Inventory Value</span>
+        <strong>NPR <?= e(number_format((float) $inventorySummary['inventory_value'], 2)); ?></strong>
+        <small>Current stock multiplied by selling price</small>
+    </article>
+</section>
+<?php endif; ?>
+
 <section class="panel">
     <div class="panel-header">
-        <h2>Date Filters</h2>
+        <h2>Inventory Report Filters</h2>
         <form method="get" action="<?= e(basePath('index.php')); ?>" class="form-grid">
             <input type="hidden" name="page" value="reports">
             <label><span>From</span><input type="date" name="from_date" value="<?= e($_GET['from_date'] ?? ''); ?>"></label>
             <label><span>To</span><input type="date" name="to_date" value="<?= e($_GET['to_date'] ?? ''); ?>"></label>
-            <button class="button ghost" type="submit">Apply</button>
+            <button class="button ghost" type="submit">Generate Inventory Report</button>
         </form>
     </div>
 </section>
 
 <?php if ($authController->can('sales.record')): ?>
 <section class="panel">
-    <div class="panel-header"><h2>Record Sale</h2></div>
+    <div class="panel-header"><h2>Record In-Store Sale</h2></div>
     <form method="post" action="<?= e(basePath('index.php?page=reports')); ?>" class="form-grid">
         <input type="hidden" name="csrf_token" value="<?= e(csrfToken()); ?>">
         <input type="hidden" name="action" value="record_sale">
@@ -38,7 +63,7 @@
         <label><span>Quantity</span><input type="number" name="quantity" min="1" required></label>
         <label><span>Unit Price</span><input type="number" step="0.01" min="0.01" name="unit_price" required></label>
         <label><span>Sale Date</span><input type="date" name="sale_date" value="<?= e(todayDate()); ?>" required></label>
-        <label><span>Region</span><input type="text" name="region"></label>
+        <label><span>Counter / Branch</span><input type="text" name="region" placeholder="Optional"></label>
         <button class="button primary" type="submit">Record Sale</button>
     </form>
 </section>
@@ -46,7 +71,7 @@
 
 <?php if ($authController->can('reports.import')): ?>
 <section class="panel">
-    <div class="panel-header"><h2>Manual Report Upload (CSV/XLSX)</h2></div>
+    <div class="panel-header"><h2>Import Sales File (CSV/XLSX)</h2></div>
     <form method="post" action="<?= e(basePath('index.php?page=reports')); ?>" enctype="multipart/form-data" class="form-grid">
         <input type="hidden" name="csrf_token" value="<?= e(csrfToken()); ?>">
         <input type="hidden" name="action" value="import_sales">
@@ -77,11 +102,13 @@
 <?php if ($inventoryReport): ?>
 <section class="panel">
     <div class="panel-header"><h2>Inventory Report</h2></div>
+    <p class="lead">Use this summary for manager review, shift handover, or printing.</p>
     <div class="table-wrap">
         <table>
-            <thead><tr><th>Name</th><th>SKU</th><th>Category</th><th>Price (NPR)</th><th>Qty</th><th>Min</th><th>Updated</th></tr></thead>
+            <thead><tr><th>Product</th><th>SKU</th><th>Department</th><th>Price (NPR)</th><th>Stock</th><th>Min</th><th>Status</th><th>Updated</th></tr></thead>
             <tbody>
             <?php foreach ($inventoryReport as $row): ?>
+                <?php $isLow = (int) $row['stock_quantity'] <= (int) $row['min_threshold']; ?>
                 <tr>
                     <td><?= e($row['name']); ?></td>
                     <td><?= e($row['sku']); ?></td>
@@ -89,6 +116,7 @@
                     <td><?= e(number_format((float) ($row['unit_price'] ?? 0), 2)); ?></td>
                     <td><?= e((string) $row['stock_quantity']); ?></td>
                     <td><?= e((string) $row['min_threshold']); ?></td>
+                    <td><?= $isLow ? 'Low Stock' : 'Healthy'; ?></td>
                     <td><?= e($row['updated_at']); ?></td>
                 </tr>
             <?php endforeach; ?>
@@ -132,10 +160,10 @@
 
 <?php if ($lowStockReport): ?>
 <section class="panel">
-    <div class="panel-header"><h2>Low Stock Report</h2></div>
+    <div class="panel-header"><h2>Reorder Priority List</h2></div>
     <div class="table-wrap">
         <table>
-            <thead><tr><th>Name</th><th>SKU</th><th>Current</th><th>Min</th></tr></thead>
+            <thead><tr><th>Product</th><th>SKU</th><th>Current Stock</th><th>Minimum Stock</th></tr></thead>
             <tbody>
             <?php foreach ($lowStockReport as $row): ?>
                 <tr><td><?= e($row['name']); ?></td><td><?= e($row['sku']); ?></td><td><?= e((string) $row['stock_quantity']); ?></td><td><?= e((string) $row['min_threshold']); ?></td></tr>
@@ -165,6 +193,6 @@
  </div>
 </main>
 </div>
-<script src="<?= e(basePath('js/app.js')); ?>"></script>
+<script src="<?= e(assetPath('js/app.js')); ?>"></script>
 </body>
 </html>

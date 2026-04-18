@@ -14,7 +14,7 @@ class User
     public function findByIdentifier(string $identifier): ?array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT id, full_name, username, email, password_hash, role, is_active, must_change_password
+            'SELECT id, full_name, username, email, password_hash, role, profile_image, is_active, must_change_password
              FROM users
              WHERE username = :username OR email = :email
              LIMIT 1'
@@ -25,10 +25,20 @@ class User
         return $user ?: null;
     }
 
+    public function findActiveByIdentifier(string $identifier): ?array
+    {
+        $user = $this->findByIdentifier($identifier);
+        if (!$user || !(int) $user['is_active']) {
+            return null;
+        }
+
+        return $user;
+    }
+
     public function getAll(int $limit = 25, int $offset = 0): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT id, full_name, email, username, role, is_active, created_at
+            'SELECT id, full_name, email, username, role, profile_image, is_active, created_at
              FROM users
              ORDER BY created_at DESC
              LIMIT :limit OFFSET :offset'
@@ -87,7 +97,7 @@ class User
     public function findById(int $id): ?array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT id, full_name, email, username, role, is_active, created_at
+            'SELECT id, full_name, email, username, role, profile_image, is_active, created_at
              FROM users
              WHERE id = :id
              LIMIT 1'
@@ -122,6 +132,95 @@ class User
         $stmt->execute([
             'id' => $id,
             'password_hash' => $passwordHash,
+        ]);
+    }
+
+    public function createPendingSetup(array $data): int
+    {
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO users (full_name, email, username, password_hash, role, must_change_password, is_active)
+             VALUES (:full_name, :email, :username, :password_hash, :role, 0, 0)'
+        );
+        $stmt->execute([
+            'full_name' => $data['full_name'],
+            'email' => $data['email'],
+            'username' => $data['username'],
+            'password_hash' => $data['password_hash'],
+            'role' => $data['role'],
+        ]);
+
+        return (int) $this->pdo->lastInsertId();
+    }
+
+    public function createPasswordToken(int $userId, string $purpose, string $tokenHash, string $expiresAt): void
+    {
+        $this->deletePasswordTokens($userId, $purpose);
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO password_tokens (user_id, token_hash, purpose, expires_at)
+             VALUES (:user_id, :token_hash, :purpose, :expires_at)'
+        );
+        $stmt->execute([
+            'user_id' => $userId,
+            'token_hash' => $tokenHash,
+            'purpose' => $purpose,
+            'expires_at' => $expiresAt,
+        ]);
+    }
+
+    public function findPasswordToken(string $tokenHash, string $purpose): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT pt.*, u.email, u.username, u.full_name, u.role, u.is_active
+             FROM password_tokens pt
+             INNER JOIN users u ON u.id = pt.user_id
+             WHERE pt.token_hash = :token_hash AND pt.purpose = :purpose
+             LIMIT 1'
+        );
+        $stmt->execute([
+            'token_hash' => $tokenHash,
+            'purpose' => $purpose,
+        ]);
+        $token = $stmt->fetch();
+
+        return $token ?: null;
+    }
+
+    public function deletePasswordTokenByHash(string $tokenHash): void
+    {
+        $stmt = $this->pdo->prepare('DELETE FROM password_tokens WHERE token_hash = :token_hash');
+        $stmt->execute(['token_hash' => $tokenHash]);
+    }
+
+    public function deletePasswordTokens(int $userId, string $purpose): void
+    {
+        $stmt = $this->pdo->prepare('DELETE FROM password_tokens WHERE user_id = :user_id AND purpose = :purpose');
+        $stmt->execute(['user_id' => $userId, 'purpose' => $purpose]);
+    }
+
+    public function deleteExpiredPasswordTokens(): void
+    {
+        $this->pdo->exec('DELETE FROM password_tokens WHERE expires_at < CURRENT_TIMESTAMP');
+    }
+
+    public function activateWithPassword(int $id, string $passwordHash): void
+    {
+        $stmt = $this->pdo->prepare(
+            'UPDATE users
+             SET password_hash = :password_hash, must_change_password = 0, is_active = 1
+             WHERE id = :id'
+        );
+        $stmt->execute([
+            'id' => $id,
+            'password_hash' => $passwordHash,
+        ]);
+    }
+
+    public function updateProfileImage(int $id, ?string $imageName): void
+    {
+        $stmt = $this->pdo->prepare('UPDATE users SET profile_image = :profile_image WHERE id = :id');
+        $stmt->execute([
+            'id' => $id,
+            'profile_image' => $imageName,
         ]);
     }
 }

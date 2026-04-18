@@ -2,15 +2,15 @@
 
 <header class="topbar">
     <div>
-        <p class="eyebrow">ACCESS CONTROL / STAFF</p>
-        <h1>User Management</h1>
-        <p class="lead">Manager-only account creation, role assignment, and deactivation.</p>
+        <p class="eyebrow">STORE TEAM / ACCESS</p>
+        <h1>Staff Accounts</h1>
+        <p class="lead">Create staff accounts and send secure welcome setup links to new team members.</p>
     </div>
 </header>
 
 <section class="panel">
     <div class="panel-header">
-        <h2>Create Staff Account</h2>
+        <h2>Add Staff Account</h2>
     </div>
     <form class="form-grid" method="post" action="<?= e(basePath('index.php?page=users')); ?>">
         <input type="hidden" name="csrf_token" value="<?= e(csrfToken()); ?>">
@@ -27,8 +27,8 @@
                 <option value="Manager">Manager</option>
             </select>
         </label>
-        <label class="wide"><span>Password</span><input type="password" name="password" required></label>
-        <button class="button primary wide" type="submit">Create User</button>
+        <p class="lead wide">A one-time setup link will be emailed to this staff member. The link expires after 24 hours.</p>
+        <button class="button primary wide" type="submit">Create Account and Send Welcome Email</button>
     </form>
 </section>
 
@@ -49,13 +49,18 @@
                     <td><?= e($staff['username']); ?></td>
                     <td><?= e($staff['role']); ?></td>
                     <td><?= (int) $staff['is_active'] ? 'Active' : 'Inactive'; ?></td>
-                    <td class="action-group">
+                    <td class="td-actions">
+                        <div class="action-group">
                         <form method="post" action="<?= e(basePath('index.php?page=users')); ?>">
                             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()); ?>">
                             <input type="hidden" name="action" value="deactivate_user">
                             <input type="hidden" name="user_id" value="<?= e((string) $staff['id']); ?>">
-                            <button class="button small danger-outline" type="submit">Deactivate</button>
+                            <button class="btn-action btn-delete" type="submit" title="Deactivate user">
+                                <span class="material-symbols-outlined">person_off</span>
+                                <span class="btn-label">Deactivate</span>
+                            </button>
                         </form>
+                        </div>
                     </td>
                 </tr>
             <?php endforeach; ?>
@@ -67,6 +72,6 @@
  </div>
 </main>
 </div>
-<script src="<?= e(basePath('js/app.js')); ?>"></script>
+<script src="<?= e(assetPath('js/app.js')); ?>"></script>
 </body>
 </html>

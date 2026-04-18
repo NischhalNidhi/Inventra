@@ -23,15 +23,19 @@ $filters = [
 ];
 $pagination = parsePagination($_GET);
 
-$products = $productModel->getAll($filters, $pagination['limit'], $pagination['offset']);
+$productsData = $productModel->getAll($pagination['page'], $pagination['limit'], '', $filters);
+$products = $productsData['data'];
 $data = array_map(
     static function (array $product) use ($authController): array {
         $low = (int) $product['stock_quantity'] <= (int) $product['min_threshold'];
+        $imageName = !empty($product['image_name']) ? basename((string) $product['image_name']) : null;
+        $imagePath = $imageName ? dirname(__DIR__) . '/public/uploads/products/' . $imageName : null;
 
         return [
             'id' => (int) $product['id'],
             'name' => $product['name'],
             'sku' => $product['sku'],
+            'image_name' => $imagePath && is_file($imagePath) ? $imageName : null,
             'category' => $product['category_name'] ?? 'Unassigned',
             'supplier' => $product['supplier_name'] ?? 'Unassigned',
             'unit_price' => (float) ($product['unit_price'] ?? 0),
@@ -41,7 +45,7 @@ $data = array_map(
             'status_class' => $low ? 'low' : 'healthy',
             'edit_url' => basePath('index.php?page=new-entry&id=' . $product['id']),
             'can_edit' => $authController->can('products.edit'),
-            'can_archive' => $authController->can('products.archive'),
+            'can_archive' => $authController->can('products.archive') && (int) $product['is_archived'] === 0,
             'can_delete' => $authController->can('products.delete'),
         ];
     },
@@ -52,5 +56,5 @@ echo json_encode([
     'products' => $data,
     'page' => $pagination['page'],
     'limit' => $pagination['limit'],
-    'total' => $productModel->countAll($filters),
+    'total' => $productsData['total'],
 ]);

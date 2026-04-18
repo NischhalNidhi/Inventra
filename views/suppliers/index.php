@@ -36,26 +36,32 @@
                     <td><?= e($supplier['email']); ?></td>
                     <td><?= e((string) $supplier['phone']); ?></td>
                     <td><?= (int) $supplier['is_active'] ? 'Active' : 'Inactive'; ?></td>
-                    <td class="action-group">
+                    <td class="td-actions">
                         <?php if ($authController->can('suppliers.manage') && (int) $supplier['is_active'] === 1): ?>
+                            <div class="action-group">
                             <form method="post" action="<?= e(basePath('index.php?page=suppliers')); ?>">
                                 <input type="hidden" name="csrf_token" value="<?= e(csrfToken()); ?>">
                                 <input type="hidden" name="action" value="deactivate_supplier">
                                 <input type="hidden" name="supplier_id" value="<?= e((string) $supplier['id']); ?>">
-                                <button class="button small danger-outline" type="submit">Deactivate</button>
+                                <button class="btn-action btn-delete" type="submit" title="Deactivate supplier">
+                                    <span class="material-symbols-outlined">block</span>
+                                    <span class="btn-label">Deactivate</span>
+                                </button>
                             </form>
+                            </div>
                         <?php endif; ?>
                     </td>
                 </tr>
             <?php endforeach; ?>
             </tbody>
         </table>
+        <?php require __DIR__ . '/../partials/pagination.php'; ?>
     </div>
 </section>
 
  </div>
 </main>
 </div>
-<script src="<?= e(basePath('js/app.js')); ?>"></script>
+<script src="<?= e(assetPath('js/app.js')); ?>"></script>
 </body>
 </html>

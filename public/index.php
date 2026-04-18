@@ -4,6 +4,15 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../core/dependencies.php';
 
+$cspHeader = ($_ENV['APP_ENV'] ?? '') === 'production' 
+    ? 'Content-Security-Policy' 
+    : 'Content-Security-Policy-Report-Only';
+
+header($cspHeader . ": default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self';");
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header('Referrer-Policy: same-origin');
+
 extract(buildAppDependencies(), EXTR_SKIP);
 
 $page = $_GET['page'] ?? 'dashboard';
@@ -21,6 +30,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'login') {
         $result = $authController->login($_POST['identifier'] ?? '', $_POST['password'] ?? '');
         if ($result['success']) {
+            if (($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest') {
+                if (!empty($result['requires_password_setup'])) {
+                    jsonResponse(['redirect' => basePath('index.php?mode=set-password')]);
+                }
+                jsonResponse(['redirect' => basePath('index.php?page=' . $result['landing_page'])]);
+            }
             if (!empty($result['requires_password_setup'])) {
                 setFlash('success', 'First-time login detected. Set your account password to continue.');
                 redirectTo(basePath('index.php?mode=set-password'));
@@ -28,10 +43,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             setFlash('success', 'Welcome back to Inventra.');
             redirectTo(basePath('index.php?page=' . $result['landing_page']));
         }
+        if (($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest') {
+            jsonResponse(['error' => implode(' ', $result['errors']), 'code' => 'AUTH_INVALID'], 401);
+        }
         $errors = $result['errors'];
     }
 
-    if (!in_array($action, ['login', 'set_password_first_login'], true)) {
+    if (!in_array($action, ['login', 'request_password_reset', 'set_password_with_token', 'reset_password_with_token', 'set_password_first_login'], true)) {
         $authController->requireAuthentication();
     }
 
@@ -43,10 +61,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($validated['errors']) {
                     setFlash('error', implode(' ', $validated['errors']));
                 } else {
-                    $userModel->create($validated['data']);
-                    setFlash('success', 'User account created.');
+                    $userModel->createPendingSetup($validated['data']);
+                    $createdUser = $userModel->findByIdentifier((string) $validated['data']['email']);
+                    $mailResult = $createdUser ? $authController->sendAccountSetupEmail($createdUser) : ['success' => false];
+                    if ($mailResult['success']) {
+                        setFlash('success', 'User account created. A setup link was sent to the staff member.');
+                    } else {
+                        setFlash('error', 'User account created, but the setup email could not be sent. Check mail configuration.');
+                    }
                 }
                 redirectTo(basePath('index.php?page=users'));
+                break;
+
+            case 'request_password_reset':
+                $result = $authController->requestPasswordReset((string) ($_POST['email'] ?? ''));
+                if ($result['success']) {
+                    setFlash('success', $result['message']);
+                    redirectTo(basePath('index.php?mode=forgot-password'));
+                }
+                $errors = $result['errors'];
+                $page = 'forgot-password';
+                break;
+
+            case 'set_password_with_token':
+                $result = $authController->completePasswordTokenSetup(
+                    (string) ($_POST['token'] ?? ''),
+                    'account_setup',
+                    (string) ($_POST['password'] ?? ''),
+                    (string) ($_POST['password_confirm'] ?? '')
+                );
+                if ($result['success']) {
+                    setFlash('success', 'Password set successfully. You can now sign in.');
+                    redirectTo(basePath('index.php'));
+                }
+                $errors = $result['errors'];
+                $page = 'set-password';
+                break;
+
+            case 'reset_password_with_token':
+                $result = $authController->completePasswordTokenSetup(
+                    (string) ($_POST['token'] ?? ''),
+                    'password_reset',
+                    (string) ($_POST['password'] ?? ''),
+                    (string) ($_POST['password_confirm'] ?? '')
+                );
+                if ($result['success']) {
+                    setFlash('success', 'Password reset successfully. You can now sign in.');
+                    redirectTo(basePath('index.php'));
+                }
+                $errors = $result['errors'];
+                $page = 'reset-password';
                 break;
 
             case 'update_user':
@@ -239,6 +303,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 redirectTo(basePath('index.php'));
                 break;
 
+            case 'update_profile':
+                $userId = (int) currentUser()['id'];
+                $userRec = $userModel->findById($userId);
+                $fullName = trim($_POST['full_name'] ?? '');
+
+                if ($fullName !== '') {
+                    $userModel->update($userId, [
+                        'full_name' => $fullName,
+                        'email' => $userRec['email'],
+                        'role' => $userRec['role'],
+                    ]);
+                    $_SESSION['user']['full_name'] = $fullName;
+                }
+
+                if (!empty($_FILES['profile_image']['name']) && $_FILES['profile_image']['error'] === UPLOAD_ERR_OK) {
+                    $ext = strtolower(pathinfo($_FILES['profile_image']['name'], PATHINFO_EXTENSION));
+                    if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) {
+                        $newName = 'avatar_' . $userId . '_' . time() . '.' . $ext;
+                        if (move_uploaded_file($_FILES['profile_image']['tmp_name'], __DIR__ . '/uploads/avatars/' . $newName)) {
+                            if (!empty($userRec['profile_image']) && is_file(__DIR__ . '/uploads/avatars/' . $userRec['profile_image'])) {
+                                @unlink(__DIR__ . '/uploads/avatars/' . $userRec['profile_image']);
+                            }
+                            $userModel->updateProfileImage($userId, $newName);
+                            $_SESSION['user']['profile_image'] = $newName;
+                        }
+                    } else {
+                        setFlash('error', 'Invalid image format. Supported: JPG, PNG, WEBP.');
+                    }
+                }
+                setFlash('success', 'Profile updated.');
+                redirectTo(basePath('index.php?page=profile'));
+                break;
+
             case 'set_password_first_login':
                 $result = $authController->completeFirstLoginPasswordSetup(
                     (string) ($_POST['password'] ?? ''),
@@ -260,9 +357,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 if (!isLoggedIn()) {
     $requestedMode = $_GET['mode'] ?? '';
-    $authMode = (($requestedMode === 'set-password' || $page === 'set-password') && $authController->hasPendingPasswordSetup())
-        ? 'set-password'
-        : 'login';
+    $authMode = match (true) {
+        $requestedMode === 'forgot-password' || $page === 'forgot-password' => 'forgot-password',
+        $requestedMode === 'reset-password' || $page === 'reset-password' => 'reset-password',
+        $requestedMode === 'set-password' || $page === 'set-password' || $authController->hasPendingPasswordSetup() => 'set-password',
+        default => 'login',
+    };
+    $authToken = (string) ($_GET['token'] ?? $_POST['token'] ?? '');
+    $tokenState = ['valid' => false, 'expired' => false, 'user' => null];
+    if ($authToken !== '' && $authMode === 'set-password') {
+        $tokenState = $authController->getTokenState($authToken, 'account_setup');
+    } elseif ($authToken !== '' && $authMode === 'reset-password') {
+        $tokenState = $authController->getTokenState($authToken, 'password_reset');
+    }
     $passwordSetupUser = $authMode === 'set-password' ? $authController->getPendingPasswordSetupUser() : null;
     require __DIR__ . '/../views/auth/index.php';
     exit;
@@ -285,7 +392,12 @@ switch ($page) {
 
     case 'categories':
         $authController->authorize('categories.view');
-        $categories = $categoryModel->getAll();
+        $search = trim($_GET['search'] ?? '');
+        $categoriesData = $categoryModel->getAll($pagination['page'], $pagination['limit'], $search);
+        $categories = $categoriesData['data'];
+        $totalItems = $categoriesData['total'];
+        $currentPageNum = $pagination['page'];
+        $perPage = $pagination['limit'];
         $title = 'Inventra | Categories';
         $currentPage = 'categories';
         require __DIR__ . '/../views/categories/index.php';
@@ -299,7 +411,12 @@ switch ($page) {
             'stock_level' => trim($_GET['stock_level'] ?? ''),
             'archived' => trim($_GET['archived'] ?? ''),
         ];
-        $products = $productModel->getAll($filters, $pagination['limit'], $pagination['offset']);
+        $search = trim($_GET['search'] ?? '');
+        $productsData = $productModel->getAll($pagination['page'], $pagination['limit'], $search, $filters);
+        $products = $productsData['data'];
+        $totalItems = $productsData['total'];
+        $currentPageNum = $pagination['page'];
+        $perPage = $pagination['limit'];
         $categories = $productModel->getCategories();
         $title = 'Inventra | Inventory';
         $currentPage = 'products';
@@ -318,7 +435,8 @@ switch ($page) {
             $authController->authorize('products.create');
         }
         $categories = $productModel->getCategories();
-        $suppliers = $supplierModel->getAll(true);
+        $suppliersData = $supplierModel->getAll(1, 200, '', true);
+        $suppliers = $suppliersData['data'];
         $title = 'Inventra | New Entry';
         $currentPage = 'new-entry';
         require __DIR__ . '/../views/products/form.php';
@@ -326,9 +444,17 @@ switch ($page) {
 
     case 'purchase-orders':
         $authController->authorize('po.view');
-        $purchaseOrders = $poModel->getAll(trim($_GET['status'] ?? '') ?: null);
-        $products = $productModel->getAll(['archived' => '0'], 200, 0);
-        $suppliers = $supplierModel->getAll(true);
+        $search = trim($_GET['search'] ?? '');
+        $status = trim($_GET['status'] ?? '') ?: null;
+        $poData = $poModel->getAll($pagination['page'], $pagination['limit'], $search, $status);
+        $purchaseOrders = $poData['data'];
+        $totalItems = $poData['total'];
+        $currentPageNum = $pagination['page'];
+        $perPage = $pagination['limit'];
+        $productsData = $productModel->getAll(1, 200, '', ['archived' => '0']);
+        $products = $productsData['data'];
+        $suppliersData = $supplierModel->getAll(1, 200, '', true);
+        $suppliers = $suppliersData['data'];
         $selectedPo = isset($_GET['id']) ? $poModel->findById((int) $_GET['id']) : null;
         $title = 'Inventra | Purchase Orders';
         $currentPage = 'purchase-orders';
@@ -359,13 +485,15 @@ switch ($page) {
         $canViewMovement = $authController->can('reports.stock_movement');
         $authController->authorize($canViewDaily ? 'reports.sales.daily' : 'reports.inventory');
 
+        $inventorySummary = $canViewInventory ? $reportModel->getInventorySummary() : [];
         $inventoryReport = $canViewInventory ? $reportModel->getInventoryReport($fromDate ?: null, $toDate ?: null) : [];
         $monthlySales = $canViewMonthly ? $reportModel->getMonthlySales($fromDate ?: null, $toDate ?: null) : [];
         $dailySales = $canViewDaily ? $reportModel->getDailySales($fromDate ?: null, $toDate ?: null) : [];
         $lowStockReport = $canViewLow ? $reportModel->getLowStockReport() : [];
         $movementSummary = $canViewMovement ? $reportModel->getStockMovementSummary($fromDate ?: null, $toDate ?: null) : [];
         $importBatches = $authController->can('reports.import') ? $reportModel->getImportBatches(12) : [];
-        $products = $productModel->getAll(['archived' => '0'], 200, 0);
+        $productsData = $productModel->getAll(1, 200, '', ['archived' => '0']);
+        $products = $productsData['data'];
 
         $title = 'Inventra | Reports';
         $currentPage = 'reports';
@@ -374,7 +502,12 @@ switch ($page) {
 
     case 'suppliers':
         $authController->authorize('suppliers.view');
-        $suppliers = $supplierModel->getAll();
+        $search = trim($_GET['search'] ?? '');
+        $suppliersData = $supplierModel->getAll($pagination['page'], $pagination['limit'], $search);
+        $suppliers = $suppliersData['data'];
+        $totalItems = $suppliersData['total'];
+        $currentPageNum = $pagination['page'];
+        $perPage = $pagination['limit'];
         $title = 'Inventra | Suppliers';
         $currentPage = 'suppliers';
         require __DIR__ . '/../views/suppliers/index.php';
@@ -385,13 +518,20 @@ switch ($page) {
         redirectTo(basePath('index.php'));
         break;
 
+    case 'profile':
+        $title = 'Inventra | My Profile';
+        $currentPage = 'profile';
+        require __DIR__ . '/../views/profile/index.php';
+        break;
+
     case 'dashboard':
     default:
         $authController->authorize('dashboard');
         $stats = $productModel->getDashboardStats();
         $featuredProducts = $productModel->getFeaturedProducts();
         $alertGraph = $productModel->getAlertGraphData();
-        $recentActivity = [];
+        $dashboardAlerts = $productModel->getDashboardAlerts();
+        $recentActivity = $authController->can('dashboard.activity') ? $productModel->getRecentActivity() : [];
         $title = 'Inventra | Dashboard';
         $currentPage = 'dashboard';
         require __DIR__ . '/../views/dashboard/index.php';
