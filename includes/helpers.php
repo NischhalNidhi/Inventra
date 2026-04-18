@@ -22,14 +22,19 @@ function env(string $key, ?string $default = null): ?string
 
 function basePath(string $path = ''): string
 {
-    $base = env('APP_BASE_PATH', '/inventory-system/public');
-    return $path === '' ? $base : $base . '/' . ltrim($path, '/');
+    $base = env('APP_BASE_PATH');
+    if ($base === null) {
+        $base = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
+        $base = rtrim($base, '/');
+    }
+    return $path === '' ? ($base === '' ? '/' : $base) : $base . '/' . ltrim($path, '/');
 }
 
 function appRootPath(string $path = ''): string
 {
-    $root = preg_replace('#/public$#', '', basePath()) ?: '/inventory-system';
-    return $path === '' ? $root : $root . '/' . ltrim($path, '/');
+    $root = (string) preg_replace('#/public$#', '', basePath());
+    $root = $root === '' ? '/' : $root;
+    return $path === '' ? $root : rtrim($root, '/') . '/' . ltrim($path, '/');
 }
 
 function redirectTo(string $path): void
