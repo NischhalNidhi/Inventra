@@ -20,8 +20,7 @@
     </section>
 <?php endif; ?>
 
-<form class="entry-grid" method="post" enctype="multipart/form-data"
-    action="<?= e(basePath('index.php?page=new-entry' . ($editingProduct ? '&id=' . $editingProduct['id'] : ''))); ?>">
+<form class="entry-grid" method="post" enctype="multipart/form-data" action="<?= e(basePath('index.php?page=new-entry' . ($editingProduct ? '&id=' . $editingProduct['id'] : ''))); ?>">
     <input type="hidden" name="csrf_token" value="<?= e(csrfToken()); ?>">
     <input type="hidden" name="action" value="<?= $editingProduct ? 'update_product' : 'create_product'; ?>">
     <input type="hidden" name="image_name" value="<?= e((string) ($editingProduct['image_name'] ?? '')); ?>">
@@ -55,8 +54,7 @@
         </div>
         <label>
             <span>Description</span>
-            <textarea name="description"
-                rows="4"><?= $editingProduct ? e((string) $editingProduct['description']) : old('description'); ?></textarea>
+            <textarea name="description" rows="4"><?= $editingProduct ? e((string) $editingProduct['description']) : old('description'); ?></textarea>
         </label>
         <div class="inline-fields">
             <label>
@@ -102,13 +100,9 @@
             <label>
                 <span>Opening Stock</span>
                 <div class="stepper">
-                    <button type="button" class="stepper-btn" data-stepper-target="stock_quantity"
-                        data-step="-1">-</button>
-                    <input type="number" id="stock_quantity" name="stock_quantity" min="0"
-                        value="<?= $editingProduct ? e((string) $editingProduct['stock_quantity']) : old('stock_quantity', '0'); ?>"
-                        required>
-                    <button type="button" class="stepper-btn" data-stepper-target="stock_quantity"
-                        data-step="1">+</button>
+                    <button type="button" class="stepper-btn" data-stepper-target="stock_quantity" data-step="-1">-</button>
+                    <input type="number" id="stock_quantity" name="stock_quantity" min="0" value="<?= $editingProduct ? e((string) $editingProduct['stock_quantity']) : old('stock_quantity', '0'); ?>" required>
+                    <button type="button" class="stepper-btn" data-stepper-target="stock_quantity" data-step="1">+</button>
                 </div>
             </label>
             <label>
@@ -126,10 +120,9 @@
     </aside>
 </form>
 
-</div>
+ </div>
 </main>
 </div>
-<script src="<?= e(assetPath('js/app.js')); ?>"></script>
+<script src="<?= e(basePath('js/app.js')); ?>"></script>
 </body>
-
 </html>

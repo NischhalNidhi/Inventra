@@ -12,6 +12,11 @@ function loadEnvFile(?string $path = null): void
 
     $loaded = true;
     $envPath = $path ?? dirname(__DIR__) . '/.env';
+    if (!is_file($envPath)) {
+        if ($path === null) {
+            $envPath = dirname(__DIR__) . '/.env.example';
+        }
+    }
     if (!is_file($envPath) || !is_readable($envPath)) {
         return;
     }
@@ -102,15 +107,6 @@ function basePath(string $path = ''): string
         $base = rtrim($base, '/');
     }
     return $path === '' ? ($base === '' ? '/' : $base) : $base . '/' . ltrim($path, '/');
-}
-
-function assetPath(string $path): string
-{
-    $relativePath = ltrim($path, '/');
-    $publicPath = dirname(__DIR__) . '/public/' . $relativePath;
-    $version = is_file($publicPath) ? (string) filemtime($publicPath) : (string) time();
-
-    return basePath($relativePath) . '?v=' . $version;
 }
 
 function appRootPath(string $path = ''): string

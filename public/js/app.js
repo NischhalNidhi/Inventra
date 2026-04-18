@@ -157,12 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const actions = [];
 
         if (product.can_edit) {
-            actions.push(`
-                <a class="btn-action btn-edit" href="${product.edit_url}" title="Edit product">
-                    <span class="material-symbols-outlined">edit</span>
-                    <span class="btn-label">Edit</span>
-                </a>
-            `);
+            actions.push(`<a class="button small ghost" href="${product.edit_url}">Edit</a>`);
         }
 
         if (product.can_archive) {
@@ -171,24 +166,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     <input type="hidden" name="csrf_token" value="${csrfToken}">
                     <input type="hidden" name="action" value="archive_product">
                     <input type="hidden" name="product_id" value="${product.id}">
-                    <button class="btn-action btn-archive" type="submit" title="Archive product">
-                        <span class="material-symbols-outlined">archive</span>
-                        <span class="btn-label">Archive</span>
-                    </button>
+                    <button class="button small ghost" type="submit">Archive</button>
                 </form>
             `);
         }
 
         if (product.can_delete) {
             actions.push(`
-                <form method="post" action="${basePath}/index.php?page=products" onsubmit="return confirm('Permanently delete this product?');">
+                <form method="post" action="${basePath}/index.php?page=products" onsubmit="return confirm('Delete this product?');">
                     <input type="hidden" name="csrf_token" value="${csrfToken}">
                     <input type="hidden" name="action" value="delete_product">
                     <input type="hidden" name="product_id" value="${product.id}">
-                    <button class="btn-action btn-delete" type="submit" title="Delete product">
-                        <span class="material-symbols-outlined">delete</span>
-                        <span class="btn-label">Delete</span>
-                    </button>
+                    <button class="button small danger-outline" type="submit">Delete</button>
                 </form>
             `);
         }
@@ -205,33 +194,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         tableBody.innerHTML = products.map((product) => `
-            <tr class="product-row" data-product-id="${product.id}">
+            <tr data-product-id="${product.id}">
                 <td>
-                    <div class="product-cell-main">
-                        <div class="product-cell-image">
-                            ${product.image_name
-                                ? `<img src="${basePath}/uploads/products/${escapeHtml(product.image_name)}" alt="${escapeHtml(product.name)}" width="48" height="48">`
-                                : '<span class="material-symbols-outlined product-placeholder-icon icon-muted">inventory_2</span>'
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <div style="width:44px;height:44px;border-radius:10px;background:var(--surface-mid);display:grid;place-items:center;overflow:hidden;">
+                            ${product.image_name 
+                                ? `<img src="${basePath}/uploads/products/${escapeHtml(product.image_name)}" alt="Product" style="width:100%;height:100%;object-fit:cover;">`
+                                : `<span class="material-symbols-outlined" style="color:${product.status_class === 'low' ? 'var(--error)' : 'var(--primary)'};">
+                                ${product.status_class === 'low' ? 'warning' : 'inventory_2'}
+                            </span>`
                             }
                         </div>
-                        <div class="product-cell-info">
-                            <div class="product-cell-name">${escapeHtml(product.name)}</div>
-                            <div class="product-cell-meta">
+                        <div>
+                            <div style="font-weight:700;">${escapeHtml(product.name)}</div>
+                            <div style="font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;">
                                 ${escapeHtml(product.category)} / ${escapeHtml(product.supplier)}
                             </div>
                         </div>
                     </div>
                 </td>
-                <td class="td-sku">${escapeHtml(product.sku)}</td>
-                <td class="td-qty">${product.quantity}</td>
-                <td class="td-price">${formatCurrency(product.unit_price)}</td>
-                <td>
-                    <span class="badge ${product.status_class}">
-                        <span class="material-symbols-outlined badge-icon">${product.status_class === 'low' ? 'warning' : 'check_circle'}</span>
-                        ${product.status_class === 'low' ? 'Low Stock' : 'In Stock'}
-                    </span>
-                </td>
-                <td class="td-actions"><div class="action-group">${buildActionButtons(product)}</div></td>
+                <td style="font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;font-size:0.8rem;">${escapeHtml(product.sku)}</td>
+                <td style="font-weight:800;">${product.quantity}</td>
+                <td style="font-weight:700;">${formatCurrency(product.unit_price)}</td>
+                <td><span class="badge ${product.status_class}">${product.status_class === 'low' ? 'Low Stock' : 'In Stock'}</span></td>
+                <td class="action-group">${buildActionButtons(product)}</td>
             </tr>
         `).join('');
     };

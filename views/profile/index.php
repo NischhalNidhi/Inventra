@@ -58,6 +58,6 @@
  </div>
 </main>
 </div>
-<script src="<?= e(assetPath('js/app.js')); ?>"></script>
+<script src="<?= e(basePath('js/app.js')); ?>"></script>
 </body>
 </html>

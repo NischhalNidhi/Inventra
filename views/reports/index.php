@@ -8,7 +8,7 @@
     </div>
 </header>
 
-<?php if (!empty($inventorySummary)): ?>
+<?php if ($inventorySummary): ?>
 <section class="stats-grid">
     <article class="stat-card primary">
         <span class="stat-label">Total SKUs</span>
@@ -193,6 +193,6 @@
  </div>
 </main>
 </div>
-<script src="<?= e(assetPath('js/app.js')); ?>"></script>
+<script src="<?= e(basePath('js/app.js')); ?>"></script>
 </body>
 </html>

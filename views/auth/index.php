@@ -133,19 +133,6 @@ if ($isSetPassword) {
         }
     </style>
 </head>
-<<<<<<< HEAD
-<body class="login-body" data-theme-enabled="true">
-<div class="auth-shell">
-    <section class="auth-left">
-        <div class="auth-left-content">
-            <img class="auth-logo" src="<?= e(appRootPath('logo/inventra_with_logo.png')); ?>" alt="Inventra logo">
-            <h1>Manage your inventory easily</h1>
-            <ul class="auth-feature-list">
-                <li><span class="material-symbols-outlined">check_circle</span><div><strong>Real-time Tracking</strong><small>Monitor stock levels across multiple warehouses instantly.</small></div></li>
-                <li><span class="material-symbols-outlined">check_circle</span><div><strong>Automated Restocking</strong><small>Set intelligent thresholds for zero-stock prevention.</small></div></li>
-                <li><span class="material-symbols-outlined">check_circle</span><div><strong>Detailed Analytics</strong><small>Predictive insights into turnover and demand trends.</small></div></li>
-            </ul>
-=======
 <body class="bg-background font-body text-on-background selection:bg-primary-fixed selection:text-on-primary-fixed">
 <main class="min-h-screen flex flex-col md:flex-row overflow-hidden">
     
@@ -221,7 +208,6 @@ if ($isSetPassword) {
                 <div class="w-3 h-3 rounded-full bg-error"></div>
                 <span class="text-xs font-bold text-error">Low Stock: Gear Hubs</span>
             </div>
->>>>>>> 7eb55d68d897d6a410e3506ed805e9e6336314a3
         </div>
     </section>
     <?php endif; ?>
@@ -519,7 +505,7 @@ if ($isSetPassword) {
     </section>
 </main>
 
-<script src="<?= e(assetPath('js/app.js')); ?>"></script>
+<script src="<?= e(basePath('js/app.js')) . '?v=' . time(); ?>"></script>
 <script>
     // Minimal script to make the password toggle work, since the class names have changed and app.js might depend on old ones.
     document.querySelectorAll('[data-password-toggle]').forEach(button => {
