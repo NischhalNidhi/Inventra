@@ -12,7 +12,7 @@ $user = currentUser();
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?= e(basePath('css/style.css')); ?>">
+    <link rel="stylesheet" href="<?= e(assetPath('css/style.css')); ?>">
 </head>
 <body class="app-body" data-base-path="<?= e(basePath()); ?>" data-csrf-token="<?= e(csrfToken()); ?>">
 <?php if ($flash): ?>

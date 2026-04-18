@@ -505,7 +505,7 @@ if ($isSetPassword) {
     </section>
 </main>
 
-<script src="<?= e(basePath('js/app.js')) . '?v=' . time(); ?>"></script>
+<script src="<?= e(assetPath('js/app.js')); ?>"></script>
 <script>
     // Minimal script to make the password toggle work, since the class names have changed and app.js might depend on old ones.
     document.querySelectorAll('[data-password-toggle]').forEach(button => {

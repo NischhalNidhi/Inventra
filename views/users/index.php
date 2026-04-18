@@ -49,13 +49,18 @@
                     <td><?= e($staff['username']); ?></td>
                     <td><?= e($staff['role']); ?></td>
                     <td><?= (int) $staff['is_active'] ? 'Active' : 'Inactive'; ?></td>
-                    <td class="action-group">
+                    <td class="td-actions">
+                        <div class="action-group">
                         <form method="post" action="<?= e(basePath('index.php?page=users')); ?>">
                             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()); ?>">
                             <input type="hidden" name="action" value="deactivate_user">
                             <input type="hidden" name="user_id" value="<?= e((string) $staff['id']); ?>">
-                            <button class="button small danger-outline" type="submit">Deactivate</button>
+                            <button class="btn-action btn-delete" type="submit" title="Deactivate user">
+                                <span class="material-symbols-outlined">person_off</span>
+                                <span class="btn-label">Deactivate</span>
+                            </button>
                         </form>
+                        </div>
                     </td>
                 </tr>
             <?php endforeach; ?>
@@ -67,6 +72,6 @@
  </div>
 </main>
 </div>
-<script src="<?= e(basePath('js/app.js')); ?>"></script>
+<script src="<?= e(assetPath('js/app.js')); ?>"></script>
 </body>
 </html>

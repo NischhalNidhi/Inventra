@@ -485,6 +485,7 @@ switch ($page) {
         $canViewMovement = $authController->can('reports.stock_movement');
         $authController->authorize($canViewDaily ? 'reports.sales.daily' : 'reports.inventory');
 
+        $inventorySummary = $canViewInventory ? $reportModel->getInventorySummary() : [];
         $inventoryReport = $canViewInventory ? $reportModel->getInventoryReport($fromDate ?: null, $toDate ?: null) : [];
         $monthlySales = $canViewMonthly ? $reportModel->getMonthlySales($fromDate ?: null, $toDate ?: null) : [];
         $dailySales = $canViewDaily ? $reportModel->getDailySales($fromDate ?: null, $toDate ?: null) : [];
