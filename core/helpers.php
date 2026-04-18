@@ -12,6 +12,11 @@ function loadEnvFile(?string $path = null): void
 
     $loaded = true;
     $envPath = $path ?? dirname(__DIR__) . '/.env';
+    if (!is_file($envPath)) {
+        if ($path === null) {
+            $envPath = dirname(__DIR__) . '/.env.example';
+        }
+    }
     if (!is_file($envPath) || !is_readable($envPath)) {
         return;
     }
@@ -96,14 +101,19 @@ function env(string $key, ?string $default = null): ?string
 
 function basePath(string $path = ''): string
 {
-    $base = env('APP_BASE_PATH', '/inventory-system/public');
-    return $path === '' ? $base : $base . '/' . ltrim($path, '/');
+    $base = env('APP_BASE_PATH');
+    if ($base === null) {
+        $base = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
+        $base = rtrim($base, '/');
+    }
+    return $path === '' ? ($base === '' ? '/' : $base) : $base . '/' . ltrim($path, '/');
 }
 
 function appRootPath(string $path = ''): string
 {
-    $root = preg_replace('#/public$#', '', basePath()) ?: '/inventory-system';
-    return $path === '' ? $root : $root . '/' . ltrim($path, '/');
+    $root = (string) preg_replace('#/public$#', '', basePath());
+    $root = $root === '' ? '/' : $root;
+    return $path === '' ? $root : rtrim($root, '/') . '/' . ltrim($path, '/');
 }
 
 function appUrl(string $path = ''): string
