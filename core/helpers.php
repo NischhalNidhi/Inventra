@@ -109,6 +109,15 @@ function basePath(string $path = ''): string
     return $path === '' ? ($base === '' ? '/' : $base) : $base . '/' . ltrim($path, '/');
 }
 
+function assetPath(string $path): string
+{
+    $relativePath = ltrim($path, '/');
+    $publicPath = dirname(__DIR__) . '/public/' . $relativePath;
+    $version = is_file($publicPath) ? (string) filemtime($publicPath) : (string) time();
+
+    return basePath($relativePath) . '?v=' . $version;
+}
+
 function appRootPath(string $path = ''): string
 {
     $root = (string) preg_replace('#/public$#', '', basePath());
