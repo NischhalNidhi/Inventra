@@ -98,6 +98,81 @@ class Report
         return $stmt->fetchAll();
     }
 
+    public function getCurrentMonthSalesInsightData(): array
+    {
+        $startDate = (new DateTimeImmutable('first day of this month'))->format('Y-m-d');
+        $endDate = (new DateTimeImmutable('last day of this month'))->format('Y-m-d');
+
+        $summaryStmt = $this->pdo->prepare(
+            'SELECT COALESCE(SUM(quantity * unit_price), 0) AS total_revenue,
+                    COALESCE(SUM(quantity), 0) AS units_sold,
+                    COUNT(*) AS transaction_count,
+                    COALESCE(AVG(quantity * unit_price), 0) AS average_order_value
+             FROM sales_transactions
+             WHERE sale_date BETWEEN :start_date AND :end_date'
+        );
+        $summaryStmt->execute([
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+        ]);
+        $summary = $summaryStmt->fetch() ?: [];
+
+        $dailyStmt = $this->pdo->prepare(
+            'SELECT sale_date, SUM(quantity * unit_price) AS total_revenue
+             FROM sales_transactions
+             WHERE sale_date BETWEEN :start_date AND :end_date
+             GROUP BY sale_date
+             ORDER BY sale_date ASC'
+        );
+        $dailyStmt->execute([
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+        ]);
+
+        $productStmt = $this->pdo->prepare(
+            'SELECT p.name,
+                    SUM(st.quantity) AS units_sold,
+                    SUM(st.quantity * st.unit_price) AS total_revenue
+             FROM sales_transactions st
+             INNER JOIN products p ON p.id = st.product_id
+             WHERE st.sale_date BETWEEN :start_date AND :end_date
+             GROUP BY st.product_id, p.name
+             ORDER BY total_revenue DESC, units_sold DESC, p.name ASC
+             LIMIT 5'
+        );
+        $productStmt->execute([
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+        ]);
+
+        return [
+            'period' => [
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'label' => (new DateTimeImmutable($startDate))->format('F Y'),
+            ],
+            'summary' => [
+                'total_revenue' => round((float) ($summary['total_revenue'] ?? 0), 2),
+                'units_sold' => (int) ($summary['units_sold'] ?? 0),
+                'transaction_count' => (int) ($summary['transaction_count'] ?? 0),
+                'average_order_value' => round((float) ($summary['average_order_value'] ?? 0), 2),
+            ],
+            'daily_sales' => array_map(static function (array $row): array {
+                return [
+                    'sale_date' => (string) $row['sale_date'],
+                    'total_revenue' => round((float) ($row['total_revenue'] ?? 0), 2),
+                ];
+            }, $dailyStmt->fetchAll()),
+            'top_products' => array_map(static function (array $row): array {
+                return [
+                    'name' => (string) $row['name'],
+                    'units_sold' => (int) ($row['units_sold'] ?? 0),
+                    'total_revenue' => round((float) ($row['total_revenue'] ?? 0), 2),
+                ];
+            }, $productStmt->fetchAll()),
+        ];
+    }
+
     public function getDailySales(?string $fromDate = null, ?string $toDate = null): array
     {
         $conditions = [];
