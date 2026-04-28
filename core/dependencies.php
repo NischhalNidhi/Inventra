@@ -15,6 +15,7 @@ function buildAppDependencies(): array
     $reportModel = new Report($pdo);
     $supplierModel = new Supplier($pdo);
     $mailer = new Mailer();
+    $aiSalesInsightService = new AiSalesInsightService();
 
     return [
         'pdo' => $pdo,
@@ -25,6 +26,7 @@ function buildAppDependencies(): array
         'poModel' => $poModel,
         'reportModel' => $reportModel,
         'supplierModel' => $supplierModel,
+        'aiSalesInsightService' => $aiSalesInsightService,
         'authController' => new AuthController($userModel, $mailer, $pdo),
         'userController' => new UserController($userModel),
         'categoryController' => new CategoryController($categoryModel),

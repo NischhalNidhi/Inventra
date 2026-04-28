@@ -12,6 +12,23 @@ $fromDate = trim($_GET['from_date'] ?? '') ?: null;
 $toDate = trim($_GET['to_date'] ?? '') ?: null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    if ($type === 'sales-insight') {
+        if (!$authController->can('reports.sales.insight')) {
+            jsonResponse(['error' => 'Forbidden', 'code' => 'FORBIDDEN'], 403);
+        }
+
+        try {
+            $salesData = $reportModel->getCurrentMonthSalesInsightData();
+            $summary = $aiSalesInsightService->generateMonthlySalesInsight($salesData);
+            jsonResponse([
+                'summary' => $summary,
+                'period' => $salesData['period'],
+            ]);
+        } catch (Throwable $exception) {
+            jsonResponse(['error' => 'Insight unavailable', 'code' => 'INSIGHT_UNAVAILABLE'], 502);
+        }
+    }
+
     if ($type === 'inventory') {
         $authController->authorize('reports.inventory');
         jsonResponse(['rows' => $reportModel->getInventoryReport($fromDate, $toDate)]);
