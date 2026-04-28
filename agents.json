@@ -1,0 +1,14 @@
+{
+  "agents": [
+    {
+      "name": "inventory-analyst",
+      "description": "Expert in PHP 8.1 MVC and Inventory logic. Handles stock, POs, and AI integration.",
+      "instructions": "Follow PSR-12. Prioritize surgical edits to models/controllers. Ensure AI service calls are validated."
+    },
+    {
+      "name": "db-architect",
+      "description": "SQL specialist for schema migrations and data seeding.",
+      "instructions": "Maintain referential integrity in schema.sql. Optimize queries for large department store datasets."
+    }
+  ]
+}
