@@ -56,6 +56,7 @@ function runBackendAndIntegrationTests(): void
     ];
     assertTrue($auth->can('users.create'), 'Manager should be able to create users');
     assertTrue($auth->can('reports.inventory'), 'Manager should access inventory reports');
+    assertTrue($auth->can('reports.sales.insight'), 'Manager should access AI sales insights');
 
     $categoryId = $categoryModel->create('Test Category ' . $suffix, 'test');
     $supplierId = $supplierModel->create([
@@ -161,6 +162,8 @@ function runBackendAndIntegrationTests(): void
     assertTrue((float) $createdProduct['unit_price'] === 1499.99, 'Products should persist unit price');
     $inventorySummary = $reportModel->getInventorySummary();
     assertTrue($inventorySummary['total_skus'] >= 1, 'Inventory summary should include active products');
+    $insightData = $reportModel->getCurrentMonthSalesInsightData();
+    assertTrue(isset($insightData['summary']['transaction_count']), 'AI sales insight payload should expose monthly summary data');
 }
 
 function runFrontendSmokeChecks(): void
@@ -194,6 +197,10 @@ function runFrontendSmokeChecks(): void
     $js = (string) file_get_contents(__DIR__ . '/../public/js/app.js');
     assertTrue(str_contains($js, 'fetchProducts'), 'Frontend JS should include live search');
     assertTrue(str_contains($js, 'formatCurrency'), 'Frontend JS should format product price');
+    assertTrue(str_contains($js, 'data-sales-insight-card'), 'Frontend JS should initialize the AI sales insight card');
+
+    $reportsView = (string) file_get_contents(__DIR__ . '/../views/reports/index.php');
+    assertTrue(str_contains($reportsView, 'AI Sales Insight'), 'Reports view should render the AI sales insight card');
 
     $dashboardView = (string) file_get_contents(__DIR__ . '/../views/dashboard/index.php');
     assertTrue(str_contains($dashboardView, 'Low Stock Watchlist'), 'Dashboard should show low-stock watchlist');

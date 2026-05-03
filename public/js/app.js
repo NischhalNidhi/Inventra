@@ -286,6 +286,42 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ---------------------------------------------------------------
+    // AI SALES INSIGHT CARD
+    // ---------------------------------------------------------------
+    const salesInsightCard = document.querySelector('[data-sales-insight-card]');
+    const salesInsightStatus = document.querySelector('[data-sales-insight-status]');
+    const salesInsightCopy = document.querySelector('[data-sales-insight-copy]');
+
+    if (salesInsightCard && salesInsightStatus && salesInsightCopy) {
+        const setSalesInsightState = (message, isLoading = false, isSummary = false) => {
+            salesInsightStatus.textContent = message;
+            salesInsightStatus.classList.toggle('is-loading', isLoading);
+            salesInsightStatus.hidden = isSummary;
+            salesInsightCopy.hidden = !isSummary;
+            if (isSummary) {
+                salesInsightCopy.textContent = message;
+            }
+        };
+
+        setSalesInsightState('Generating insight...', true, false);
+
+        fetch(salesInsightCard.dataset.endpoint, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        })
+            .then(async (response) => {
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok || !payload.summary) {
+                    throw new Error(payload.error || 'Insight unavailable');
+                }
+
+                setSalesInsightState(payload.summary, false, true);
+            })
+            .catch(() => {
+                setSalesInsightState('Insight unavailable', false, false);
+            });
+    }
+
+    // ---------------------------------------------------------------
     // STEPPER BUTTONS
     // ---------------------------------------------------------------
     document.querySelectorAll('.stepper-btn').forEach((button) => {

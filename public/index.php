@@ -487,6 +487,7 @@ switch ($page) {
         $canViewInventory = $authController->can('reports.inventory');
         $canViewLow = $authController->can('reports.low_stock');
         $canViewMovement = $authController->can('reports.stock_movement');
+        $canViewSalesInsight = $authController->can('reports.sales.insight');
         $authController->authorize($canViewDaily ? 'reports.sales.daily' : 'reports.inventory');
 
         $inventoryReport = $canViewInventory ? $reportModel->getInventoryReport($fromDate ?: null, $toDate ?: null) : [];
