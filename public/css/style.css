@@ -2063,3 +2063,128 @@ body.theme-dark .btn-delete:hover {
     color: #fff;
 }
 
+/* -- Low Stock Alert Graph ------------------------------------------------ */
+.low-stock-graph-panel {
+    margin-bottom: 16px;
+}
+.low-stock-graph-panel .panel-header {
+    flex-wrap: wrap;
+}
+.graph-legend {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+.legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+.legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+}
+.legend-stock {
+    background: linear-gradient(135deg, #6f8dff, #4059aa);
+}
+.legend-threshold {
+    background: linear-gradient(135deg, #ff8b9a, #c45061);
+}
+.graph-controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.graph-filter-btn {
+    font-size: 0.72rem !important;
+    padding: 6px 12px !important;
+    border-radius: 999px !important;
+    transition: all 0.2s ease;
+}
+.graph-filter-btn.active {
+    background: var(--primary) !important;
+    color: #fff !important;
+}
+.graph-container {
+    position: relative;
+    width: 100%;
+    min-height: 320px;
+    max-height: 600px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border-radius: 10px;
+    background: linear-gradient(180deg, rgba(248, 250, 252, 0.5) 0%, rgba(240, 242, 255, 0.3) 100%);
+    border: 1px solid rgba(203, 213, 225, 0.25);
+    scrollbar-width: thin;
+    scrollbar-color: var(--outline-variant) transparent;
+}
+body.theme-dark .graph-container {
+    background: linear-gradient(180deg, rgba(22, 26, 35, 0.5) 0%, rgba(29, 35, 48, 0.3) 100%);
+    border-color: var(--outline-variant);
+}
+.graph-container canvas {
+    display: block;
+    width: 100%;
+}
+.graph-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 48px 20px;
+    color: #2f8f6a;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-align: center;
+}
+.graph-empty-state .material-symbols-outlined {
+    font-size: 42px;
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 48;
+}
+body.theme-dark .graph-empty-state {
+    color: #6fd9a5;
+}
+.graph-tooltip {
+    position: fixed;
+    z-index: 200;
+    background: rgba(30, 30, 40, 0.92);
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    pointer-events: none;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    backdrop-filter: blur(8px);
+    max-width: 240px;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+.graph-tooltip.visible {
+    opacity: 1;
+}
+.graph-tooltip strong {
+    display: block;
+    font-size: 0.82rem;
+    margin-bottom: 4px;
+    color: #dce1ff;
+}
+.graph-tooltip .tt-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+}
+.graph-tooltip .tt-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    margin-right: 5px;
+    vertical-align: middle;
+}
+
