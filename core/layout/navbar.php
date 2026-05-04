@@ -54,6 +54,12 @@ $user = currentUser();
                 <span>Reorder</span>
             </a>
         <?php endif; ?>
+        <?php if ($authController->can('reports.sales.insight')): ?>
+            <a class="nav-link <?= $currentPage === 'ai-insights' ? 'active' : ''; ?>" href="<?= e(basePath('index.php?page=ai-insights')); ?>" title="AI Insights">
+                <span class="material-symbols-outlined nav-icon">auto_awesome</span>
+                <span>AI Insights</span>
+            </a>
+        <?php endif; ?>
         <?php if ($authController->can('reports.sales.daily') || $authController->can('reports.inventory')): ?>
             <a class="nav-link <?= $currentPage === 'reports' ? 'active' : ''; ?>" href="<?= e(basePath('index.php?page=reports')); ?>" title="Reports">
                 <span class="material-symbols-outlined nav-icon">analytics</span>

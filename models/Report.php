@@ -173,6 +173,49 @@ class Report
         ];
     }
 
+    public function getAdvancedSalesInsightData(): array
+    {
+        $thisMonthStart = (new DateTimeImmutable('first day of this month'))->format('Y-m-d');
+        $thisMonthEnd = (new DateTimeImmutable('last day of this month'))->format('Y-m-d');
+        $prevMonthStart = (new DateTimeImmutable('first day of last month'))->format('Y-m-d');
+        $prevMonthEnd = (new DateTimeImmutable('last day of last month'))->format('Y-m-d');
+
+        // This Month Summary
+        $stmt = $this->pdo->prepare('SELECT SUM(quantity * unit_price) as total_revenue, COUNT(*) as transaction_count FROM sales_transactions WHERE sale_date BETWEEN ? AND ?');
+        $stmt->execute([$thisMonthStart, $thisMonthEnd]);
+        $thisMonth = $stmt->fetch();
+
+        // Prev Month Summary
+        $stmt->execute([$prevMonthStart, $prevMonthEnd]);
+        $prevMonth = $stmt->fetch();
+
+        // Top Products
+        $stmt = $this->pdo->prepare('SELECT p.name, SUM(st.quantity * st.unit_price) as total FROM sales_transactions st JOIN products p ON p.id = st.product_id WHERE st.sale_date BETWEEN ? AND ? GROUP BY p.id ORDER BY total DESC LIMIT 3');
+        $stmt->execute([$thisMonthStart, $thisMonthEnd]);
+        $topProducts = $stmt->fetchAll();
+
+        // Low Products (sold at least once but least revenue)
+        $stmt = $this->pdo->prepare('SELECT p.name, SUM(st.quantity * st.unit_price) as total FROM sales_transactions st JOIN products p ON p.id = st.product_id WHERE st.sale_date BETWEEN ? AND ? GROUP BY p.id ORDER BY total ASC LIMIT 3');
+        $stmt->execute([$thisMonthStart, $thisMonthEnd]);
+        $lowProducts = $stmt->fetchAll();
+
+        // Category Breakdown
+        $stmt = $this->pdo->prepare('SELECT c.name, SUM(st.quantity * st.unit_price) as total FROM sales_transactions st JOIN products p ON p.id = st.product_id JOIN categories c ON c.id = p.category_id WHERE st.sale_date BETWEEN ? AND ? GROUP BY c.id ORDER BY total DESC');
+        $stmt->execute([$thisMonthStart, $thisMonthEnd]);
+        $categories = $stmt->fetchAll();
+
+        return [
+            'summary' => [
+                'total_revenue' => $thisMonth['total_revenue'] ?? 0,
+                'transaction_count' => $thisMonth['transaction_count'] ?? 0,
+                'prev_month_revenue' => $prevMonth['total_revenue'] ?? 0,
+            ],
+            'top_products' => $topProducts,
+            'low_products' => $lowProducts,
+            'category_breakdown' => $categories
+        ];
+    }
+
     public function getDailySales(?string $fromDate = null, ?string $toDate = null): array
     {
         $conditions = [];
