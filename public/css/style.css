@@ -799,14 +799,12 @@ input:focus, select:focus, textarea:focus {
 table {
     width: 100%;
     border-collapse: collapse;
-    table-layout: fixed;
 }
 th, td {
     border-bottom: 1px solid rgba(203, 213, 225, 0.48);
     padding: 14px 12px;
     text-align: left;
     vertical-align: middle;
-    white-space: nowrap;
 }
 th {
     font-size: 0.66rem;
@@ -814,6 +812,11 @@ th {
     text-transform: uppercase;
     color: #6b7280;
     font-weight: 700;
+    white-space: nowrap;
+}
+td {
+    white-space: normal;
+    word-break: break-word;
 }
 tbody tr {
     transition: background 0.16s ease, box-shadow 0.16s ease;
