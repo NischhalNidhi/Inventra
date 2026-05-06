@@ -150,7 +150,12 @@
 
 <?php if ($monthlySales): ?>
 <section class="panel">
-    <div class="panel-header"><h2>Monthly Sales</h2></div>
+    <div class="panel-header">
+        <h2>Monthly Sales</h2>
+        <?php if ($authController->can('reports.export')): ?>
+            <a href="<?= e(basePath('api/reports.php?type=export-monthly-csv' . ($fromDate ? '&from_date=' . urlencode($fromDate) : '') . ($toDate ? '&to_date=' . urlencode($toDate) : ''))); ?>" class="button ghost small">Export to CSV</a>
+        <?php endif; ?>
+    </div>
     <?php if (!empty($canViewSalesInsight)): ?>
     <article class="insight-card sales-ai-insight" data-sales-insight-card data-endpoint="<?= e(appRootPath('api/reports.php?type=sales-insight')); ?>">
         <div class="panel-header">
@@ -177,7 +182,12 @@
 
 <?php if ($dailySales): ?>
 <section class="panel">
-    <div class="panel-header"><h2>Daily Sales</h2></div>
+    <div class="panel-header">
+        <h2>Daily Sales</h2>
+        <?php if ($authController->can('reports.export')): ?>
+            <a href="<?= e(basePath('api/reports.php?type=export-daily-csv' . ($fromDate ? '&from_date=' . urlencode($fromDate) : '') . ($toDate ? '&to_date=' . urlencode($toDate) : ''))); ?>" class="button ghost small">Export to CSV</a>
+        <?php endif; ?>
+    </div>
     <div class="table-wrap">
         <table>
             <thead><tr><th>Date</th><th>Total</th></tr></thead>

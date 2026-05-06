@@ -199,6 +199,39 @@ class Report
     }
 
     /**
+     * Retrieve detailed sales transactions with product names for CSV export.
+     *
+     * @param string|null $fromDate Only include sales on or after this date.
+     * @param string|null $toDate   Only include sales on or before this date.
+     * @return array Sales transactions with product details.
+     */
+    public function getSalesTransactionsForExport(?string $fromDate = null, ?string $toDate = null): array
+    {
+        $conditions = [];
+        $params = [];
+        if ($fromDate) {
+            $conditions[] = 'st.sale_date >= :from_date';
+            $params['from_date'] = $fromDate;
+        }
+        if ($toDate) {
+            $conditions[] = 'st.sale_date <= :to_date';
+            $params['to_date'] = $toDate;
+        }
+
+        $whereSql = $conditions ? 'WHERE ' . implode(' AND ', $conditions) : '';
+
+        $stmt = $this->pdo->prepare(
+            'SELECT st.sale_date, p.name AS product_name, st.quantity, st.unit_price, (st.quantity * st.unit_price) AS total
+             FROM sales_transactions st
+             LEFT JOIN products p ON p.id = st.product_id
+             ' . $whereSql . '
+             ORDER BY st.sale_date DESC, st.id DESC'
+        );
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
+    /**
      * Retrieve low stock products with optional category and date filtering.
      *
      * @param string|null $fromDate   Only include products updated on or after this date.
