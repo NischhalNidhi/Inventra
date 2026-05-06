@@ -37,6 +37,31 @@
     </article>
 </section>
 
+<section class="panel low-stock-graph-panel">
+    <div class="panel-header">
+        <div>
+            <h2>Low Stock Alert Graph</h2>
+            <p>Visual comparison of current stock levels against minimum thresholds.</p>
+        </div>
+        <div class="graph-legend">
+            <span class="legend-item"><span class="legend-dot legend-stock"></span>Current Stock</span>
+            <span class="legend-item"><span class="legend-dot legend-threshold"></span>Min Threshold</span>
+        </div>
+    </div>
+    <div class="graph-controls">
+        <button type="button" class="button ghost small graph-filter-btn active" data-graph-filter="low">Low Stock Only</button>
+        <button type="button" class="button ghost small graph-filter-btn" data-graph-filter="all">All Products</button>
+    </div>
+    <div class="graph-container" id="low-stock-graph-container"
+         data-alert-graph='<?= e(json_encode($alertGraph, JSON_HEX_APOS | JSON_HEX_TAG)); ?>'>
+        <canvas id="low-stock-canvas"></canvas>
+        <p class="graph-empty-state" id="graph-empty-state" style="display:none;">
+            <span class="material-symbols-outlined">check_circle</span>
+            All products are above their minimum stock thresholds.
+        </p>
+    </div>
+</section>
+
 <section class="panel">
     <div class="panel-header">
         <div>
