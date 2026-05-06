@@ -151,6 +151,17 @@
 <?php if ($monthlySales): ?>
 <section class="panel">
     <div class="panel-header"><h2>Monthly Sales</h2></div>
+    <?php if (!empty($canViewSalesInsight)): ?>
+    <article class="insight-card sales-ai-insight" data-sales-insight-card data-endpoint="<?= e(appRootPath('api/reports.php?type=sales-insight')); ?>">
+        <div class="panel-header">
+            <h3>AI Sales Insight</h3>
+            <span class="insight-pill">Manager Only</span>
+        </div>
+        <p class="insight-kicker">Current month summary</p>
+        <div class="sales-insight-state is-loading" data-sales-insight-status aria-live="polite">Generating insight...</div>
+        <p class="sales-insight-copy" data-sales-insight-copy hidden></p>
+    </article>
+    <?php endif; ?>
     <div class="table-wrap">
         <table>
             <thead><tr><th>Month</th><th>Total</th></tr></thead>

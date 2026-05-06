@@ -14,6 +14,7 @@ class AuthController
             'stock.view', 'stock.in', 'stock.out',
             'po.view', 'po.create', 'po.tracking', 'po.receive', 'logistics.delivery_log', 'logistics.reorder',
             'reports.inventory', 'reports.sales.monthly', 'reports.sales.daily', 'reports.low_stock', 'reports.stock_movement', 'reports.export', 'reports.import',
+            'reports.sales.insight',
             'sales.record',
         ],
         'Supervisor' => [

@@ -655,6 +655,48 @@ body.theme-dark tbody tr:hover {
 .insight-card {
     background: linear-gradient(180deg, #ffffff 0%, #f6f8ff 100%);
 }
+.sales-ai-insight {
+    margin-bottom: 16px;
+    border: 1px solid rgba(66, 99, 235, 0.12);
+}
+.insight-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(66, 99, 235, 0.1);
+    color: #2845c7;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.insight-kicker {
+    margin: 0 0 10px;
+    color: var(--text-muted);
+    font-size: 0.88rem;
+}
+.sales-insight-state,
+.sales-insight-copy {
+    margin: 0;
+    line-height: 1.7;
+    color: var(--text-main);
+}
+.sales-insight-state.is-loading {
+    color: var(--text-muted);
+}
+.sales-insight-state.is-loading::after {
+    content: '';
+    display: inline-block;
+    width: 0.9rem;
+    height: 0.9rem;
+    margin-left: 8px;
+    border-radius: 50%;
+    border: 2px solid rgba(66, 99, 235, 0.18);
+    border-top-color: #4263eb;
+    animation: spinRing 0.75s linear infinite;
+    vertical-align: text-bottom;
+}
 .insight-stats {
     display: flex;
     flex-wrap: wrap;
