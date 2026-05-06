@@ -528,6 +528,13 @@ switch ($page) {
     case 'dashboard':
     default:
         $authController->authorize('dashboard');
+        
+        // Generate new low stock alerts
+        if ($authController->can('dashboard.alert_graph')) {
+            $recipients = $notificationModel->getAlertRecipients();
+            $newAlertsCount = $notificationModel->generateLowStockAlerts($recipients, $mailer, appUrl('index.php?page=dashboard'));
+        }
+
         $stats = $productModel->getDashboardStats();
         $featuredProducts = $productModel->getFeaturedProducts();
         $alertGraph = $productModel->getAlertGraphData();

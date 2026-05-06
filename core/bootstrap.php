@@ -14,6 +14,7 @@ require_once __DIR__ . '/../models/PurchaseOrder.php';
 require_once __DIR__ . '/../models/Report.php';
 require_once __DIR__ . '/../models/ReportImportParser.php';
 require_once __DIR__ . '/../models/Supplier.php';
+require_once __DIR__ . '/../models/Notification.php';
 
 require_once __DIR__ . '/../controllers/authController.php';
 require_once __DIR__ . '/../controllers/userController.php';

@@ -80,6 +80,24 @@ class Mailer
         return $this->sendMultipart($to, $subject, $plainText, $html);
     }
 
+    /**
+     * Send a low-stock alert email to a staff member.
+     *
+     * @param string $to        Recipient email address
+     * @param string $fullName  Recipient full name
+     * @param array  $products  Array of low-stock products, each with name, sku, stock_quantity, min_threshold
+     * @param string $dashboardLink  URL to the dashboard
+     */
+    public function sendLowStockAlert(string $to, string $fullName, array $products, string $dashboardLink): bool
+    {
+        $count   = count($products);
+        $subject = sprintf('Inventra Alert: %d product%s below stock threshold', $count, $count !== 1 ? 's' : '');
+        $plainText = $this->buildLowStockPlainText($fullName, $products, $dashboardLink);
+        $html      = $this->buildLowStockHtml($fullName, $products, $dashboardLink);
+
+        return $this->sendMultipart($to, $subject, $plainText, $html);
+    }
+
     // -------------------------------------------------------------------------
     // Private helpers
     // -------------------------------------------------------------------------
@@ -261,6 +279,82 @@ class Mailer
                     If you did not request a reset, you can safely ignore this email.
                 </p>
             </div>
+        HTML);
+    }
+
+    private function buildLowStockPlainText(string $fullName, array $products, string $dashboardLink): string
+    {
+        $lines = ["Hello {$fullName},", '', 'The following products are at or below their minimum stock threshold:', ''];
+        foreach ($products as $p) {
+            $lines[] = sprintf(
+                '  • %s (%s) — Stock: %d / Min: %d',
+                $p['name'], $p['sku'], (int) $p['stock_quantity'], (int) $p['min_threshold']
+            );
+        }
+        $lines[] = '';
+        $lines[] = 'Review and reorder from the dashboard:';
+        $lines[] = $dashboardLink;
+        $lines[] = '';
+        $lines[] = '—';
+        $lines[] = 'The Inventra Team';
+        return implode("\n", $lines);
+    }
+
+    private function buildLowStockHtml(string $fullName, array $products, string $dashboardLink): string
+    {
+        $safeFullName = htmlspecialchars($fullName, ENT_QUOTES, 'UTF-8');
+        $safeLink     = htmlspecialchars($dashboardLink, ENT_QUOTES, 'UTF-8');
+        $count        = count($products);
+
+        $rows = '';
+        foreach ($products as $p) {
+            $safeName = htmlspecialchars($p['name'], ENT_QUOTES, 'UTF-8');
+            $safeSku  = htmlspecialchars($p['sku'], ENT_QUOTES, 'UTF-8');
+            $stock    = (int) $p['stock_quantity'];
+            $threshold = (int) $p['min_threshold'];
+            $isZero   = $stock === 0;
+            $statusColor = $isZero ? '#dc3545' : '#e8596e';
+            $statusLabel = $isZero ? 'OUT OF STOCK' : 'LOW STOCK';
+
+            $rows .= <<<ROW
+                <tr>
+                    <td style="padding:10px 12px;border-bottom:1px solid #e4e2e5;font-size:13px;">{$safeName}</td>
+                    <td style="padding:10px 12px;border-bottom:1px solid #e4e2e5;font-size:13px;font-family:monospace;color:#5f5f61;">{$safeSku}</td>
+                    <td style="padding:10px 12px;border-bottom:1px solid #e4e2e5;font-size:13px;text-align:center;font-weight:700;color:{$statusColor};">{$stock}</td>
+                    <td style="padding:10px 12px;border-bottom:1px solid #e4e2e5;font-size:13px;text-align:center;">{$threshold}</td>
+                    <td style="padding:10px 12px;border-bottom:1px solid #e4e2e5;font-size:11px;text-align:center;">
+                        <span style="background:{$statusColor};color:#fff;padding:3px 8px;border-radius:999px;font-weight:700;letter-spacing:0.05em;">{$statusLabel}</span>
+                    </td>
+                </tr>
+            ROW;
+        }
+
+        return $this->wrapEmailHtml("Low Stock Alert — {$count} products", <<<HTML
+            <h1 style="margin:0 0 8px;font-size:24px;font-weight:900;color:#323235;letter-spacing:-0.03em;">
+                ⚠️ Low Stock Alert
+            </h1>
+            <p style="margin:0 0 20px;color:#5f5f61;font-size:15px;line-height:1.6;">
+                Hello {$safeFullName}, <strong>{$count} product(s)</strong> in your inventory
+                are at or below their minimum stock threshold and may need replenishment.
+            </p>
+            <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px;border:1px solid #e4e2e5;border-radius:8px;">
+                <thead>
+                    <tr style="background:#f4f4f8;">
+                        <th style="padding:10px 12px;text-align:left;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#6b7280;border-bottom:2px solid #e4e2e5;">Product</th>
+                        <th style="padding:10px 12px;text-align:left;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#6b7280;border-bottom:2px solid #e4e2e5;">SKU</th>
+                        <th style="padding:10px 12px;text-align:center;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#6b7280;border-bottom:2px solid #e4e2e5;">Stock</th>
+                        <th style="padding:10px 12px;text-align:center;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#6b7280;border-bottom:2px solid #e4e2e5;">Min</th>
+                        <th style="padding:10px 12px;text-align:center;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#6b7280;border-bottom:2px solid #e4e2e5;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>{$rows}</tbody>
+            </table>
+            <a href="{$safeLink}"
+               style="display:inline-block;background:#4059aa;color:#f8f7ff;text-decoration:none;
+                      padding:14px 28px;border-radius:10px;font-weight:700;font-size:15px;
+                      letter-spacing:-0.01em;margin-bottom:24px;">
+                View Dashboard →
+            </a>
         HTML);
     }
 

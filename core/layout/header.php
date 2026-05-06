@@ -38,9 +38,17 @@ $user = currentUser();
                     <input type="text" name="keyword" placeholder="Global Ledger Search..." value="<?= e($_GET['keyword'] ?? ''); ?>">
                 </form>
                 <div class="icon-menu" data-notifications-menu>
+                    <?php
+                        $unreadCount = isset($notificationModel) ? $notificationModel->countUnread((int)$user['id']) : 0;
+                        $notifications = isset($notificationModel) ? $notificationModel->getUnread((int)$user['id'], 5) : [];
+                    ?>
                     <button type="button" class="top-icon-btn" aria-label="Notifications" aria-haspopup="menu" aria-expanded="false" data-notifications-trigger>
                         <span class="material-symbols-outlined">notifications</span>
-                        <span class="dot-badge"></span>
+                        <?php if ($unreadCount > 0): ?>
+                            <span class="dot-badge" data-unread-badge></span>
+                        <?php else: ?>
+                            <span class="dot-badge" data-unread-badge style="display:none;"></span>
+                        <?php endif; ?>
                     </button>
                     <div class="icon-dropdown" role="menu" data-notifications-dropdown>
                         <div class="icon-dropdown-head">
@@ -48,9 +56,24 @@ $user = currentUser();
                             <button type="button" class="link-btn" data-clear-notifications>Clear</button>
                         </div>
                         <ul class="notif-list" data-notif-list>
-                            <li><span class="material-symbols-outlined">inventory</span><div><strong>Low Stock Alert</strong><small>3 products are below threshold.</small></div></li>
-                            <li><span class="material-symbols-outlined">local_shipping</span><div><strong>PO In Transit</strong><small>PO-20260331-1142 updated to in transit.</small></div></li>
-                            <li><span class="material-symbols-outlined">analytics</span><div><strong>Inventory Report</strong><small>Latest metrics are ready for review.</small></div></li>
+                            <?php if (empty($notifications)): ?>
+                                <li data-empty-notif><span class="material-symbols-outlined">notifications_off</span><div><strong>No new notifications</strong><small>All caught up!</small></div></li>
+                            <?php else: ?>
+                                <?php foreach ($notifications as $notif): ?>
+                                    <?php 
+                                        $icon = 'info';
+                                        if ($notif['type'] === 'low_stock' || $notif['type'] === 'out_of_stock') $icon = 'inventory';
+                                        if ($notif['type'] === 'po_update') $icon = 'local_shipping';
+                                    ?>
+                                    <li data-notif-id="<?= e((string)$notif['id']) ?>">
+                                        <span class="material-symbols-outlined"><?= $icon ?></span>
+                                        <div>
+                                            <strong><?= e($notif['title']) ?></strong>
+                                            <small><?= e($notif['message']) ?></small>
+                                        </div>
+                                    </li>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </ul>
                     </div>
                 </div>

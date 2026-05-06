@@ -425,7 +425,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (clearNotificationsButton && notifList) {
             clearNotificationsButton.addEventListener('click', () => {
-                notifList.innerHTML = '<li><span class="material-symbols-outlined">notifications_off</span><div><strong>No new notifications</strong><small>All notifications have been cleared.</small></div></li>';
+                notifList.innerHTML = '<li data-empty-notif><span class="material-symbols-outlined">notifications_off</span><div><strong>No new notifications</strong><small>All caught up!</small></div></li>';
+                const dotBadge = document.querySelector('[data-unread-badge]');
+                if (dotBadge) dotBadge.style.display = 'none';
+
+                const formData = new FormData();
+                formData.append('csrf_token', csrfToken);
+                fetch(`${apiBase}/notifications.php?action=mark_all_read`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                }).catch(console.error);
             });
         }
 
