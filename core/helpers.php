@@ -206,6 +206,42 @@ function selectedIf(string $actual, string $expected): string
     return $actual === $expected ? 'selected' : '';
 }
 
+/**
+ * Generate and trigger a CSV file download to the client.
+ *
+ * @param string $filename Base filename (without extension).
+ * @param array  $headers  Column header names.
+ * @param array  $rows     Data rows; each row should be an associative array with keys matching headers.
+ */
+function downloadCsv(string $filename, array $headers, array $rows): void
+{
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '_' . date('Y-m-d_His') . '.csv"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+
+    $output = fopen('php://output', 'w');
+    
+    // Write BOM for UTF-8 to support special characters in Excel.
+    fputs($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
+    
+    // Write header row.
+    fputcsv($output, $headers);
+    
+    // Write data rows.
+    foreach ($rows as $row) {
+        if (is_array($row)) {
+            // Handle both associative and numeric array rows.
+            $values = array_values($row);
+        } else {
+            $values = [$row];
+        }
+        fputcsv($output, $values);
+    }
+    
+    fclose($output);
+}
+
 function parsePagination(array $input): array
 {
     $page = max(1, (int) ($input['p'] ?? 1));
