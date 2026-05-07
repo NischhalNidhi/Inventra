@@ -8,7 +8,7 @@
     </div>
 </header>
 
-<?php if (!empty($inventorySummary)): ?>
+<?php if ($inventorySummary): ?>
 <section class="stats-grid">
     <article class="stat-card primary">
         <span class="stat-label">Total SKUs</span>
@@ -99,6 +99,28 @@
 </section>
 <?php endif; ?>
 
+<?php if ($authController->can('reports.low_stock')): ?>
+<!-- Low stock report filter panel is only shown to authorized roles -->
+<section class="panel">
+    <div class="panel-header"><h2>Low Stock Alert Filters</h2></div>
+    <form method="get" action="<?= e(basePath('index.php')); ?>" class="form-grid">
+        <input type="hidden" name="page" value="reports">
+        <label><span>From</span><input type="date" name="low_from_date" value="<?= e($_GET['low_from_date'] ?? ''); ?>"></label>
+        <label><span>To</span><input type="date" name="low_to_date" value="<?= e($_GET['low_to_date'] ?? ''); ?>"></label>
+        <label>
+            <span>Category</span>
+            <select name="category_id">
+                <option value="">All Categories</option>
+                <?php foreach ($categories as $category): ?>
+                    <option value="<?= e((string) $category['id']); ?>" <?= selectedIf($_GET['category_id'] ?? '', (string) $category['id']); ?>><?= e($category['name']); ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <button class="button ghost" type="submit">Filter Low Stock</button>
+    </form>
+</section>
+<?php endif; ?>
+
 <?php if ($inventoryReport): ?>
 <section class="panel">
     <div class="panel-header"><h2>Inventory Report</h2></div>
@@ -128,7 +150,12 @@
 
 <?php if ($monthlySales): ?>
 <section class="panel">
-    <div class="panel-header"><h2>Monthly Sales</h2></div>
+    <div class="panel-header">
+        <h2>Monthly Sales</h2>
+        <?php if ($authController->can('reports.export')): ?>
+            <a href="<?= e(basePath('api/reports.php?type=export-monthly-csv' . ($fromDate ? '&from_date=' . urlencode($fromDate) : '') . ($toDate ? '&to_date=' . urlencode($toDate) : ''))); ?>" class="button ghost small">Export to CSV</a>
+        <?php endif; ?>
+    </div>
     <?php if (!empty($canViewSalesInsight)): ?>
     <article class="insight-card sales-ai-insight" data-sales-insight-card data-endpoint="<?= e(appRootPath('api/reports.php?type=sales-insight')); ?>">
         <div class="panel-header">
@@ -155,7 +182,12 @@
 
 <?php if ($dailySales): ?>
 <section class="panel">
-    <div class="panel-header"><h2>Daily Sales</h2></div>
+    <div class="panel-header">
+        <h2>Daily Sales</h2>
+        <?php if ($authController->can('reports.export')): ?>
+            <a href="<?= e(basePath('api/reports.php?type=export-daily-csv' . ($fromDate ? '&from_date=' . urlencode($fromDate) : '') . ($toDate ? '&to_date=' . urlencode($toDate) : ''))); ?>" class="button ghost small">Export to CSV</a>
+        <?php endif; ?>
+    </div>
     <div class="table-wrap">
         <table>
             <thead><tr><th>Date</th><th>Total</th></tr></thead>
@@ -170,14 +202,25 @@
 <?php endif; ?>
 
 <?php if ($lowStockReport): ?>
+<!-- Low stock alert report table summarises urgency per product -->
 <section class="panel">
-    <div class="panel-header"><h2>Reorder Priority List</h2></div>
+    <div class="panel-header"><h2>Low Stock Alert Report</h2></div>
+    <p class="lead">Products below threshold are ordered by urgency and include time below threshold.</p>
     <div class="table-wrap">
         <table>
-            <thead><tr><th>Product</th><th>SKU</th><th>Current Stock</th><th>Minimum Stock</th></tr></thead>
+            <thead><tr><th>Product</th><th>SKU</th><th>Category</th><th>Current Stock</th><th>Minimum Stock</th><th>Gap</th><th>Days Below</th></tr></thead>
             <tbody>
             <?php foreach ($lowStockReport as $row): ?>
-                <tr><td><?= e($row['name']); ?></td><td><?= e($row['sku']); ?></td><td><?= e((string) $row['stock_quantity']); ?></td><td><?= e((string) $row['min_threshold']); ?></td></tr>
+                <?php $gap = (int) $row['min_threshold'] - (int) $row['stock_quantity']; ?>
+                <tr>
+                    <td><?= e($row['name']); ?></td>
+                    <td><?= e($row['sku']); ?></td>
+                    <td><?= e((string) $row['category_name']); ?></td>
+                    <td><?= e((string) $row['stock_quantity']); ?></td>
+                    <td><?= e((string) $row['min_threshold']); ?></td>
+                    <td><?= e((string) $gap); ?></td>
+                    <td><?= e((string) $row['days_below_threshold']); ?> days</td>
+                </tr>
             <?php endforeach; ?>
             </tbody>
         </table>
@@ -204,6 +247,6 @@
  </div>
 </main>
 </div>
-<script src="<?= e(assetPath('js/app.js')); ?>"></script>
+<script src="<?= e(basePath('js/app.js')); ?>"></script>
 </body>
 </html>

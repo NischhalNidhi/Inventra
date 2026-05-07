@@ -380,6 +380,10 @@ $authController->requireAuthentication();
 $pagination = parsePagination($_GET);
 $fromDate = trim($_GET['from_date'] ?? '');
 $toDate = trim($_GET['to_date'] ?? '');
+// Preserve separate date/category filters for the low stock alert report page.
+$lowFromDate = trim($_GET['low_from_date'] ?? '');
+$lowToDate = trim($_GET['low_to_date'] ?? '');
+$lowCategoryId = trim($_GET['category_id'] ?? '');
 
 switch ($page) {
     case 'users':
@@ -486,15 +490,17 @@ switch ($page) {
         $canViewSalesInsight = $authController->can('reports.sales.insight');
         $authController->authorize($canViewDaily ? 'reports.sales.daily' : 'reports.inventory');
 
-        $inventorySummary = $canViewInventory ? $reportModel->getInventorySummary() : [];
         $inventoryReport = $canViewInventory ? $reportModel->getInventoryReport($fromDate ?: null, $toDate ?: null) : [];
         $monthlySales = $canViewMonthly ? $reportModel->getMonthlySales($fromDate ?: null, $toDate ?: null) : [];
         $dailySales = $canViewDaily ? $reportModel->getDailySales($fromDate ?: null, $toDate ?: null) : [];
-        $lowStockReport = $canViewLow ? $reportModel->getLowStockReport() : [];
+        $lowStockCategoryId = $lowCategoryId !== '' ? (int) $lowCategoryId : null;
+        // Use low stock filters only when the user can access the low stock report.
+        $lowStockReport = $canViewLow ? $reportModel->getLowStockReport($lowFromDate ?: null, $lowToDate ?: null, $lowStockCategoryId) : [];
         $movementSummary = $canViewMovement ? $reportModel->getStockMovementSummary($fromDate ?: null, $toDate ?: null) : [];
         $importBatches = $authController->can('reports.import') ? $reportModel->getImportBatches(12) : [];
         $productsData = $productModel->getAll(1, 200, '', ['archived' => '0']);
         $products = $productsData['data'];
+        $categories = $productModel->getCategories();
 
         $title = 'Inventra | Reports';
         $currentPage = 'reports';

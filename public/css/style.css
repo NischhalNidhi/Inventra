@@ -476,20 +476,12 @@ body.theme-dark .notif-list li {
 body.theme-dark tbody tr:hover {
     background: var(--surface-high);
 }
-body.theme-dark .upload-zone > div {
-    background: var(--surface-high);
-    border-color: var(--outline-variant);
-}
 .main-content {
     position: relative;
     padding-top: 80px;
     padding-left: 96px;
     min-height: 100vh;
     overflow: hidden;
-    transition: padding-left 0.28s ease;
-}
-.sidebar:hover + .main-content {
-    padding-left: 274px;
 }
 .main-content-inner {
     position: relative;
@@ -755,7 +747,7 @@ input:focus, select:focus, textarea:focus {
 
 .button {
     border: none;
-    border-radius: 8px;
+    border-radius: 10px;
     padding: 10px 14px;
     font-weight: 700;
     display: inline-flex;
@@ -799,13 +791,11 @@ input:focus, select:focus, textarea:focus {
 table {
     width: 100%;
     border-collapse: collapse;
-    table-layout: fixed;
 }
 th, td {
     border-bottom: 1px solid rgba(203, 213, 225, 0.48);
     padding: 14px 12px;
     text-align: left;
-    vertical-align: middle;
     white-space: nowrap;
 }
 th {
@@ -815,110 +805,35 @@ th {
     color: #6b7280;
     font-weight: 700;
 }
-tbody tr {
-    transition: background 0.16s ease, box-shadow 0.16s ease;
-}
-tbody tr:hover {
-    background: #f0f4ff;
-    box-shadow: inset 3px 0 0 var(--primary);
-}
-/* -- Badge --------------------------------------------------------------- */
+tbody tr:hover { background: #f8fafc; }
+
 .badge {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
     border-radius: 999px;
     font-size: 0.64rem;
     font-weight: 700;
     letter-spacing: 0.11em;
     text-transform: uppercase;
-    padding: 5px 10px 5px 7px;
-    white-space: nowrap;
-}
-.badge .badge-icon {
-    font-size: 13px;
-    line-height: 1;
-    font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 20;
+    padding: 6px 10px;
 }
 .badge.healthy {
-    background: rgba(40, 167, 100, 0.12);
-    color: #1a6b40;
+    background: rgba(213, 227, 252, 0.82);
+    color: #324053;
 }
 .badge.low {
-    background: rgba(220, 60, 80, 0.1);
-    color: #9b2535;
+    background: rgba(255, 139, 154, 0.2);
+    color: #782232;
 }
 
-/* -- Action group --------------------------------------------------------- */
 .action-group {
     display: flex;
     gap: 6px;
-    align-items: center;
-    flex-wrap: nowrap;
 }
-.action-group form {
-    display: inline-flex;
-    margin: 0;
-}
-.td-actions .action-group {
-    justify-content: flex-end;
-}
+.action-group form { margin: 0; }
 .action-group.request-actions {
     flex-wrap: wrap;
     gap: 8px;
-}
-
-/* -- Product table column helpers ----------------------------------------- */
-.td-sku {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: 0.8rem;
-    white-space: nowrap;
-    width: 140px;
-}
-.td-qty {
-    font-weight: 800;
-    text-align: center;
-    width: 72px;
-}
-.td-price {
-    text-align: right;
-    font-weight: 600;
-    white-space: nowrap;
-    width: 130px;
-}
-.td-actions {
-    width: 1%;
-    white-space: nowrap;
-}
-
-.category-form {
-    grid-template-columns: minmax(220px, 0.45fr) minmax(280px, 1fr) auto;
-    align-items: end;
-}
-.form-grid.category-form .wide {
-    grid-column: auto;
-}
-.category-table th,
-.category-table td {
-    white-space: normal;
-}
-.category-table .category-name {
-    width: 34%;
-    font-weight: 700;
-}
-.category-table .category-actions {
-    width: 180px;
-    white-space: nowrap;
-}
-.category-table .category-actions .action-group {
-    justify-content: flex-start;
-}
-
-/* -- Entry grid ----------------------------------------------------------- */
-.entry-grid {
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: 18px;
-    align-items: start;
 }
 .request-action-form {
     display: flex;
@@ -930,6 +845,10 @@ tbody tr:hover {
     min-width: 150px;
 }
 
+.entry-grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 18px;
+}
 .identity-card {
     grid-column: span 7 / span 7;
     border-left: 4px solid var(--primary);
@@ -952,7 +871,6 @@ tbody tr:hover {
     justify-content: center;
     gap: 14px;
     border-top-right-radius: 0;
-    align-self: start;
 }
 .section-title {
     margin: 0 0 20px;
@@ -976,7 +894,7 @@ tbody tr:hover {
     border: 2px dashed rgba(179, 177, 180, 0.55);
     background: rgba(240, 237, 239, 0.55);
     border-radius: 14px;
-    min-height: 150px;
+    min-height: 180px;
     display: grid;
     place-items: center;
     text-align: center;
@@ -1134,14 +1052,123 @@ body.theme-dark .auth-card {
 }
 .auth-card > p {
     margin: 0 0 14px;
+.stock-card {
+    grid-column: span 8 / span 8;
+    background: #f8fafc;
+    border-top-left-radius: 0;
+}
+.action-card {
+    grid-column: span 4 / span 4;
+    background: var(--primary);
+    color: var(--on-primary);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 14px;
+    border-top-right-radius: 0;
+}
+.section-title {
+    margin: 0 0 20px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--text-muted);
+}
+.section-title.inverse { color: rgba(255, 255, 255, 0.75); }
+.inline-fields, .stock-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+}
+
+.upload-zone > input { margin-bottom: 10px; }
+.entry-card label { margin-bottom: 12px; }
+.entry-card label:last-child { margin-bottom: 0; }
+.upload-zone > div {
+    border: 2px dashed rgba(179, 177, 180, 0.55);
+    background: rgba(240, 237, 239, 0.55);
+    border-radius: 14px;
+    min-height: 180px;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    gap: 8px;
+    padding: 14px;
+    color: var(--text-muted);
+}
+.upload-zone > div strong {
+    color: var(--text);
+}
+
+.stepper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f8fafc;
+    border: 1px solid rgba(203, 213, 225, 0.7);
+    border-radius: 999px;
+    padding: 4px;
+}
+.stepper input {
+    border: none;
+    background: transparent;
+    text-align: center;
+    box-shadow: none;
+}
+.stepper-btn {
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    background: #fff;
+    color: var(--primary);
+    cursor: pointer;
+}
+
+.form-errors {
+    margin-bottom: 14px;
+    padding: 12px 14px;
+}
+.form-errors p {
+    margin: 0 0 5px;
+    color: var(--error);
+    font-size: 0.88rem;
+}
+
+.stock-layout {
+    grid-template-columns: 0.92fr 1.08fr;
+}
+.form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.form-grid .wide {
+    grid-column: 1 / -1;
+}
+.feedback-text {
+    margin-top: 10px;
     color: var(--text-muted);
 }
 
+.global-search {
+    display: flex;
+    align-items: center;
+    border: 1px solid rgba(203, 213, 225, 0.7);
+    background: #f8fafc;
+    border-radius: 10px;
+    padding: 0 12px;
+}
+.global-search input {
+    border: none;
+    background: transparent;
+    box-shadow: none;
+}
+
 /* =========================================================
-   DESIGN_LOGIN.md - Full-Screen Split Login
+   DESIGN_LOGIN.md — Full-Screen Split Login
    ========================================================= */
 
-/* CSS token for the brand gradient. */
+/* CSS token for the brand gradient — never use inline hex */
 .bg-gradient-brand {
     background: linear-gradient(135deg, #4059aa 0%, #1d3989 100%);
 }
@@ -1255,7 +1282,7 @@ body.theme-dark .auth-card {
     max-width: 480px;
 }
 
-/* Feature list. */
+/* Feature list — §3.4 */
 .login-body .auth-feature-list {
     list-style: none;
     padding: 0;
@@ -1286,7 +1313,7 @@ body.theme-dark .auth-card {
     font-size: 18px;
 }
 
-/* Floating cards container. */
+/* Floating cards container — §3.5 */
 .auth-floating-cards {
     position: relative;
     z-index: 5;
@@ -1295,7 +1322,7 @@ body.theme-dark .auth-card {
     flex-shrink: 0;
 }
 
-/* Card A - mini bar chart. */
+/* Card A — Mini Bar Chart (glassmorphism) §3.5 */
 .auth-card-chart {
     position: absolute;
     left: 0;
@@ -1344,7 +1371,7 @@ body.theme-dark .auth-card {
     background: var(--primary);
 }
 
-/* Card B - product card. */
+/* Card B — Product Card §3.5 */
 .auth-product-card {
     position: absolute;
     top: -40px;
@@ -1396,7 +1423,7 @@ body.theme-dark .auth-card {
     font-weight: 900;
 }
 
-/* Card C - low stock alert pill. */
+/* Card C — Low Stock Alert Pill §3.5 */
 .auth-alert-pill {
     position: absolute;
     left: 192px;
@@ -1430,7 +1457,7 @@ body.theme-dark .auth-card {
     50%       { transform: translateY(-7px); }
 }
 
-/* ---- Right panel ---- */
+/* ---- RIGHT PANEL — §4 ---- */
 .login-body .auth-right {
     flex: 1;
     min-height: 100vh;
@@ -1441,7 +1468,7 @@ body.theme-dark .auth-card {
     background: #fcf8f9; /* --surface token: #fcf8f9 */
 }
 
-/* Inner form container. */
+/* Inner form container — no card border/shadow */
 .login-body .auth-card {
     width: min(432px, 100%);
     padding: 0;
@@ -1451,7 +1478,7 @@ body.theme-dark .auth-card {
     box-shadow: none;
 }
 
-/* Mobile-only compact logo. */
+/* Mobile-only compact logo — hidden on desktop */
 .auth-mobile-brand {
     display: none;
     align-items: center;
@@ -1476,7 +1503,7 @@ body.theme-dark .auth-card {
     color: var(--text);
 }
 
-/* Form header. */
+/* Form header — §4.3 */
 .login-body .auth-card .auth-form-header {
     margin-bottom: 32px;
 }
@@ -1496,7 +1523,7 @@ body.theme-dark .auth-card {
     font-size: 0.95rem;
 }
 
-/* Label pattern. */
+/* Label pattern — §4.4 */
 .login-body .login-form .field-row {
     display: grid;
     gap: 8px;
@@ -1524,7 +1551,7 @@ body.theme-dark .auth-card {
     letter-spacing: normal;
 }
 
-/* Input base. */
+/* Input base — §4.4: no border in resting state */
 .login-body .login-form input[type="email"],
 .login-body .login-form input[type="password"],
 .login-body .login-form input[type="text"] {
@@ -1549,7 +1576,7 @@ body.theme-dark .auth-card {
     box-shadow: 0 0 0 2px rgba(158, 63, 78, 0.25);
 }
 
-/* Password field row. */
+/* Password field row — label + Forgot Password link */
 .auth-password-row {
     display: flex;
     align-items: center;
@@ -1598,7 +1625,7 @@ body.theme-dark .auth-card {
     color: var(--text);
 }
 
-/* Inline field error text. */
+/* Inline field error text — §5 */
 .field-inline-error {
     margin: 4px 0 0;
     font-size: 0.75rem;
@@ -1610,7 +1637,7 @@ body.theme-dark .auth-card {
     display: block;
 }
 
-/* Remember me checkbox. */
+/* Remember Me checkbox — §4.4 */
 .login-body .auth-aux-row {
     display: flex;
     align-items: center;
@@ -1646,7 +1673,7 @@ body.theme-dark .auth-card {
     cursor: pointer;
 }
 
-/* Error banner. */
+/* Error banner — §4.6 */
 .auth-error-banner {
     display: flex;
     gap: 12px;
@@ -1691,7 +1718,7 @@ body.theme-dark .auth-card {
     font-size: 0.86rem;
 }
 
-/* Submit button. */
+/* Submit button — §4.5 */
 .login-body .button.primary.wide {
     width: 100%;
     padding: 15px 18px;
@@ -1745,7 +1772,7 @@ body.theme-dark .auth-card {
     to { transform: rotate(360deg); }
 }
 
-/* Divider and request access footer. */
+/* Divider + Request Access footer — §4.7 */
 .auth-request-footer {
     margin-top: 32px;
     padding-top: 24px;
@@ -1771,7 +1798,7 @@ body.theme-dark .auth-card {
     text-decoration-thickness: 2px;
 }
 
-/* Footer links. */
+/* Footer links — §4.8 */
 .auth-legal-links {
     display: flex;
     flex-wrap: wrap;
@@ -1807,7 +1834,7 @@ body.theme-dark .auth-card {
 }
 
 /* =========================================================
-   Mobile layout
+   MOBILE — §2 left panel hidden at <=1024px
    ========================================================= */
 @media (max-width: 1024px) {
     .login-body .auth-shell {
@@ -1842,7 +1869,6 @@ body.theme-dark .auth-card {
         grid-column: span 12 / span 12;
         border-radius: 14px;
         border-left-width: 1px;
-        align-self: stretch;
     }
     .inline-fields, .stock-controls {
         grid-template-columns: 1fr;
@@ -1869,9 +1895,6 @@ body.theme-dark .auth-card {
     .main-content {
         padding-left: 80px;
     }
-    .sidebar:hover + .main-content {
-        padding-left: 80px;
-    }
     .main-content-inner {
         padding: 14px 10px 28px;
     }
@@ -1879,312 +1902,3 @@ body.theme-dark .auth-card {
         padding: 14px;
     }
 }
-
-/* Product row styles. */
-.product-row {
-    transition: background 0.15s ease, box-shadow 0.15s ease;
-}
-.product-row > td:first-child {
-    overflow: hidden;
-}
-
-.product-cell-main {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    overflow: hidden;
-}
-
-/* Fixed-square thumbnail / placeholder */
-.product-cell-image {
-    width: 48px;
-    height: 48px;
-    min-width: 48px;
-    max-width: 48px;
-    flex-shrink: 0;
-    border-radius: 10px;
-    background: var(--surface-mid);
-    border: 1px solid var(--outline-variant);
-    display: grid;
-    place-items: center;
-    overflow: hidden;
-}
-.product-cell-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-}
-.product-placeholder-icon {
-    font-size: 22px;
-    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
-}
-.icon-primary  { color: var(--primary); }
-.icon-error    { color: var(--error); }
-.icon-muted    { color: var(--text-muted); }
-
-/* Product name / meta text */
-.product-cell-info {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    min-width: 0;
-}
-.product-cell-name {
-    font-weight: 700;
-    font-size: 0.9rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.product-cell-meta {
-    font-size: 0.68rem;
-    color: var(--text-muted);
-    letter-spacing: 0.06em;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* Product action buttons. */
-.btn-action {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    border: 1px solid transparent;
-    border-radius: 8px;
-    background: var(--surface-high);
-    padding: 7px 11px;
-    min-height: 34px;
-    min-width: 34px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    font-family: inherit;
-    cursor: pointer;
-    appearance: none;
-    text-decoration: none !important;
-    white-space: nowrap;
-    transition: background 0.16s ease, color 0.16s ease, transform 0.14s ease, box-shadow 0.16s ease;
-    line-height: 1;
-    box-shadow: none;
-}
-.btn-action:visited {
-    color: inherit;
-}
-.btn-action:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(64, 89, 170, 0.18);
-}
-.btn-action .material-symbols-outlined {
-    font-size: 16px;
-    line-height: 1;
-    font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 20;
-}
-.btn-action:hover { transform: translateY(-1px); }
-
-/* Edit action. */
-.btn-edit {
-    background: rgba(64, 89, 170, 0.1);
-    color: var(--primary);
-    border-color: rgba(64, 89, 170, 0.18);
-}
-.btn-edit:hover {
-    background: var(--primary);
-    color: #fff;
-    box-shadow: 0 4px 12px rgba(64, 89, 170, 0.35);
-}
-
-/* Archive action. */
-.btn-archive {
-    background: rgba(100, 116, 139, 0.1);
-    color: var(--secondary);
-    border-color: rgba(100, 116, 139, 0.18);
-}
-.btn-archive:hover {
-    background: rgba(100, 116, 139, 0.22);
-    color: var(--text);
-}
-
-/* Delete action. */
-.btn-delete {
-    background: rgba(158, 63, 78, 0.08);
-    color: var(--error);
-    border-color: rgba(158, 63, 78, 0.22);
-}
-.btn-delete:hover {
-    background: var(--error);
-    color: #fff;
-    box-shadow: 0 4px 12px rgba(158, 63, 78, 0.35);
-}
-
-/* Dark-mode product table overrides. */
-body.theme-dark tbody tr:hover {
-    background: var(--surface-high);
-    box-shadow: inset 3px 0 0 var(--primary);
-}
-body.theme-dark .badge.healthy {
-    background: rgba(40, 167, 100, 0.18);
-    color: #5dd49a;
-}
-body.theme-dark .badge.low {
-    background: rgba(245, 138, 160, 0.15);
-    color: var(--error);
-}
-body.theme-dark .product-cell-image {
-    background: var(--surface-high);
-    border-color: var(--outline-variant);
-}
-body.theme-dark .btn-edit {
-    background: rgba(111, 141, 255, 0.12);
-    color: var(--primary);
-    border-color: rgba(111, 141, 255, 0.24);
-}
-body.theme-dark .btn-edit:hover {
-    background: var(--primary);
-    color: #fff;
-}
-body.theme-dark .btn-archive {
-    background: rgba(184, 196, 222, 0.1);
-    color: var(--secondary);
-    border-color: rgba(184, 196, 222, 0.2);
-}
-body.theme-dark .btn-archive:hover {
-    background: rgba(184, 196, 222, 0.2);
-    color: var(--text);
-}
-body.theme-dark .btn-delete {
-    background: rgba(245, 138, 160, 0.1);
-    color: var(--error);
-    border-color: rgba(245, 138, 160, 0.22);
-}
-body.theme-dark .btn-delete:hover {
-    background: var(--error);
-    color: #fff;
-}
-
-/* -- Low Stock Alert Graph ------------------------------------------------ */
-.low-stock-graph-panel {
-    margin-bottom: 16px;
-}
-.low-stock-graph-panel .panel-header {
-    flex-wrap: wrap;
-}
-.graph-legend {
-    display: flex;
-    gap: 16px;
-    align-items: center;
-}
-.legend-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--text-muted);
-}
-.legend-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 3px;
-}
-.legend-stock {
-    background: linear-gradient(135deg, #6f8dff, #4059aa);
-}
-.legend-threshold {
-    background: linear-gradient(135deg, #ff8b9a, #c45061);
-}
-.graph-controls {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 16px;
-}
-.graph-filter-btn {
-    font-size: 0.72rem !important;
-    padding: 6px 12px !important;
-    border-radius: 999px !important;
-    transition: all 0.2s ease;
-}
-.graph-filter-btn.active {
-    background: var(--primary) !important;
-    color: #fff !important;
-}
-.graph-container {
-    position: relative;
-    width: 100%;
-    min-height: 320px;
-    max-height: 600px;
-    overflow-y: auto;
-    overflow-x: hidden;
-    border-radius: 10px;
-    background: linear-gradient(180deg, rgba(248, 250, 252, 0.5) 0%, rgba(240, 242, 255, 0.3) 100%);
-    border: 1px solid rgba(203, 213, 225, 0.25);
-    scrollbar-width: thin;
-    scrollbar-color: var(--outline-variant) transparent;
-}
-body.theme-dark .graph-container {
-    background: linear-gradient(180deg, rgba(22, 26, 35, 0.5) 0%, rgba(29, 35, 48, 0.3) 100%);
-    border-color: var(--outline-variant);
-}
-.graph-container canvas {
-    display: block;
-    width: 100%;
-}
-.graph-empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 48px 20px;
-    color: #2f8f6a;
-    font-weight: 600;
-    font-size: 0.95rem;
-    text-align: center;
-}
-.graph-empty-state .material-symbols-outlined {
-    font-size: 42px;
-    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 48;
-}
-body.theme-dark .graph-empty-state {
-    color: #6fd9a5;
-}
-.graph-tooltip {
-    position: fixed;
-    z-index: 200;
-    background: rgba(30, 30, 40, 0.92);
-    color: #fff;
-    padding: 10px 14px;
-    border-radius: 10px;
-    font-size: 0.78rem;
-    line-height: 1.5;
-    pointer-events: none;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
-    backdrop-filter: blur(8px);
-    max-width: 240px;
-    opacity: 0;
-    transition: opacity 0.15s ease;
-}
-.graph-tooltip.visible {
-    opacity: 1;
-}
-.graph-tooltip strong {
-    display: block;
-    font-size: 0.82rem;
-    margin-bottom: 4px;
-    color: #dce1ff;
-}
-.graph-tooltip .tt-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 16px;
-}
-.graph-tooltip .tt-dot {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 2px;
-    margin-right: 5px;
-    vertical-align: middle;
-}
-
