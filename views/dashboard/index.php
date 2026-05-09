@@ -38,6 +38,7 @@
 </section>
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 <!-- AI Smart Insight Section -->
 <section class="panel ai-insight-panel" style="border-left: 4px solid #6366f1; background: #f8fafc;">
     <div class="panel-header">
@@ -53,16 +54,20 @@
         <p><em><?= e($aiInsight); ?></em></p>
 =======
 <section class="panel low-stock-graph-panel">
+=======
+<!-- AI Smart Insight Section -->
+<section class="panel ai-insight-panel" style="border-left: 4px solid #6366f1; background: #f8fafc;">
+>>>>>>> 95472c238b1adbfe02b77c5479d881814aeb5176
     <div class="panel-header">
         <div>
-            <h2>Low Stock Alert Graph</h2>
-            <p>Visual comparison of current stock levels against minimum thresholds.</p>
-        </div>
-        <div class="graph-legend">
-            <span class="legend-item"><span class="legend-dot legend-stock"></span>Current Stock</span>
-            <span class="legend-item"><span class="legend-dot legend-threshold"></span>Min Threshold</span>
+            <h2 style="display: flex; align-items: center; gap: 0.5rem;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #6366f1;"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path><path d="M5 3v4"></path><path d="M19 17v4"></path><path d="M3 5h4"></path><path d="M17 19h4"></path></svg>
+                AI Smart Insight
+            </h2>
+            <p>Automated business analysis based on recent sales trends.</p>
         </div>
     </div>
+<<<<<<< HEAD
     <div class="graph-controls">
         <button type="button" class="button ghost small graph-filter-btn active" data-graph-filter="low">Low Stock Only</button>
         <button type="button" class="button ghost small graph-filter-btn" data-graph-filter="all">All Products</button>
@@ -75,6 +80,10 @@
             All products are above their minimum stock thresholds.
         </p>
 >>>>>>> 0a8a1c1af15c5b1cafdeef4fff7f44fd425ed3b5
+=======
+    <div style="padding: 1rem; font-size: 1.1rem; line-height: 1.6; color: #1e293b;">
+        <p><em><?= e($aiInsight); ?></em></p>
+>>>>>>> 95472c238b1adbfe02b77c5479d881814aeb5176
     </div>
 </section>
 
