@@ -572,8 +572,8 @@ body.theme-dark tbody tr:hover {
     transition: padding-left 0.28s ease;
 }
 
-.sidebar:hover ~ .main-content,
-.sidebar:focus-within ~ .main-content {
+.sidebar:hover~.main-content,
+.sidebar:focus-within~.main-content {
     padding-left: 274px;
 }
 
@@ -969,10 +969,6 @@ td {
     border-bottom: 1px solid rgba(203, 213, 225, 0.48);
     padding: 14px 12px;
     text-align: left;
-<<<<<<< HEAD
-=======
-    vertical-align: middle;
->>>>>>> 95472c238b1adbfe02b77c5479d881814aeb5176
 }
 
 th {
@@ -983,6 +979,7 @@ th {
     font-weight: 700;
     white-space: nowrap;
 }
+
 td {
     white-space: normal;
     word-break: break-word;
@@ -1294,6 +1291,7 @@ body.theme-dark .auth-card {
 
 .auth-card>p {
     margin: 0 0 14px;
+}
 
     .stock-card {
         grid-column: span 8 / span 8;
@@ -2270,8 +2268,8 @@ body.theme-dark .auth-card {
             padding-left: 80px;
         }
 
-        .sidebar:hover ~ .main-content,
-        .sidebar:focus-within ~ .main-content {
+        .sidebar:hover~.main-content,
+        .sidebar:focus-within~.main-content {
             padding-left: 80px;
         }
 

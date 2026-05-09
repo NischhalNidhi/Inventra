@@ -6,6 +6,12 @@
         <h1>PO Tracker</h1>
         <p class="lead">Create purchase orders, monitor shipment details, and receive deliveries.</p>
     </div>
+    <div class="topbar-actions">
+        <form class="global-search" action="<?= e(basePath('index.php')); ?>" method="get">
+            <input type="hidden" name="page" value="purchase-orders">
+            <input type="text" name="search" placeholder="Search PO number or supplier..." value="<?= e($_GET['search'] ?? ''); ?>">
+        </form>
+    </div>
 </header>
 
 <?php if ($authController->can('po.create')): ?>

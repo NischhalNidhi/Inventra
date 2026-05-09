@@ -6,6 +6,12 @@
         <h1>Supplier Registry</h1>
         <p class="lead">Manage supplier contacts used by procurement and purchase orders.</p>
     </div>
+    <div class="topbar-actions">
+        <form class="global-search" action="<?= e(basePath('index.php')); ?>" method="get">
+            <input type="hidden" name="page" value="suppliers">
+            <input type="text" name="search" placeholder="Search suppliers..." value="<?= e($_GET['search'] ?? ''); ?>">
+        </form>
+    </div>
 </header>
 
 <?php if ($authController->can('suppliers.manage')): ?>

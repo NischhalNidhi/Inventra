@@ -388,7 +388,11 @@ $lowCategoryId = trim($_GET['category_id'] ?? '');
 switch ($page) {
     case 'users':
         $authController->authorize('users.view');
-        $users = $userModel->getAll($pagination['limit'], $pagination['offset']);
+        $search = trim($_GET['search'] ?? '');
+        $users = $userModel->getAll($pagination['limit'], $pagination['offset'], $search);
+        $totalItems = $userModel->countAll($search);
+        $currentPageNum = $pagination['page'];
+        $perPage = $pagination['limit'];
         $title = 'Inventra | Users';
         $currentPage = 'users';
         require __DIR__ . '/../views/users/index.php';

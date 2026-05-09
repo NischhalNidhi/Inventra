@@ -21,8 +21,11 @@ class Supplier
             $conditions[] = 'is_active = 1';
         }
         if ($search !== '') {
-            $conditions[] = '(name LIKE :search OR contact_person LIKE :search OR email LIKE :search)';
-            $params['search'] = '%' . $search . '%';
+            $conditions[] = '(name LIKE :s1 OR contact_person LIKE :s2 OR email LIKE :s3)';
+            $kw = '%' . $search . '%';
+            $params['s1'] = $kw;
+            $params['s2'] = $kw;
+            $params['s3'] = $kw;
         }
 
         $where = $conditions ? 'WHERE ' . implode(' AND ', $conditions) : '';
