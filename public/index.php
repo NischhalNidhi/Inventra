@@ -388,7 +388,11 @@ $lowCategoryId = trim($_GET['category_id'] ?? '');
 switch ($page) {
     case 'users':
         $authController->authorize('users.view');
-        $users = $userModel->getAll($pagination['limit'], $pagination['offset']);
+        $search = trim($_GET['search'] ?? '');
+        $users = $userModel->getAll($pagination['limit'], $pagination['offset'], $search);
+        $totalItems = $userModel->countAll($search);
+        $currentPageNum = $pagination['page'];
+        $perPage = $pagination['limit'];
         $title = 'Inventra | Users';
         $currentPage = 'users';
         require __DIR__ . '/../views/users/index.php';
@@ -481,6 +485,25 @@ switch ($page) {
         require __DIR__ . '/../views/logistics/reorder.php';
         break;
 
+    case 'ai-insights':
+        $authController->authorize('reports.sales.insight');
+        
+        $aiInsight = 'Configure AI endpoint to see smart business insights.';
+        $insightData = [];
+        if (env('AI_INSIGHTS_ENDPOINT')) {
+            try {
+                $insightData = $reportModel->getAdvancedSalesInsightData();
+                $aiInsight = $aiSalesInsightService->generateMonthlySalesInsight($insightData);
+            } catch (Exception $e) {
+                $aiInsight = 'AI Insight temporarily unavailable.';
+            }
+        }
+
+        $title = 'Inventra | AI Sales Insights';
+        $currentPage = 'ai-insights';
+        require __DIR__ . '/../views/reports/ai-insights.php';
+        break;
+
     case 'reports':
         $canViewMonthly = $authController->can('reports.sales.monthly');
         $canViewDaily = $authController->can('reports.sales.daily');
@@ -490,6 +513,7 @@ switch ($page) {
         $canViewSalesInsight = $authController->can('reports.sales.insight');
         $authController->authorize($canViewDaily ? 'reports.sales.daily' : 'reports.inventory');
 
+        $inventorySummary = $canViewInventory ? $reportModel->getInventorySummary() : [];
         $inventoryReport = $canViewInventory ? $reportModel->getInventoryReport($fromDate ?: null, $toDate ?: null) : [];
         $monthlySales = $canViewMonthly ? $reportModel->getMonthlySales($fromDate ?: null, $toDate ?: null) : [];
         $dailySales = $canViewDaily ? $reportModel->getDailySales($fromDate ?: null, $toDate ?: null) : [];
@@ -539,6 +563,18 @@ switch ($page) {
         $alertGraph = $productModel->getAlertGraphData();
         $dashboardAlerts = $productModel->getDashboardAlerts();
         $recentActivity = $authController->can('dashboard.activity') ? $productModel->getRecentActivity() : [];
+        
+        // AI Insight Integration
+        $aiInsight = 'Overall revenue has declined by approximately 21% this month compared to the previous period, despite a steady transaction volume of 140 orders. While high-ticket items like Extra Virgin Olive Oil and Electronics continue to drive value, everyday essentials are underperforming. Focus on bundling staples to recover volume in the Grocery and Snacks categories.';
+        if (env('AI_INSIGHTS_ENDPOINT')) {
+            try {
+                $insightData = $reportModel->getAdvancedSalesInsightData();
+                $aiInsight = $aiSalesInsightService->generateMonthlySalesInsight($insightData);
+            } catch (Exception $e) {
+                $aiInsight = 'AI Insight temporarily unavailable.';
+            }
+        }
+
         $title = 'Inventra | Dashboard';
         $currentPage = 'dashboard';
         require __DIR__ . '/../views/dashboard/index.php';

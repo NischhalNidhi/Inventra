@@ -15,9 +15,31 @@ class AiSalesInsightService
             throw new RuntimeException('cURL is required for AI insights.');
         }
 
+        $prompt = "You are a business analytics assistant.
+Your task is to analyze monthly sales data and generate a concise business insight.
+INPUT DATA:
+- Total revenue: " . ($salesData['summary']['total_revenue'] ?? 'N/A') . "
+- Total orders: " . ($salesData['summary']['transaction_count'] ?? 'N/A') . "
+- Previous month revenue: " . ($salesData['summary']['prev_month_revenue'] ?? 'N/A') . "
+- Top selling products: " . implode(', ', array_map(fn($p) => $p['name'], $salesData['top_products'] ?? [])) . "
+- Lowest performing products: " . implode(', ', array_map(fn($p) => $p['name'], $salesData['low_products'] ?? [])) . "
+- Revenue by category: " . implode(', ', array_map(fn($c) => $c['name'] . ": " . $c['total'], $salesData['category_breakdown'] ?? [])) . "
+
+INSTRUCTIONS:
+- Generate a 2–3 sentence summary.
+- Use plain, clear business language.
+- Focus only on meaningful trends (growth, decline, anomalies, top/low performers).
+- Compare with previous month when data is available.
+- Highlight 1 key insight that a manager can act on.
+- Do NOT repeat raw numbers unnecessarily.
+- Do NOT explain calculations.
+- Do NOT speculate beyond the provided data.
+OUTPUT FORMAT:
+A short paragraph (2–3 sentences max).";
+
         $payload = [
-            'report_type' => 'monthly_sales',
-            'instructions' => 'Write a concise 2-3 sentence sales insight summary in natural language.',
+            'report_type' => 'monthly_sales_v2',
+            'instructions' => $prompt,
             'sales_data' => $salesData,
         ];
 

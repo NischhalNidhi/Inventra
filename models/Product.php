@@ -286,8 +286,11 @@ class Product
         $params = [];
 
         if (!empty($filters['keyword'])) {
-            $conditions[] = '(p.name LIKE :keyword OR p.sku LIKE :keyword OR c.name LIKE :keyword)';
-            $params['keyword'] = '%' . trim($filters['keyword']) . '%';
+            $conditions[] = '(p.name LIKE :kw1 OR p.sku LIKE :kw2 OR c.name LIKE :kw3)';
+            $kw = '%' . trim($filters['keyword']) . '%';
+            $params['kw1'] = $kw;
+            $params['kw2'] = $kw;
+            $params['kw3'] = $kw;
         }
 
         if (!empty($filters['category'])) {

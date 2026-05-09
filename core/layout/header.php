@@ -1,6 +1,19 @@
 <?php
 $flash = getFlash();
 $user = currentUser();
+$topSearchPage = in_array($currentPage ?? '', ['categories', 'suppliers', 'users', 'purchase-orders', 'products'], true)
+    ? $currentPage
+    : 'products';
+$topSearchName = $topSearchPage === 'products' ? 'keyword' : 'search';
+$topSearchValue = $_GET[$topSearchName] ?? '';
+$topSearchPlaceholderMap = [
+    'categories' => 'Search categories...',
+    'suppliers' => 'Search suppliers...',
+    'users' => 'Search staff accounts...',
+    'purchase-orders' => 'Search PO number or supplier...',
+    'products' => 'Search products or SKU...',
+];
+$topSearchPlaceholder = $topSearchPlaceholderMap[$topSearchPage] ?? 'Search products or SKU...';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -33,9 +46,9 @@ $user = currentUser();
             </div>
             <div class="top-nav-right">
                 <form class="top-search" action="<?= e(basePath('index.php')); ?>" method="get">
-                    <input type="hidden" name="page" value="products">
+                    <input type="hidden" name="page" value="<?= e($topSearchPage); ?>">
                     <span class="material-symbols-outlined">search</span>
-                    <input type="text" name="keyword" placeholder="Global Ledger Search..." value="<?= e($_GET['keyword'] ?? ''); ?>">
+                    <input type="text" name="<?= e($topSearchName); ?>" placeholder="<?= e($topSearchPlaceholder); ?>" value="<?= e((string) $topSearchValue); ?>">
                 </form>
                 <div class="icon-menu" data-notifications-menu>
                     <button type="button" class="top-icon-btn" aria-label="Notifications" aria-haspopup="menu" aria-expanded="false" data-notifications-trigger>

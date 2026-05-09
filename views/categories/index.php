@@ -6,6 +6,12 @@
         <h1>Category Management</h1>
         <p class="lead">Define product categories and keep classification taxonomy clean.</p>
     </div>
+    <div class="topbar-actions">
+        <form class="global-search" action="<?= e(basePath('index.php')); ?>" method="get">
+            <input type="hidden" name="page" value="categories">
+            <input type="text" name="search" placeholder="Search categories..." value="<?= e($_GET['search'] ?? ''); ?>">
+        </form>
+    </div>
 </header>
 
 <?php if ($authController->can('categories.manage')): ?>

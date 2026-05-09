@@ -6,6 +6,12 @@
         <h1>Staff Accounts</h1>
         <p class="lead">Create staff accounts and send secure welcome setup links to new team members.</p>
     </div>
+    <div class="topbar-actions">
+        <form class="global-search" action="<?= e(basePath('index.php')); ?>" method="get">
+            <input type="hidden" name="page" value="users">
+            <input type="text" name="search" placeholder="Search staff accounts..." value="<?= e($_GET['search'] ?? ''); ?>">
+        </form>
+    </div>
 </header>
 
 <section class="panel">
@@ -61,6 +67,7 @@
             <?php endforeach; ?>
             </tbody>
         </table>
+        <?php require __DIR__ . '/../partials/pagination.php'; ?>
     </div>
 </section>
 

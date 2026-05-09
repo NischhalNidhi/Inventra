@@ -18,11 +18,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         }
 
         try {
-            $salesData = $reportModel->getCurrentMonthSalesInsightData();
+            $salesData = $reportModel->getAdvancedSalesInsightData();
             $summary = $aiSalesInsightService->generateMonthlySalesInsight($salesData);
             jsonResponse([
                 'summary' => $summary,
-                'period' => $salesData['period'],
+                'period' => $salesData['period'] ?? null,
             ]);
         } catch (Throwable $exception) {
             jsonResponse(['error' => 'Insight unavailable', 'code' => 'INSIGHT_UNAVAILABLE'], 502);

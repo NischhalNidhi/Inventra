@@ -18,8 +18,10 @@ class Category
         $where = '';
         $params = [];
         if ($search !== '') {
-            $where = 'WHERE name LIKE :search OR description LIKE :search';
-            $params['search'] = '%' . $search . '%';
+            $where = 'WHERE name LIKE :s1 OR description LIKE :s2';
+            $kw = '%' . $search . '%';
+            $params['s1'] = $kw;
+            $params['s2'] = $kw;
         }
         
         $countStmt = $this->pdo->prepare("SELECT COUNT(*) FROM categories $where");
