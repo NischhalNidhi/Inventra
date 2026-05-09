@@ -150,6 +150,7 @@
 
 <?php if ($monthlySales): ?>
 <section class="panel">
+    <div class="panel-header"><h2>Monthly Sales</h2></div>
     <div class="panel-header">
         <h2>Monthly Sales</h2>
         <?php if ($authController->can('reports.export')): ?>
