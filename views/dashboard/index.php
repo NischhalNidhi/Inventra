@@ -37,6 +37,7 @@
     </article>
 </section>
 
+<<<<<<< HEAD
 <!-- AI Smart Insight Section -->
 <section class="panel ai-insight-panel" style="border-left: 4px solid #6366f1; background: #f8fafc;">
     <div class="panel-header">
@@ -50,6 +51,30 @@
     </div>
     <div style="padding: 1rem; font-size: 1.1rem; line-height: 1.6; color: #1e293b;">
         <p><em><?= e($aiInsight); ?></em></p>
+=======
+<section class="panel low-stock-graph-panel">
+    <div class="panel-header">
+        <div>
+            <h2>Low Stock Alert Graph</h2>
+            <p>Visual comparison of current stock levels against minimum thresholds.</p>
+        </div>
+        <div class="graph-legend">
+            <span class="legend-item"><span class="legend-dot legend-stock"></span>Current Stock</span>
+            <span class="legend-item"><span class="legend-dot legend-threshold"></span>Min Threshold</span>
+        </div>
+    </div>
+    <div class="graph-controls">
+        <button type="button" class="button ghost small graph-filter-btn active" data-graph-filter="low">Low Stock Only</button>
+        <button type="button" class="button ghost small graph-filter-btn" data-graph-filter="all">All Products</button>
+    </div>
+    <div class="graph-container" id="low-stock-graph-container"
+         data-alert-graph='<?= e(json_encode($alertGraph, JSON_HEX_APOS | JSON_HEX_TAG)); ?>'>
+        <canvas id="low-stock-canvas"></canvas>
+        <p class="graph-empty-state" id="graph-empty-state" style="display:none;">
+            <span class="material-symbols-outlined">check_circle</span>
+            All products are above their minimum stock thresholds.
+        </p>
+>>>>>>> 0a8a1c1af15c5b1cafdeef4fff7f44fd425ed3b5
     </div>
 </section>
 
@@ -178,6 +203,6 @@
  </div>
 </main>
 </div>
-<script src="<?= e(assetPath('js/app.js')); ?>"></script>
+<script src="<?= e(basePath('js/app.js')); ?>"></script>
 </body>
 </html>

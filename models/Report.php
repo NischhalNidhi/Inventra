@@ -241,14 +241,86 @@ class Report
         return $stmt->fetchAll();
     }
 
-    public function getLowStockReport(): array
+    /**
+     * Retrieve detailed sales transactions with product names for CSV export.
+     *
+     * @param string|null $fromDate Only include sales on or after this date.
+     * @param string|null $toDate   Only include sales on or before this date.
+     * @return array Sales transactions with product details.
+     */
+    public function getSalesTransactionsForExport(?string $fromDate = null, ?string $toDate = null): array
     {
-        return $this->pdo->query(
-            'SELECT name, sku, stock_quantity, min_threshold
-             FROM products
-             WHERE is_archived = 0 AND stock_quantity <= min_threshold
-             ORDER BY (min_threshold - stock_quantity) DESC'
-        )->fetchAll();
+        $conditions = [];
+        $params = [];
+        if ($fromDate) {
+            $conditions[] = 'st.sale_date >= :from_date';
+            $params['from_date'] = $fromDate;
+        }
+        if ($toDate) {
+            $conditions[] = 'st.sale_date <= :to_date';
+            $params['to_date'] = $toDate;
+        }
+
+        $whereSql = $conditions ? 'WHERE ' . implode(' AND ', $conditions) : '';
+
+        $stmt = $this->pdo->prepare(
+            'SELECT st.sale_date, p.name AS product_name, st.quantity, st.unit_price, (st.quantity * st.unit_price) AS total
+             FROM sales_transactions st
+             LEFT JOIN products p ON p.id = st.product_id
+             ' . $whereSql . '
+             ORDER BY st.sale_date DESC, st.id DESC'
+        );
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Retrieve low stock products with optional category and date filtering.
+     *
+     * @param string|null $fromDate   Only include products updated on or after this date.
+     * @param string|null $toDate     Only include products updated on or before this date.
+     * @param int|null    $categoryId Only include products from this category.
+     * @return array Low stock products with days below threshold metadata.
+     */
+    public function getLowStockReport(?string $fromDate = null, ?string $toDate = null, ?int $categoryId = null): array
+    {
+        $conditions = ['p.is_archived = 0', 'p.stock_quantity <= p.min_threshold'];
+        $params = [];
+
+        if ($categoryId !== null) {
+            $conditions[] = 'p.category_id = :category_id';
+            $params['category_id'] = $categoryId;
+        }
+        if ($fromDate) {
+            $conditions[] = 'DATE(p.updated_at) >= :low_from_date';
+            $params['low_from_date'] = $fromDate;
+        }
+        if ($toDate) {
+            $conditions[] = 'DATE(p.updated_at) <= :low_to_date';
+            $params['low_to_date'] = $toDate;
+        }
+
+        // Determine how long the product has remained below threshold.
+        // Prefer the most recent movement that crossed the threshold; otherwise fall back to first below-threshold movement or product update.
+        $stmt = $this->pdo->prepare(
+            'SELECT p.id, p.name, p.sku, p.stock_quantity, p.min_threshold, c.name AS category_name,
+                    TIMESTAMPDIFF(DAY,
+                        COALESCE(
+                            (SELECT MAX(sm.created_at) FROM stock_movements sm
+                             WHERE sm.product_id = p.id AND sm.previous_quantity > p.min_threshold AND sm.new_quantity <= p.min_threshold),
+                            (SELECT MIN(sm.created_at) FROM stock_movements sm
+                             WHERE sm.product_id = p.id AND sm.new_quantity <= p.min_threshold),
+                            p.updated_at
+                        ),
+                        NOW()
+                    ) AS days_below_threshold
+             FROM products p
+             LEFT JOIN categories c ON c.id = p.category_id
+             WHERE ' . implode(' AND ', $conditions) . '
+             ORDER BY (p.min_threshold - p.stock_quantity) DESC, p.name ASC'
+        );
+        $stmt->execute($params);
+        return $stmt->fetchAll();
     }
 
     public function getStockMovementSummary(?string $fromDate = null, ?string $toDate = null): array

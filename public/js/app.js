@@ -157,12 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const actions = [];
 
         if (product.can_edit) {
-            actions.push(`
-                <a class="btn-action btn-edit" href="${product.edit_url}" title="Edit product">
-                    <span class="material-symbols-outlined">edit</span>
-                    <span class="btn-label">Edit</span>
-                </a>
-            `);
+            actions.push(`<a class="button small ghost" href="${product.edit_url}">Edit</a>`);
         }
 
         if (product.can_archive) {
@@ -171,24 +166,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     <input type="hidden" name="csrf_token" value="${csrfToken}">
                     <input type="hidden" name="action" value="archive_product">
                     <input type="hidden" name="product_id" value="${product.id}">
-                    <button class="btn-action btn-archive" type="submit" title="Archive product">
-                        <span class="material-symbols-outlined">archive</span>
-                        <span class="btn-label">Archive</span>
-                    </button>
+                    <button class="button small ghost" type="submit">Archive</button>
                 </form>
             `);
         }
 
         if (product.can_delete) {
             actions.push(`
-                <form method="post" action="${basePath}/index.php?page=products" onsubmit="return confirm('Permanently delete this product?');">
+                <form method="post" action="${basePath}/index.php?page=products" onsubmit="return confirm('Delete this product?');">
                     <input type="hidden" name="csrf_token" value="${csrfToken}">
                     <input type="hidden" name="action" value="delete_product">
                     <input type="hidden" name="product_id" value="${product.id}">
-                    <button class="btn-action btn-delete" type="submit" title="Delete product">
-                        <span class="material-symbols-outlined">delete</span>
-                        <span class="btn-label">Delete</span>
-                    </button>
+                    <button class="button small danger-outline" type="submit">Delete</button>
                 </form>
             `);
         }
@@ -205,33 +194,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         tableBody.innerHTML = products.map((product) => `
-            <tr class="product-row" data-product-id="${product.id}">
+            <tr data-product-id="${product.id}">
                 <td>
-                    <div class="product-cell-main">
-                        <div class="product-cell-image">
-                            ${product.image_name
-                                ? `<img src="${basePath}/uploads/products/${escapeHtml(product.image_name)}" alt="${escapeHtml(product.name)}" width="48" height="48">`
-                                : '<span class="material-symbols-outlined product-placeholder-icon icon-muted">inventory_2</span>'
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <div style="width:44px;height:44px;border-radius:10px;background:var(--surface-mid);display:grid;place-items:center;overflow:hidden;">
+                            ${product.image_name 
+                                ? `<img src="${basePath}/uploads/products/${escapeHtml(product.image_name)}" alt="Product" style="width:100%;height:100%;object-fit:cover;">`
+                                : `<span class="material-symbols-outlined" style="color:${product.status_class === 'low' ? 'var(--error)' : 'var(--primary)'};">
+                                ${product.status_class === 'low' ? 'warning' : 'inventory_2'}
+                            </span>`
                             }
                         </div>
-                        <div class="product-cell-info">
-                            <div class="product-cell-name">${escapeHtml(product.name)}</div>
-                            <div class="product-cell-meta">
+                        <div>
+                            <div style="font-weight:700;">${escapeHtml(product.name)}</div>
+                            <div style="font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;">
                                 ${escapeHtml(product.category)} / ${escapeHtml(product.supplier)}
                             </div>
                         </div>
                     </div>
                 </td>
-                <td class="td-sku">${escapeHtml(product.sku)}</td>
-                <td class="td-qty">${product.quantity}</td>
-                <td class="td-price">${formatCurrency(product.unit_price)}</td>
-                <td>
-                    <span class="badge ${product.status_class}">
-                        <span class="material-symbols-outlined badge-icon">${product.status_class === 'low' ? 'warning' : 'check_circle'}</span>
-                        ${product.status_class === 'low' ? 'Low Stock' : 'In Stock'}
-                    </span>
-                </td>
-                <td class="td-actions"><div class="action-group">${buildActionButtons(product)}</div></td>
+                <td style="font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;font-size:0.8rem;">${escapeHtml(product.sku)}</td>
+                <td style="font-weight:800;">${product.quantity}</td>
+                <td style="font-weight:700;">${formatCurrency(product.unit_price)}</td>
+                <td><span class="badge ${product.status_class}">${product.status_class === 'low' ? 'Low Stock' : 'In Stock'}</span></td>
+                <td class="action-group">${buildActionButtons(product)}</td>
             </tr>
         `).join('');
     };
@@ -441,6 +427,281 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') { closeAllMenus(); }
+        });
+    }
+
+    // ---------------------------------------------------------------
+    // LOW STOCK ALERT GRAPH — Canvas bar chart
+    // ---------------------------------------------------------------
+    const graphContainer = document.getElementById('low-stock-graph-container');
+    const canvas = document.getElementById('low-stock-canvas');
+    const emptyState = document.getElementById('graph-empty-state');
+
+    if (graphContainer && canvas) {
+        const ctx = canvas.getContext('2d');
+        let allProducts = [];
+        let currentFilter = 'low';
+        let barRects = []; // store bar positions for hover detection
+        let animationProgress = 0;
+        let animationFrame = null;
+
+        // Tooltip element
+        const tooltip = document.createElement('div');
+        tooltip.className = 'graph-tooltip';
+        document.body.appendChild(tooltip);
+
+        try {
+            allProducts = JSON.parse(graphContainer.dataset.alertGraph || '[]');
+        } catch (_e) {
+            allProducts = [];
+        }
+
+        const isDark = () => body.classList.contains('theme-dark');
+
+        const getFilteredData = (filter) => {
+            if (filter === 'low') {
+                return allProducts.filter(p => parseInt(p.stock_quantity) <= parseInt(p.min_threshold));
+            }
+            return [...allProducts];
+        };
+
+        const drawChart = (data, progress) => {
+            const dpr = window.devicePixelRatio || 1;
+            const containerWidth = graphContainer.clientWidth;
+            const barHeight = 28;
+            const barGap = 10;
+            const labelWidth = 140;
+            const valueWidth = 60;
+            const paddingTop = 20;
+            const paddingBottom = 20;
+            const paddingRight = 20;
+            const chartHeight = paddingTop + data.length * (barHeight + barGap) + paddingBottom;
+            const minChartHeight = 320;
+            const finalHeight = Math.max(chartHeight, minChartHeight);
+
+            canvas.width = containerWidth * dpr;
+            canvas.height = finalHeight * dpr;
+            canvas.style.width = containerWidth + 'px';
+            canvas.style.height = finalHeight + 'px';
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+            // Clear
+            ctx.clearRect(0, 0, containerWidth, finalHeight);
+
+            if (data.length === 0) {
+                canvas.style.display = 'none';
+                if (emptyState) emptyState.style.display = '';
+                return;
+            }
+            canvas.style.display = '';
+            if (emptyState) emptyState.style.display = 'none';
+
+            const dark = isDark();
+            const textColor = dark ? '#a9b4cc' : '#5f5f61';
+            const gridColor = dark ? 'rgba(75, 89, 118, 0.3)' : 'rgba(203, 213, 225, 0.5)';
+            const barAreaStart = labelWidth;
+            const barAreaWidth = containerWidth - labelWidth - valueWidth - paddingRight;
+
+            // Find max value for scaling
+            const maxVal = Math.max(...data.map(p => Math.max(parseInt(p.stock_quantity), parseInt(p.min_threshold))), 1);
+
+            // Draw grid lines
+            const gridSteps = 5;
+            ctx.textAlign = 'center';
+            ctx.font = '10px Inter, sans-serif';
+            ctx.fillStyle = textColor;
+            for (let i = 0; i <= gridSteps; i++) {
+                const x = barAreaStart + (barAreaWidth / gridSteps) * i;
+                ctx.beginPath();
+                ctx.strokeStyle = gridColor;
+                ctx.lineWidth = 1;
+                ctx.setLineDash([]);
+                ctx.moveTo(x, paddingTop - 5);
+                ctx.lineTo(x, paddingTop + data.length * (barHeight + barGap));
+                ctx.stroke();
+
+                const val = Math.round((maxVal / gridSteps) * i);
+                ctx.fillText(val.toString(), x, paddingTop - 8);
+            }
+
+            barRects = [];
+
+            data.forEach((product, index) => {
+                const stock = parseInt(product.stock_quantity);
+                const threshold = parseInt(product.min_threshold);
+                const isLow = stock <= threshold;
+                const y = paddingTop + index * (barHeight + barGap);
+
+                // Product name (truncated)
+                ctx.textAlign = 'right';
+                ctx.font = '600 11px Inter, sans-serif';
+                ctx.fillStyle = isLow ? (dark ? '#f58aa0' : '#9e3f4e') : textColor;
+                let displayName = product.name;
+                if (displayName.length > 18) displayName = displayName.substring(0, 17) + '…';
+                ctx.fillText(displayName, labelWidth - 12, y + barHeight / 2 + 4);
+
+                // Stock bar (animated)
+                const stockWidth = Math.max((stock / maxVal) * barAreaWidth * progress, 0);
+                const stockGrad = ctx.createLinearGradient(barAreaStart, 0, barAreaStart + stockWidth, 0);
+                if (isLow) {
+                    stockGrad.addColorStop(0, dark ? '#c45061' : '#e8596e');
+                    stockGrad.addColorStop(1, dark ? '#933140' : '#c44058');
+                } else {
+                    stockGrad.addColorStop(0, dark ? '#6f8dff' : '#5a7aee');
+                    stockGrad.addColorStop(1, dark ? '#4059aa' : '#4059aa');
+                }
+                ctx.fillStyle = stockGrad;
+                ctx.beginPath();
+                ctx.roundRect(barAreaStart, y + 2, stockWidth, barHeight - 4, 4);
+                ctx.fill();
+
+                // Threshold marker line
+                const thresholdX = barAreaStart + (threshold / maxVal) * barAreaWidth;
+                ctx.beginPath();
+                ctx.strokeStyle = dark ? '#ff8b9a' : '#c45061';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([4, 3]);
+                ctx.moveTo(thresholdX, y);
+                ctx.lineTo(thresholdX, y + barHeight);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Small diamond at threshold
+                ctx.fillStyle = dark ? '#ff8b9a' : '#c45061';
+                ctx.beginPath();
+                ctx.moveTo(thresholdX, y - 2);
+                ctx.lineTo(thresholdX + 4, y + 3);
+                ctx.lineTo(thresholdX, y + 8);
+                ctx.lineTo(thresholdX - 4, y + 3);
+                ctx.closePath();
+                ctx.fill();
+
+                // Value label
+                ctx.textAlign = 'left';
+                ctx.font = '700 11px Inter, sans-serif';
+                ctx.fillStyle = isLow ? (dark ? '#f58aa0' : '#9e3f4e') : (dark ? '#6f8dff' : '#4059aa');
+                ctx.fillText(stock.toString(), barAreaStart + stockWidth + 8, y + barHeight / 2 + 4);
+
+                // Store rect for hover
+                barRects.push({
+                    x: barAreaStart,
+                    y: y,
+                    width: barAreaWidth,
+                    height: barHeight,
+                    product: product,
+                    stock: stock,
+                    threshold: threshold,
+                    isLow: isLow,
+                });
+            });
+        };
+
+        const animateChart = (data) => {
+            if (animationFrame) cancelAnimationFrame(animationFrame);
+            animationProgress = 0;
+            const startTime = performance.now();
+            const duration = 600;
+
+            const step = (now) => {
+                const elapsed = now - startTime;
+                animationProgress = Math.min(elapsed / duration, 1);
+                // Ease out cubic
+                const eased = 1 - Math.pow(1 - animationProgress, 3);
+                drawChart(data, eased);
+                if (animationProgress < 1) {
+                    animationFrame = requestAnimationFrame(step);
+                }
+            };
+            animationFrame = requestAnimationFrame(step);
+        };
+
+        // Initial draw
+        const initialData = getFilteredData(currentFilter);
+        animateChart(initialData);
+
+        // Filter buttons
+        document.querySelectorAll('[data-graph-filter]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('[data-graph-filter]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter = btn.dataset.graphFilter;
+                const data = getFilteredData(currentFilter);
+                animateChart(data);
+            });
+        });
+
+        // Hover tooltip
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            let hoveredBar = null;
+            for (const bar of barRects) {
+                if (x >= bar.x && x <= bar.x + bar.width && y >= bar.y && y <= bar.y + bar.height) {
+                    hoveredBar = bar;
+                    break;
+                }
+            }
+
+            if (hoveredBar) {
+                canvas.style.cursor = 'pointer';
+                const deficit = hoveredBar.threshold - hoveredBar.stock;
+                const pct = hoveredBar.threshold > 0
+                    ? Math.round((hoveredBar.stock / hoveredBar.threshold) * 100)
+                    : 100;
+
+                tooltip.innerHTML = `
+                    <strong>${escapeHtml(hoveredBar.product.name)}</strong>
+                    <div class="tt-row">
+                        <span><span class="tt-dot" style="background:#5a7aee;"></span>Stock</span>
+                        <span>${hoveredBar.stock}</span>
+                    </div>
+                    <div class="tt-row">
+                        <span><span class="tt-dot" style="background:#c45061;"></span>Threshold</span>
+                        <span>${hoveredBar.threshold}</span>
+                    </div>
+                    ${hoveredBar.isLow
+                        ? `<div class="tt-row" style="color:#ff8b9a;margin-top:2px;">
+                               <span>Deficit</span>
+                               <span>−${deficit} (${pct}%)</span>
+                           </div>`
+                        : `<div class="tt-row" style="color:#6fd9a5;margin-top:2px;">
+                               <span>Status</span>
+                               <span>Healthy (${pct}%)</span>
+                           </div>`
+                    }
+                `;
+
+                tooltip.classList.add('visible');
+                let tooltipX = e.clientX + 14;
+                let tooltipY = e.clientY - 10;
+                // Keep tooltip in viewport
+                const ttRect = tooltip.getBoundingClientRect();
+                if (tooltipX + ttRect.width > window.innerWidth - 10) {
+                    tooltipX = e.clientX - ttRect.width - 14;
+                }
+                tooltip.style.left = tooltipX + 'px';
+                tooltip.style.top = tooltipY + 'px';
+            } else {
+                canvas.style.cursor = 'default';
+                tooltip.classList.remove('visible');
+            }
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            tooltip.classList.remove('visible');
+            canvas.style.cursor = 'default';
+        });
+
+        // Responsive redraw
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                const data = getFilteredData(currentFilter);
+                drawChart(data, 1);
+            }, 150);
         });
     }
 });

@@ -49,6 +49,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $authController->authorize('reports.stock_movement');
         jsonResponse(['rows' => $reportModel->getStockMovementSummary($fromDate, $toDate)]);
     }
+
+    // CSV export endpoints for sales reports.
+    if ($type === 'export-daily-csv') {
+        $authController->authorize('reports.export');
+        $transactions = $reportModel->getSalesTransactionsForExport($fromDate, $toDate);
+        downloadCsv('daily-sales-report', ['Date', 'Product', 'Quantity', 'Unit Price', 'Total'], $transactions);
+        return;
+    }
+    if ($type === 'export-monthly-csv') {
+        $authController->authorize('reports.export');
+        $monthlySales = $reportModel->getMonthlySales($fromDate, $toDate);
+        // Format monthly data for CSV download.
+        $csvRows = array_map(function ($row) {
+            return [
+                $row['month'],
+                '',
+                '',
+                '',
+                $row['total'],
+            ];
+        }, $monthlySales);
+        downloadCsv('monthly-sales-report', ['Month', 'Product', 'Quantity', 'Unit Price', 'Total'], $csvRows);
+        return;
+    }
 }
 
 if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
