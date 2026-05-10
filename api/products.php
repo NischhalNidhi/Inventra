@@ -23,7 +23,8 @@ $filters = [
 ];
 $pagination = parsePagination($_GET);
 
-$products = $productModel->getAll($filters, $pagination['limit'], $pagination['offset']);
+$productsResult = $productModel->getAll($pagination['page'], $pagination['limit'], '', $filters);
+$products = $productsResult['data'];
 $data = array_map(
     static function (array $product) use ($authController): array {
         $low = (int) $product['stock_quantity'] <= (int) $product['min_threshold'];
@@ -33,6 +34,11 @@ $data = array_map(
             'name' => $product['name'],
             'sku' => $product['sku'],
             'image_name' => $product['image_name'] ?? null,
+            'image_url' => mediaUrl(
+                !empty($product['image_name']) ? 'products/' . $product['image_name'] : null,
+                (string) $product['name'],
+                'product'
+            ),
             'category' => $product['category_name'] ?? 'Unassigned',
             'supplier' => $product['supplier_name'] ?? 'Unassigned',
             'unit_price' => (float) ($product['unit_price'] ?? 0),
@@ -53,5 +59,5 @@ echo json_encode([
     'products' => $data,
     'page' => $pagination['page'],
     'limit' => $pagination['limit'],
-    'total' => $productModel->countAll($filters),
+    'total' => $productsResult['total'],
 ]);

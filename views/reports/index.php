@@ -33,6 +33,26 @@
 </section>
 <?php endif; ?>
 
+<?php if ($canViewInventory): ?>
+<section class="panel">
+    <div class="panel-header">
+        <div>
+            <h2>AI Product Distribution Heat Map</h2>
+            <p>Category-by-category view of where the catalog is concentrated and where stock conditions are drifting.</p>
+        </div>
+    </div>
+    <div class="distribution-heatmap" data-product-distribution-heatmap data-heatmap-rows='<?= e(json_encode($inventoryReport, JSON_HEX_APOS | JSON_HEX_TAG)); ?>'>
+        <div class="heatmap-grid" data-heatmap-grid></div>
+        <div class="heatmap-legend">
+            <span>Lower density</span>
+            <div class="heatmap-legend-scale"></div>
+            <span>Higher density</span>
+        </div>
+        <p class="heatmap-empty-state" data-heatmap-empty hidden>No inventory rows are available for the current filter.</p>
+    </div>
+</section>
+<?php endif; ?>
+
 <section class="panel">
     <div class="panel-header">
         <h2>Inventory Report Filters</h2>
@@ -153,7 +173,7 @@
     <div class="panel-header">
         <h2>Monthly Sales</h2>
         <?php if ($authController->can('reports.export')): ?>
-            <a href="<?= e(basePath('api/reports.php?type=export-monthly-csv' . ($fromDate ? '&from_date=' . urlencode($fromDate) : '') . ($toDate ? '&to_date=' . urlencode($toDate) : ''))); ?>" class="button ghost small">Export to CSV</a>
+            <a href="<?= e(appRootPath('api/reports.php?type=export-monthly-csv' . ($fromDate ? '&from_date=' . urlencode($fromDate) : '') . ($toDate ? '&to_date=' . urlencode($toDate) : ''))); ?>" class="button ghost small">Export to CSV</a>
         <?php endif; ?>
     </div>
     <?php if (!empty($canViewSalesInsight)): ?>
@@ -185,7 +205,7 @@
     <div class="panel-header">
         <h2>Daily Sales</h2>
         <?php if ($authController->can('reports.export')): ?>
-            <a href="<?= e(basePath('api/reports.php?type=export-daily-csv' . ($fromDate ? '&from_date=' . urlencode($fromDate) : '') . ($toDate ? '&to_date=' . urlencode($toDate) : ''))); ?>" class="button ghost small">Export to CSV</a>
+            <a href="<?= e(appRootPath('api/reports.php?type=export-daily-csv' . ($fromDate ? '&from_date=' . urlencode($fromDate) : '') . ($toDate ? '&to_date=' . urlencode($toDate) : ''))); ?>" class="button ghost small">Export to CSV</a>
         <?php endif; ?>
     </div>
     <div class="table-wrap">

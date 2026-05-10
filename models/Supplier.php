@@ -5,10 +5,12 @@ declare(strict_types=1);
 class Supplier
 {
     private PDO $pdo;
+    private static bool $imageColumnChecked = false;
 
     public function __construct(PDO $pdo)
     {
         $this->pdo = $pdo;
+        $this->ensureImageColumn();
     }
 
     public function getAll(int $page = 1, int $perPage = 25, string $search = '', bool $activeOnly = false): array
@@ -34,7 +36,7 @@ class Supplier
         $countStmt->execute($params);
         $total = (int) $countStmt->fetchColumn();
 
-        $sql = "SELECT id, name, contact_person, email, phone, is_active, created_at FROM suppliers $where ORDER BY name ASC LIMIT :limit OFFSET :offset";
+        $sql = "SELECT id, name, contact_person, email, phone, image_name, is_active, created_at FROM suppliers $where ORDER BY name ASC LIMIT :limit OFFSET :offset";
         $stmt = $this->pdo->prepare($sql);
         foreach ($params as $key => $value) {
             $stmt->bindValue(":$key", $value);
@@ -52,14 +54,15 @@ class Supplier
     public function create(array $data): int
     {
         $stmt = $this->pdo->prepare(
-            'INSERT INTO suppliers (name, contact_person, email, phone, is_active)
-             VALUES (:name, :contact_person, :email, :phone, 1)'
+            'INSERT INTO suppliers (name, contact_person, email, phone, image_name, is_active)
+             VALUES (:name, :contact_person, :email, :phone, :image_name, 1)'
         );
         $stmt->execute([
             'name' => $data['name'],
             'contact_person' => $data['contact_person'],
             'email' => $data['email'],
             'phone' => $data['phone'],
+            'image_name' => $data['image_name'],
         ]);
         return (int) $this->pdo->lastInsertId();
     }
@@ -68,7 +71,7 @@ class Supplier
     {
         $stmt = $this->pdo->prepare(
             'UPDATE suppliers
-             SET name = :name, contact_person = :contact_person, email = :email, phone = :phone
+             SET name = :name, contact_person = :contact_person, email = :email, phone = :phone, image_name = :image_name
              WHERE id = :id'
         );
         $stmt->execute([
@@ -77,6 +80,7 @@ class Supplier
             'contact_person' => $data['contact_person'],
             'email' => $data['email'],
             'phone' => $data['phone'],
+            'image_name' => $data['image_name'],
         ]);
     }
 
@@ -84,5 +88,21 @@ class Supplier
     {
         $stmt = $this->pdo->prepare('UPDATE suppliers SET is_active = 0 WHERE id = :id');
         $stmt->execute(['id' => $id]);
+    }
+
+    private function ensureImageColumn(): void
+    {
+        if (self::$imageColumnChecked) {
+            return;
+        }
+
+        self::$imageColumnChecked = true;
+
+        $column = $this->pdo->query("SHOW COLUMNS FROM suppliers LIKE 'image_name'")->fetch();
+        if ($column) {
+            return;
+        }
+
+        $this->pdo->exec("ALTER TABLE suppliers ADD COLUMN image_name VARCHAR(255) DEFAULT NULL AFTER phone");
     }
 }

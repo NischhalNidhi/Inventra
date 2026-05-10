@@ -68,9 +68,9 @@
                     <td><?= e(strtoupper($po['status'])); ?></td>
                     <td><?= e(strtoupper((string) $po['shipment_status'])); ?></td>
                     <td><?= e((string) $po['expected_date']); ?></td>
-                    <td class="action-group">
+                    <td><div class="action-group">
                         <a class="button small ghost" href="<?= e(basePath('index.php?page=purchase-orders&id=' . $po['id'])); ?>">View</a>
-                    </td>
+                    </div></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>
@@ -143,3 +143,4 @@
 <script src="<?= e(basePath('js/app.js')); ?>"></script>
 </body>
 </html>
+

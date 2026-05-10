@@ -112,6 +112,11 @@ class ProductController
 
     public function handleDelete(int $id): void
     {
+        $product = $this->productModel->findById($id);
+        if (!$product) {
+            throw new RuntimeException('The selected product was not found.');
+        }
+
         $this->productModel->delete($id);
     }
 
@@ -144,7 +149,7 @@ class ProductController
             throw new RuntimeException('Only JPG, PNG, and WEBP images are allowed.');
         }
 
-        $uploadDir = dirname(__DIR__) . '/uploads/products';
+        $uploadDir = dirname(__DIR__) . '/public/uploads/products';
         if (!is_dir($uploadDir) && !mkdir($uploadDir, 0775, true) && !is_dir($uploadDir)) {
             throw new RuntimeException('Unable to create upload directory.');
         }

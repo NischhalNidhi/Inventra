@@ -66,12 +66,6 @@
             <tr>
                 <th>Product</th>
                 <th>SKU</th>
-    <div class="table-wrap">
-        <table>
-            <thead>
-            <tr>
-                <th>Product</th>
-                <th>SKU</th>
                 <th>Qty</th>
                 <th>Price</th>
                 <th>Status</th>
