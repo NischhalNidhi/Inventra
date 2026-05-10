@@ -231,7 +231,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             case 'create_supplier':
                 $authController->authorize('suppliers.manage');
-                $validated = $supplierController->validate($_POST);
+                $validated = $supplierController->validate($_POST, $_FILES);
                 if ($validated['errors']) {
                     setFlash('error', implode(' ', $validated['errors']));
                 } else {

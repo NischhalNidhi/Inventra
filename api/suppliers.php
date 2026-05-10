@@ -22,7 +22,7 @@ $authController->authorize('suppliers.view');
 $id = (int) ($_GET['id'] ?? 0);
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    jsonResponse(['suppliers' => $supplierModel->getAll(false)]);
+    jsonResponse(['suppliers' => $supplierModel->getAll(1, 200)]);
 }
 
 if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
@@ -31,7 +31,7 @@ if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $authController->authorize('suppliers.manage');
-    $validated = $supplierController->validate($_POST);
+    $validated = $supplierController->validate($_POST, $_FILES);
     if ($validated['errors']) {
         jsonResponse(['error' => implode(' ', $validated['errors']), 'code' => 'VALIDATION_ERROR'], 422);
     }

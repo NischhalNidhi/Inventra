@@ -183,6 +183,10 @@ class Product
 
     public function delete(int $id): void
     {
+        if ($this->hasDeletionDependencies($id)) {
+            throw new RuntimeException('This product cannot be permanently deleted because it has inventory, delivery, purchase order, or sales history. Archive it instead.');
+        }
+
         $stmt = $this->pdo->prepare('DELETE FROM products WHERE id = :id');
         $stmt->execute(['id' => $id]);
     }
@@ -238,7 +242,7 @@ class Product
     public function getAlertGraphData(): array
     {
         return $this->pdo->query(
-            'SELECT name, stock_quantity, min_threshold
+            'SELECT name, image_name, stock_quantity, min_threshold
              FROM products
              WHERE is_archived = 0
              ORDER BY name ASC'
@@ -278,6 +282,26 @@ class Product
         $stmt->execute();
 
         return $stmt->fetchAll();
+    }
+
+    public function hasDeletionDependencies(int $id): bool
+    {
+        $checks = [
+            'SELECT COUNT(*) FROM delivery_logs WHERE product_id = :id',
+            'SELECT COUNT(*) FROM po_line_items WHERE product_id = :id',
+            'SELECT COUNT(*) FROM stock_movements WHERE product_id = :id',
+            'SELECT COUNT(*) FROM sales_transactions WHERE product_id = :id',
+        ];
+
+        foreach ($checks as $sql) {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute(['id' => $id]);
+            if ((int) $stmt->fetchColumn() > 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function buildFilterQuery(array $filters): array

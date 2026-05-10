@@ -37,7 +37,7 @@
                 <tr>
                     <td><?= e($category['name']); ?></td>
                     <td><?= e((string) $category['description']); ?></td>
-                    <td class="action-group">
+                    <td><div class="action-group">
                         <?php if ($authController->can('categories.manage')): ?>
                             <form method="post" action="<?= e(basePath('index.php?page=categories')); ?>">
                                 <input type="hidden" name="csrf_token" value="<?= e(csrfToken()); ?>">
@@ -46,7 +46,7 @@
                                 <button class="button small danger-outline" type="submit">Delete</button>
                             </form>
                         <?php endif; ?>
-                    </td>
+                    </div></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>
@@ -61,3 +61,4 @@
 <script src="<?= e(basePath('js/app.js')); ?>"></script>
 </body>
 </html>
+

@@ -18,17 +18,18 @@
 
         <label style="grid-column: 1 / -1;">
             <span>Profile Picture</span>
-            <div style="display:flex;align-items:center;gap:1rem;margin-top:0.5rem;">
+            <div class="profile-image-container">
                 <?php if ($userImage): ?>
-                    <img src="<?= e($userImage); ?>" alt="Avatar" style="width:80px;height:80px;border-radius:50%;object-fit:cover;">
+                    <img src="<?= e($userImage); ?>" alt="Avatar" class="avatar">
                 <?php else: ?>
-                    <div style="width:80px;height:80px;border-radius:50%;background:var(--surface-mid);display:grid;place-items:center;font-size:2rem;font-weight:700;">
+                    <div class="avatar placeholder">
                         <?= e($userInitial); ?>
                     </div>
                 <?php endif; ?>
                 <div>
-                    <input type="file" name="profile_image" accept="image/png, image/jpeg, image/webp" style="margin-top: 0.5rem;">
-                    <small style="display:block;margin-top:0.25rem;">Max size: 2MB. Format: JPG, PNG, WEBP.</small>
+                    <input type="file" name="profile_image" id="profile_image" accept="image/png, image/jpeg, image/webp" class="file-input">
+                    <label for="profile_image" class="button small ghost">Change Photo</label>
+                    <small class="help-text">Max size: 2MB. JPG, PNG, WEBP.</small>
                 </div>
             </div>
         </label>

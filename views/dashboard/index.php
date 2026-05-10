@@ -85,7 +85,7 @@
         <table>
             <thead>
             <tr>
-                <th>Name</th>
+                <th>Product</th>
                 <th>SKU</th>
                 <th>Category</th>
                 <th>Quantity</th>
@@ -96,7 +96,18 @@
             <?php foreach ($featuredProducts as $product): ?>
                 <?php $low = (int) $product['stock_quantity'] <= (int) $product['min_threshold']; ?>
                 <tr>
-                    <td><?= e($product['name']); ?></td>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:14px;">
+                            <button type="button"
+                                    class="media-thumb-button"
+                                    data-image-trigger
+                                    data-image-src="<?= e(mediaUrl(!empty($product['image_name']) ? 'products/' . $product['image_name'] : null, (string) $product['name'], 'product')); ?>"
+                                    data-image-title="<?= e($product['name']); ?>">
+                                <img src="<?= e(mediaUrl(!empty($product['image_name']) ? 'products/' . $product['image_name'] : null, (string) $product['name'], 'product')); ?>" alt="<?= e($product['name']); ?>" class="media-thumb media-thumb-product">
+                            </button>
+                            <strong><?= e($product['name']); ?></strong>
+                        </div>
+                    </td>
                     <td><?= e($product['sku']); ?></td>
                     <td><?= e($product['category_name'] ?? 'Unassigned'); ?></td>
                     <td><?= e((string) $product['stock_quantity']); ?></td>

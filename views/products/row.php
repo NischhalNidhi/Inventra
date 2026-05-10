@@ -4,14 +4,14 @@ $icon = $isLow ? 'warning' : 'inventory_2';
 ?>
 <tr data-product-id="<?= e((string) $product['id']); ?>">
     <td>
-        <div style="display:flex;align-items:center;gap:12px;">
-            <div style="width:44px;height:44px;border-radius:10px;background:var(--surface-mid);display:grid;place-items:center;overflow:hidden;">
-                <?php if (!empty($product['image_name'])): ?>
-                    <img src="<?= e(basePath('uploads/products/' . $product['image_name'])); ?>" alt="Product" style="width:100%;height:100%;object-fit:cover;">
-                <?php else: ?>
-                    <span class="material-symbols-outlined" style="color:<?= $isLow ? 'var(--error)' : 'var(--primary)'; ?>;"><?= e($icon); ?></span>
-                <?php endif; ?>
-            </div>
+        <div style="display:flex;align-items:center;gap:14px;">
+            <button type="button"
+                    class="media-thumb-button"
+                    data-image-trigger
+                    data-image-src="<?= e(mediaUrl(!empty($product['image_name']) ? 'products/' . $product['image_name'] : null, (string) $product['name'], 'product')); ?>"
+                    data-image-title="<?= e($product['name']); ?>">
+                <img src="<?= e(mediaUrl(!empty($product['image_name']) ? 'products/' . $product['image_name'] : null, (string) $product['name'], 'product')); ?>" alt="<?= e($product['name']); ?>" class="media-thumb media-thumb-product">
+            </button>
             <div>
                 <div style="font-weight:700;"><?= e($product['name']); ?></div>
                 <div style="font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;">
@@ -28,7 +28,7 @@ $icon = $isLow ? 'warning' : 'inventory_2';
             <?= $isLow ? 'Low Stock' : 'In Stock'; ?>
         </span>
     </td>
-    <td class="action-group">
+    <td><div class="action-group">
         <?php if ($authController->can('products.edit')): ?>
             <a class="button small ghost" href="<?= e(basePath('index.php?page=new-entry&id=' . $product['id'])); ?>">Edit</a>
         <?php endif; ?>
@@ -48,5 +48,6 @@ $icon = $isLow ? 'warning' : 'inventory_2';
                 <button class="button small danger-outline" type="submit">Delete</button>
             </form>
         <?php endif; ?>
-    </td>
+    </div></td>
 </tr>
+

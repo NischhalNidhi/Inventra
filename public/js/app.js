@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const body = document.body;
     const basePath = body.dataset.basePath || '';
-    const appRoot = basePath.endsWith('/public') ? basePath.slice(0, -7) : '';
+    const appRoot = body.dataset.appRootPath || (basePath.endsWith('/public') ? basePath.slice(0, -7) : '');
     const apiBase = `${appRoot}/api`;
     const csrfToken = body.dataset.csrfToken || '';
     const storedTheme = window.localStorage.getItem('inventra_theme') || 'light';
@@ -196,15 +196,10 @@ document.addEventListener('DOMContentLoaded', () => {
         tableBody.innerHTML = products.map((product) => `
             <tr data-product-id="${product.id}">
                 <td>
-                    <div style="display:flex;align-items:center;gap:12px;">
-                        <div style="width:44px;height:44px;border-radius:10px;background:var(--surface-mid);display:grid;place-items:center;overflow:hidden;">
-                            ${product.image_name 
-                                ? `<img src="${basePath}/uploads/products/${escapeHtml(product.image_name)}" alt="Product" style="width:100%;height:100%;object-fit:cover;">`
-                                : `<span class="material-symbols-outlined" style="color:${product.status_class === 'low' ? 'var(--error)' : 'var(--primary)'};">
-                                ${product.status_class === 'low' ? 'warning' : 'inventory_2'}
-                            </span>`
-                            }
-                        </div>
+                    <div style="display:flex;align-items:center;gap:14px;">
+                        <button type="button" class="media-thumb-button" data-image-trigger data-image-src="${escapeHtml(product.image_url)}" data-image-title="${escapeHtml(product.name)}">
+                            <img src="${escapeHtml(product.image_url)}" alt="${escapeHtml(product.name)}" class="media-thumb media-thumb-product">
+                        </button>
                         <div>
                             <div style="font-weight:700;">${escapeHtml(product.name)}</div>
                             <div style="font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;">
@@ -335,6 +330,54 @@ document.addEventListener('DOMContentLoaded', () => {
             const currentValue = parseInt(input.value || '0', 10);
             input.value = Math.max(0, currentValue + step);
         });
+    });
+
+    // ---------------------------------------------------------------
+    // IMAGE LIGHTBOX
+    // ---------------------------------------------------------------
+    const lightbox = document.querySelector('[data-image-lightbox]');
+    const lightboxImage = document.querySelector('[data-lightbox-image]');
+    const lightboxCaption = document.querySelector('[data-lightbox-caption]');
+    const lightboxCloseTargets = document.querySelectorAll('[data-lightbox-close]');
+
+    const closeLightbox = () => {
+        if (!lightbox || !lightboxImage) { return; }
+        lightbox.hidden = true;
+        lightboxImage.setAttribute('src', '');
+        lightboxImage.setAttribute('alt', '');
+        if (lightboxCaption) {
+            lightboxCaption.textContent = '';
+        }
+        body.classList.remove('lightbox-open');
+    };
+
+    const openLightbox = (src, title) => {
+        if (!lightbox || !lightboxImage) { return; }
+        lightbox.hidden = false;
+        lightboxImage.setAttribute('src', src);
+        lightboxImage.setAttribute('alt', title || 'Preview image');
+        if (lightboxCaption) {
+            lightboxCaption.textContent = title || '';
+        }
+        body.classList.add('lightbox-open');
+    };
+
+    document.addEventListener('click', (event) => {
+        const trigger = event.target.closest('[data-image-trigger]');
+        if (!trigger) { return; }
+
+        event.preventDefault();
+        openLightbox(trigger.dataset.imageSrc || '', trigger.dataset.imageTitle || '');
+    });
+
+    lightboxCloseTargets.forEach((target) => {
+        target.addEventListener('click', closeLightbox);
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && lightbox && !lightbox.hidden) {
+            closeLightbox();
+        }
     });
 
     // ---------------------------------------------------------------
@@ -703,6 +746,103 @@ document.addEventListener('DOMContentLoaded', () => {
                 drawChart(data, 1);
             }, 150);
         });
+    }
+
+    // ---------------------------------------------------------------
+    // AI PRODUCT DISTRIBUTION HEAT MAP
+    // ---------------------------------------------------------------
+    const heatmap = document.querySelector('[data-product-distribution-heatmap]');
+    if (heatmap) {
+        const grid = heatmap.querySelector('[data-heatmap-grid]');
+        const emptyState = heatmap.querySelector('[data-heatmap-empty]');
+        let rows = [];
+
+        try {
+            rows = JSON.parse(heatmap.dataset.heatmapRows || '[]');
+        } catch (_error) {
+            rows = [];
+        }
+
+        const categories = [...new Set(rows.map((row) => row.category_name || 'Unassigned'))];
+        const statuses = [
+            { key: 'healthy', label: 'Healthy' },
+            { key: 'low', label: 'Low Stock' },
+            { key: 'out', label: 'Out Of Stock' },
+        ];
+
+        const getStatusKey = (row) => {
+            const quantity = Number.parseInt(row.stock_quantity || '0', 10);
+            const threshold = Number.parseInt(row.min_threshold || '0', 10);
+            if (quantity <= 0) { return 'out'; }
+            if (quantity <= threshold) { return 'low'; }
+            return 'healthy';
+        };
+
+        if (!rows.length || !grid) {
+            if (emptyState) {
+                emptyState.hidden = false;
+            }
+        } else {
+            if (emptyState) {
+                emptyState.hidden = true;
+            }
+
+            const matrix = {};
+            let maxCount = 0;
+
+            categories.forEach((category) => {
+                matrix[category] = {};
+                statuses.forEach((status) => {
+                    matrix[category][status.key] = {
+                        count: 0,
+                        units: 0,
+                        value: 0,
+                    };
+                });
+            });
+
+            rows.forEach((row) => {
+                const category = row.category_name || 'Unassigned';
+                const statusKey = getStatusKey(row);
+                const quantity = Number.parseInt(row.stock_quantity || '0', 10);
+                const price = Number.parseFloat(row.unit_price || '0');
+                const cell = matrix[category][statusKey];
+                cell.count += 1;
+                cell.units += quantity;
+                cell.value += quantity * price;
+                maxCount = Math.max(maxCount, cell.count);
+            });
+
+            const cells = [];
+            cells.push('<div class="heatmap-corner">Category / Status</div>');
+            statuses.forEach((status) => {
+                cells.push(`<div class="heatmap-header">${escapeHtml(status.label)}</div>`);
+            });
+
+            categories.forEach((category) => {
+                cells.push(`<div class="heatmap-row-label">${escapeHtml(category)}</div>`);
+                statuses.forEach((status) => {
+                    const cell = matrix[category][status.key];
+                    const intensity = maxCount > 0 ? (cell.count / maxCount) : 0;
+                    const alpha = 0.12 + (intensity * 0.78);
+                    const colorMap = {
+                        healthy: `rgba(46, 138, 98, ${alpha})`,
+                        low: `rgba(203, 77, 93, ${alpha})`,
+                        out: `rgba(122, 127, 143, ${alpha})`,
+                    };
+                    const title = `${category} | ${status.label}\nProducts: ${cell.count}\nUnits: ${cell.units}\nInventory value: NPR ${cell.value.toFixed(2)}`;
+                    cells.push(`
+                        <button type="button" class="heatmap-cell" title="${escapeHtml(title)}" style="background:${colorMap[status.key]}">
+                            <strong>${cell.count}</strong>
+                            <small>${cell.units} units</small>
+                        </button>
+                    `);
+                });
+            });
+
+            grid.innerHTML = cells.join('');
+            grid.style.gridTemplateColumns = `minmax(180px, 1.3fr) repeat(${statuses.length}, minmax(120px, 1fr))`;
+        }
     }
 });
 
