@@ -600,7 +600,7 @@ body.theme-dark .upload-zone > div {
     gap: 16px;
 }
 .stats-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     margin-bottom: 16px;
 }
 .insight-grid {
@@ -2188,3 +2188,211 @@ body.theme-dark .graph-empty-state {
     vertical-align: middle;
 }
 
+/* -- Out of Stock Badge --------------------------------------------------- */
+.badge.out {
+    background: rgba(158, 63, 78, 0.14);
+    color: #9b2535;
+}
+body.theme-dark .badge.out {
+    background: rgba(245, 138, 160, 0.18);
+    color: #f58aa0;
+}
+
+/* -- Stock Quantity Cell (product list mini-bar) --------------------------- */
+.stock-qty-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 48px;
+}
+.stock-qty-value {
+    font-weight: 800;
+    font-size: 0.95rem;
+    line-height: 1;
+}
+.stock-qty-cell.out .stock-qty-value  { color: var(--error); }
+.stock-qty-cell.low .stock-qty-value  { color: #b04a1a; }
+body.theme-dark .stock-qty-cell.low .stock-qty-value { color: #ffa94d; }
+.stock-qty-bar {
+    width: 100%;
+    max-width: 48px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(203, 213, 225, 0.35);
+    overflow: hidden;
+}
+.stock-qty-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.4s ease;
+}
+.stock-qty-fill.healthy { background: linear-gradient(90deg, #2f8f6a, #28a764); }
+.stock-qty-fill.low     { background: linear-gradient(90deg, #e87b30, #d4621a); }
+.stock-qty-fill.out     { background: var(--error); width: 100% !important; opacity: 0.35; }
+
+/* -- Stock Inline (dashboard table qty) ----------------------------------- */
+.stock-inline {
+    font-weight: 800;
+    font-size: 0.88rem;
+}
+.stock-inline.healthy { color: #1a6b40; }
+.stock-inline.low     { color: #b04a1a; }
+.stock-inline.out     { color: var(--error); }
+body.theme-dark .stock-inline.healthy { color: #5dd49a; }
+body.theme-dark .stock-inline.low     { color: #ffa94d; }
+body.theme-dark .stock-inline.out     { color: var(--error); }
+
+/* -- Current Stock Level Card (product detail) ---------------------------- */
+.current-stock-card {
+    grid-column: span 12 / span 12;
+    border-left: 4px solid var(--primary);
+    background: linear-gradient(135deg, #f7f9ff 0%, #eef2ff 100%);
+    animation: stockCardIn 0.35s ease;
+}
+.current-stock-card.low {
+    border-left-color: #e87b30;
+    background: linear-gradient(135deg, #fffbf5 0%, #fff4e6 100%);
+}
+.current-stock-card.out {
+    border-left-color: var(--error);
+    background: linear-gradient(135deg, #fff7f8 0%, #ffe8ec 100%);
+}
+body.theme-dark .current-stock-card {
+    background: linear-gradient(135deg, var(--surface-mid) 0%, rgba(111, 141, 255, 0.08) 100%);
+}
+body.theme-dark .current-stock-card.low {
+    background: linear-gradient(135deg, var(--surface-mid) 0%, rgba(232, 123, 48, 0.08) 100%);
+}
+body.theme-dark .current-stock-card.out {
+    background: linear-gradient(135deg, var(--surface-mid) 0%, rgba(245, 138, 160, 0.08) 100%);
+}
+@keyframes stockCardIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.current-stock-display {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    flex-wrap: wrap;
+}
+.current-stock-big {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+.current-stock-big strong {
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    line-height: 1;
+    letter-spacing: -0.04em;
+    color: var(--primary);
+}
+.current-stock-big.low strong { color: #d4621a; }
+.current-stock-big.out strong { color: var(--error); }
+body.theme-dark .current-stock-big strong { color: var(--primary); }
+body.theme-dark .current-stock-big.low strong { color: #ffa94d; }
+body.theme-dark .current-stock-big.out strong { color: var(--error); }
+.current-stock-big small {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+}
+.current-stock-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+    min-width: 180px;
+}
+.current-stock-threshold small {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+.current-stock-threshold strong {
+    color: var(--text);
+}
+.current-stock-bar-wrap {
+    width: 100%;
+    max-width: 260px;
+    height: 8px;
+    border-radius: 4px;
+    background: rgba(203, 213, 225, 0.35);
+    overflow: hidden;
+}
+body.theme-dark .current-stock-bar-wrap {
+    background: rgba(75, 89, 118, 0.35);
+}
+.current-stock-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+}
+.current-stock-bar-fill.healthy { background: linear-gradient(90deg, #2f8f6a, #28a764); }
+.current-stock-bar-fill.low     { background: linear-gradient(90deg, #e87b30, #d4621a); }
+.current-stock-bar-fill.out     { background: var(--error); }
+.current-stock-pct {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+/* -- Live Indicator (dashboard) ------------------------------------------- */
+.live-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 12px 6px 10px;
+    border-radius: 999px;
+    background: rgba(40, 167, 100, 0.1);
+    border: 1px solid rgba(40, 167, 100, 0.2);
+    cursor: default;
+}
+.live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: #28a764;
+    animation: livePulse 1.8s ease-in-out infinite;
+    flex-shrink: 0;
+}
+.live-label {
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #1a6b40;
+}
+body.theme-dark .live-indicator {
+    background: rgba(93, 212, 154, 0.1);
+    border-color: rgba(93, 212, 154, 0.2);
+}
+body.theme-dark .live-dot { background: #5dd49a; }
+body.theme-dark .live-label { color: #5dd49a; }
+.live-indicator.stale .live-dot {
+    background: var(--outline-variant);
+    animation: none;
+}
+.live-indicator.stale .live-label { color: var(--text-muted); }
+@keyframes livePulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.4; transform: scale(0.75); }
+}
+
+/* -- Dashboard refresh flash ---------------------------------------------- */
+@keyframes statFlash {
+    0%   { background: rgba(111, 141, 255, 0.15); }
+    100% { background: transparent; }
+}
+.stat-flash {
+    animation: statFlash 0.6s ease;
+}
+
+@media (max-width: 1024px) {
+    .current-stock-card {
+        grid-column: span 12 / span 12;
+    }
+}

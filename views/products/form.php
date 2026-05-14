@@ -94,11 +94,54 @@
         </label>
     </section>
 
+    <?php if ($editingProduct): ?>
+    <?php
+        $currentQty       = (int) $editingProduct['stock_quantity'];
+        $currentThreshold = (int) $editingProduct['min_threshold'];
+        $isCurrentOut     = $currentQty === 0;
+        $isCurrentLow     = !$isCurrentOut && $currentQty <= $currentThreshold;
+
+        if ($isCurrentOut) {
+            $slClass = 'out';   $slText = 'Out of Stock'; $slIcon = 'error';
+        } elseif ($isCurrentLow) {
+            $slClass = 'low';   $slText = 'Low Stock';    $slIcon = 'warning';
+        } else {
+            $slClass = 'healthy'; $slText = 'In Stock';   $slIcon = 'check_circle';
+        }
+
+        $slPct = $currentThreshold > 0
+            ? min(round(($currentQty / $currentThreshold) * 100), 100)
+            : ($currentQty > 0 ? 100 : 0);
+    ?>
+    <section class="entry-card current-stock-card <?= $slClass ?>" id="current-stock-card">
+        <div class="section-title">Current Stock Level</div>
+        <div class="current-stock-display">
+            <div class="current-stock-big <?= $slClass ?>">
+                <strong><?= e((string) $currentQty); ?></strong>
+                <small>units on hand</small>
+            </div>
+            <div class="current-stock-meta">
+                <span class="badge <?= $slClass ?>">
+                    <span class="material-symbols-outlined badge-icon"><?= $slIcon; ?></span>
+                    <?= $slText; ?>
+                </span>
+                <div class="current-stock-threshold">
+                    <small>Min threshold: <strong><?= e((string) $currentThreshold); ?></strong></small>
+                </div>
+                <div class="current-stock-bar-wrap">
+                    <div class="current-stock-bar-fill <?= $slClass ?>" style="width: <?= $slPct ?>%"></div>
+                </div>
+                <small class="current-stock-pct"><?= $slPct ?>% of minimum level</small>
+            </div>
+        </div>
+    </section>
+    <?php endif; ?>
+
     <section class="entry-card stock-card">
         <div class="section-title">Stock Setup</div>
         <div class="stock-controls">
             <label>
-                <span>Opening Stock</span>
+                <span><?= $editingProduct ? 'Adjust Stock' : 'Opening Stock'; ?></span>
                 <div class="stepper">
                     <button type="button" class="stepper-btn" data-stepper-target="stock_quantity" data-step="-1">-</button>
                     <input type="number" id="stock_quantity" name="stock_quantity" min="0" value="<?= $editingProduct ? e((string) $editingProduct['stock_quantity']) : old('stock_quantity', '0'); ?>" required>

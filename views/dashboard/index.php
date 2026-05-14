@@ -7,6 +7,10 @@
         <p class="lead">Track stock health, urgent replenishment needs, and recent inventory activity across the store.</p>
     </div>
     <div class="topbar-actions">
+        <div class="live-indicator" id="live-indicator" title="Stock levels update every 2 seconds">
+            <span class="live-dot"></span>
+            <span class="live-label">LIVE</span>
+        </div>
         <form class="global-search" action="<?= e(basePath('index.php')); ?>" method="get">
             <input type="hidden" name="page" value="products">
             <input type="text" name="keyword" placeholder="Search products or SKU..." value="<?= e($_GET['keyword'] ?? ''); ?>">
@@ -14,25 +18,25 @@
     </div>
 </header>
 
-<section class="stats-grid">
+<section class="stats-grid" id="dashboard-stats">
     <article class="stat-card primary">
         <span class="stat-label">Active Products</span>
-        <strong><?= e((string) $stats['total_products']); ?></strong>
+        <strong id="stat-total-products"><?= e((string) $stats['total_products']); ?></strong>
         <small>Products currently listed</small>
     </article>
     <article class="stat-card muted">
         <span class="stat-label">Total Value</span>
-        <strong>NPR <?= number_format($stats['total_value'] ?? 0); ?></strong>
+        <strong id="stat-total-value">NPR <?= number_format($stats['total_value'] ?? 0); ?></strong>
         <small>Est. on-hand inventory value</small>
     </article>
     <article class="stat-card muted">
         <span class="stat-label">Stock Health</span>
-        <strong><?= e((string) $stats['health_percentage']); ?>%</strong>
+        <strong id="stat-health-pct"><?= e((string) $stats['health_percentage']); ?>%</strong>
         <small>Products above reorder level</small>
     </article>
     <article class="stat-card danger">
         <span class="stat-label">Alerts</span>
-        <strong><?= e((string) $stats['critical_count']); ?></strong>
+        <strong id="stat-critical-count"><?= e((string) $stats['critical_count']); ?></strong>
         <small>At or below minimum stock</small>
     </article>
 </section>
@@ -81,15 +85,23 @@
                 <th>Status</th>
             </tr>
             </thead>
-            <tbody>
+            <tbody id="featured-products-body">
             <?php foreach ($featuredProducts as $product): ?>
-                <?php $low = (int) $product['stock_quantity'] <= (int) $product['min_threshold']; ?>
+                <?php
+                    $fpQty = (int) $product['stock_quantity'];
+                    $fpThr = (int) $product['min_threshold'];
+                    $fpOut = $fpQty === 0;
+                    $fpLow = !$fpOut && $fpQty <= $fpThr;
+                    if ($fpOut) { $fpBadge = 'out'; $fpText = 'OUT OF STOCK'; }
+                    elseif ($fpLow) { $fpBadge = 'low'; $fpText = 'LOW STOCK'; }
+                    else { $fpBadge = 'healthy'; $fpText = 'IN STOCK'; }
+                ?>
                 <tr>
                     <td><?= e($product['name']); ?></td>
                     <td><?= e($product['sku']); ?></td>
                     <td><?= e($product['category_name'] ?? 'Unassigned'); ?></td>
-                    <td><?= e((string) $product['stock_quantity']); ?></td>
-                    <td><span class="badge <?= $low ? 'low' : 'healthy'; ?>"><?= $low ? 'LOW STOCK' : 'IN STOCK'; ?></span></td>
+                    <td><strong class="stock-inline <?= $fpBadge ?>"><?= e((string) $fpQty); ?></strong></td>
+                    <td><span class="badge <?= $fpBadge ?>"><?= $fpText ?></span></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>
@@ -103,15 +115,15 @@
         <h3>What needs attention before the next replenishment cycle.</h3>
         <div class="insight-stats">
             <div>
-                <strong><?= e((string) $stats['pending_po']); ?></strong>
+                <strong id="stat-pending-po"><?= e((string) $stats['pending_po']); ?></strong>
                 <small>Pending purchase orders</small>
             </div>
             <div>
-                <strong><?= e((string) $stats['total_suppliers']); ?></strong>
+                <strong id="stat-total-suppliers"><?= e((string) $stats['total_suppliers']); ?></strong>
                 <small>Active suppliers</small>
             </div>
             <div>
-                <strong><?= e((string) $stats['out_of_stock']); ?></strong>
+                <strong id="stat-out-of-stock"><?= e((string) $stats['out_of_stock']); ?></strong>
                 <small>Out of stock</small>
             </div>
         </div>
@@ -132,13 +144,13 @@
                     <th>Minimum</th>
                 </tr>
                 </thead>
-                <tbody>
+                <tbody id="alerts-table-body">
                 <?php if ($dashboardAlerts): ?>
                     <?php foreach ($dashboardAlerts as $alert): ?>
                         <tr>
                             <td><?= e($alert['name']); ?></td>
                             <td><?= e($alert['sku']); ?></td>
-                            <td><?= e((string) $alert['stock_quantity']); ?></td>
+                            <td><strong class="stock-inline out"><?= e((string) $alert['stock_quantity']); ?></strong></td>
                             <td><?= e((string) $alert['min_threshold']); ?></td>
                         </tr>
                     <?php endforeach; ?>
@@ -165,7 +177,7 @@
                     <th>User</th>
                 </tr>
                 </thead>
-                <tbody>
+                <tbody id="activity-table-body">
                 <?php if ($recentActivity): ?>
                     <?php foreach ($recentActivity as $event): ?>
                         <tr>

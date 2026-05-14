@@ -11,7 +11,9 @@ $authController->requireAuthentication();
 $authController->authorize('dashboard');
 
 echo json_encode([
-    'stats' => $productModel->getDashboardStats(),
-    'alerts' => $authController->can('dashboard.alert_graph') ? $productModel->getDashboardAlerts() : [],
-    'recent_activity' => $authController->can('dashboard.activity') ? $productModel->getRecentActivity() : [],
+    'stats'             => $productModel->getDashboardStats(),
+    'alerts'            => $productModel->getDashboardAlerts(),
+    'recent_activity'   => $productModel->getRecentActivity(),
+    'featured_products' => $productModel->getFeaturedProducts(),
+    'alert_graph'       => $productModel->getAlertGraphData(),
 ], JSON_UNESCAPED_SLASHES);

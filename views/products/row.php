@@ -1,7 +1,29 @@
 <?php
-$isLow = (int) $product['stock_quantity'] <= (int) $product['min_threshold'];
-$imgFile = !empty($product['image_name']) ? basename((string) $product['image_name']) : null;
-$imgDisk = $imgFile ? dirname(__DIR__, 2) . '/public/uploads/products/' . $imgFile : null;
+$qty = (int) $product['stock_quantity'];
+$threshold = (int) $product['min_threshold'];
+$isOutOfStock = $qty === 0;
+$isLow = !$isOutOfStock && $qty <= $threshold;
+
+if ($isOutOfStock) {
+    $badgeClass = 'out';
+    $badgeText  = 'Out of Stock';
+    $badgeIcon  = 'error';
+} elseif ($isLow) {
+    $badgeClass = 'low';
+    $badgeText  = 'Low Stock';
+    $badgeIcon  = 'warning';
+} else {
+    $badgeClass = 'healthy';
+    $badgeText  = 'In Stock';
+    $badgeIcon  = 'check_circle';
+}
+
+$stockPct = $threshold > 0
+    ? min(round(($qty / max($threshold, 1)) * 100), 100)
+    : ($qty > 0 ? 100 : 0);
+
+$imgFile  = !empty($product['image_name']) ? basename((string) $product['image_name']) : null;
+$imgDisk  = $imgFile ? dirname(__DIR__, 2) . '/public/uploads/products/' . $imgFile : null;
 $hasImage = $imgDisk !== null && is_file($imgDisk);
 ?>
 <tr class="product-row" data-product-id="<?= e((string) $product['id']); ?>">
@@ -27,12 +49,19 @@ $hasImage = $imgDisk !== null && is_file($imgDisk);
         </div>
     </td>
     <td class="td-sku"><?= e($product['sku']); ?></td>
-    <td class="td-qty"><?= e((string) $product['stock_quantity']); ?></td>
+    <td class="td-qty">
+        <div class="stock-qty-cell <?= $badgeClass ?>">
+            <span class="stock-qty-value"><?= e((string) $qty); ?></span>
+            <div class="stock-qty-bar">
+                <div class="stock-qty-fill <?= $badgeClass ?>" style="width: <?= $stockPct ?>%"></div>
+            </div>
+        </div>
+    </td>
     <td class="td-price">NPR <?= e(number_format((float) $product['unit_price'], 2)); ?></td>
     <td>
-        <span class="badge <?= $isLow ? 'low' : 'healthy'; ?>">
-            <span class="material-symbols-outlined badge-icon"><?= $isLow ? 'warning' : 'check_circle'; ?></span>
-            <?= $isLow ? 'Low Stock' : 'In Stock'; ?>
+        <span class="badge <?= $badgeClass ?>">
+            <span class="material-symbols-outlined badge-icon"><?= $badgeIcon; ?></span>
+            <?= $badgeText; ?>
         </span>
     </td>
     <td class="td-actions">

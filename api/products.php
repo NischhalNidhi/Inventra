@@ -27,9 +27,23 @@ $productsData = $productModel->getAll($pagination['page'], $pagination['limit'],
 $products = $productsData['data'];
 $data = array_map(
     static function (array $product) use ($authController): array {
-        $low = (int) $product['stock_quantity'] <= (int) $product['min_threshold'];
+        $qty = (int) $product['stock_quantity'];
+        $threshold = (int) $product['min_threshold'];
+        $isOut = $qty === 0;
+        $isLow = !$isOut && $qty <= $threshold;
         $imageName = !empty($product['image_name']) ? basename((string) $product['image_name']) : null;
         $imagePath = $imageName ? dirname(__DIR__) . '/public/uploads/products/' . $imageName : null;
+
+        if ($isOut) {
+            $statusClass = 'out';
+            $statusText  = 'OUT OF STOCK';
+        } elseif ($isLow) {
+            $statusClass = 'low';
+            $statusText  = 'LOW STOCK';
+        } else {
+            $statusClass = 'healthy';
+            $statusText  = 'IN STOCK';
+        }
 
         return [
             'id' => (int) $product['id'],
@@ -39,10 +53,10 @@ $data = array_map(
             'category' => $product['category_name'] ?? 'Unassigned',
             'supplier' => $product['supplier_name'] ?? 'Unassigned',
             'unit_price' => (float) ($product['unit_price'] ?? 0),
-            'quantity' => (int) $product['stock_quantity'],
-            'min_stock' => (int) $product['min_threshold'],
-            'status' => $low ? 'LOW STOCK' : 'IN STOCK',
-            'status_class' => $low ? 'low' : 'healthy',
+            'quantity' => $qty,
+            'min_stock' => $threshold,
+            'status' => $statusText,
+            'status_class' => $statusClass,
             'edit_url' => basePath('index.php?page=new-entry&id=' . $product['id']),
             'can_edit' => $authController->can('products.edit'),
             'can_archive' => $authController->can('products.archive') && (int) $product['is_archived'] === 0,

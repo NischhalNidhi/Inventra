@@ -204,7 +204,24 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        tableBody.innerHTML = products.map((product) => `
+        const getStockIcon = (cls) => {
+            if (cls === 'out') return 'error';
+            if (cls === 'low') return 'warning';
+            return 'check_circle';
+        };
+        const getStockLabel = (cls) => {
+            if (cls === 'out') return 'Out of Stock';
+            if (cls === 'low') return 'Low Stock';
+            return 'In Stock';
+        };
+        const getStockPct = (qty, min) => {
+            if (min > 0) return Math.min(Math.round((qty / min) * 100), 100);
+            return qty > 0 ? 100 : 0;
+        };
+
+        tableBody.innerHTML = products.map((product) => {
+            const pct = getStockPct(product.quantity, product.min_stock);
+            return `
             <tr class="product-row" data-product-id="${product.id}">
                 <td>
                     <div class="product-cell-main">
@@ -223,17 +240,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </td>
                 <td class="td-sku">${escapeHtml(product.sku)}</td>
-                <td class="td-qty">${product.quantity}</td>
+                <td class="td-qty">
+                    <div class="stock-qty-cell ${product.status_class}">
+                        <span class="stock-qty-value">${product.quantity}</span>
+                        <div class="stock-qty-bar">
+                            <div class="stock-qty-fill ${product.status_class}" style="width: ${pct}%"></div>
+                        </div>
+                    </div>
+                </td>
                 <td class="td-price">${formatCurrency(product.unit_price)}</td>
                 <td>
                     <span class="badge ${product.status_class}">
-                        <span class="material-symbols-outlined badge-icon">${product.status_class === 'low' ? 'warning' : 'check_circle'}</span>
-                        ${product.status_class === 'low' ? 'Low Stock' : 'In Stock'}
+                        <span class="material-symbols-outlined badge-icon">${getStockIcon(product.status_class)}</span>
+                        ${getStockLabel(product.status_class)}
                     </span>
                 </td>
                 <td class="td-actions"><div class="action-group">${buildActionButtons(product)}</div></td>
             </tr>
-        `).join('');
+        `}).join('');
     };
 
     const fetchProducts = debounce(async () => {
@@ -461,10 +485,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('low-stock-canvas');
     const emptyState = document.getElementById('graph-empty-state');
 
+    // Hoisted so auto-refresh can update graph data
+    let allProducts = [];
+    let currentFilter = 'low';
+    let getFilteredData = () => [];
+    let drawChart = () => {};
+
     if (graphContainer && canvas) {
         const ctx = canvas.getContext('2d');
-        let allProducts = [];
-        let currentFilter = 'low';
         let barRects = []; // store bar positions for hover detection
         let animationProgress = 0;
         let animationFrame = null;
@@ -482,14 +510,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const isDark = () => body.classList.contains('theme-dark');
 
-        const getFilteredData = (filter) => {
+        getFilteredData = (filter) => {
             if (filter === 'low') {
                 return allProducts.filter(p => parseInt(p.stock_quantity) <= parseInt(p.min_threshold));
             }
             return [...allProducts];
         };
 
-        const drawChart = (data, progress) => {
+        drawChart = (data, progress) => {
             const dpr = window.devicePixelRatio || 1;
             const containerWidth = graphContainer.clientWidth;
             const barHeight = 28;
@@ -727,6 +755,134 @@ document.addEventListener('DOMContentLoaded', () => {
                 drawChart(data, 1);
             }, 150);
         });
+    }
+
+    // ---------------------------------------------------------------
+    // DASHBOARD AUTO-REFRESH — Poll every 2 seconds
+    // ---------------------------------------------------------------
+    const dashboardStats   = document.getElementById('dashboard-stats');
+    const liveIndicator    = document.getElementById('live-indicator');
+
+    if (dashboardStats) {
+        const statEls = {
+            totalProducts:  document.getElementById('stat-total-products'),
+            totalValue:     document.getElementById('stat-total-value'),
+            healthPct:      document.getElementById('stat-health-pct'),
+            criticalCount:  document.getElementById('stat-critical-count'),
+            pendingPo:      document.getElementById('stat-pending-po'),
+            totalSuppliers: document.getElementById('stat-total-suppliers'),
+            outOfStock:     document.getElementById('stat-out-of-stock'),
+        };
+        const featuredBody = document.getElementById('featured-products-body');
+        const alertsBody   = document.getElementById('alerts-table-body');
+        const activityBody = document.getElementById('activity-table-body');
+
+        /** Flash an element when its value changes */
+        const flashIfChanged = (el, newText) => {
+            if (!el) return;
+            const oldText = el.textContent.trim();
+            if (oldText !== newText.trim()) {
+                el.textContent = newText;
+                el.classList.remove('stat-flash');
+                void el.offsetWidth; // trigger reflow
+                el.classList.add('stat-flash');
+            }
+        };
+
+        /** Determine stock status class */
+        const stockClass = (qty, threshold) => {
+            if (qty === 0) return 'out';
+            if (qty <= threshold) return 'low';
+            return 'healthy';
+        };
+        const stockBadgeText = (cls) => {
+            if (cls === 'out') return 'OUT OF STOCK';
+            if (cls === 'low') return 'LOW STOCK';
+            return 'IN STOCK';
+        };
+
+        const refreshDashboard = async () => {
+            try {
+                const response = await fetch(`${apiBase}/dashboard.php`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                });
+                if (!response.ok) {
+                    if (liveIndicator) liveIndicator.classList.add('stale');
+                    return;
+                }
+                const data = await response.json();
+                if (liveIndicator) liveIndicator.classList.remove('stale');
+
+                // --- Update stat cards ---
+                if (data.stats) {
+                    const s = data.stats;
+                    flashIfChanged(statEls.totalProducts,  String(s.total_products ?? 0));
+                    flashIfChanged(statEls.totalValue,     'NPR ' + Number(s.total_value ?? 0).toLocaleString());
+                    flashIfChanged(statEls.healthPct,      (s.health_percentage ?? 0) + '%');
+                    flashIfChanged(statEls.criticalCount,  String(s.critical_count ?? 0));
+                    flashIfChanged(statEls.pendingPo,      String(s.pending_po ?? 0));
+                    flashIfChanged(statEls.totalSuppliers, String(s.total_suppliers ?? 0));
+                    flashIfChanged(statEls.outOfStock,     String(s.out_of_stock ?? 0));
+                }
+
+                // --- Update featured products table ---
+                if (featuredBody && data.featured_products) {
+                    const rows = data.featured_products.map((p) => {
+                        const qty = parseInt(p.stock_quantity);
+                        const thr = parseInt(p.min_threshold);
+                        const cls = stockClass(qty, thr);
+                        return `<tr>
+                            <td>${escapeHtml(p.name)}</td>
+                            <td>${escapeHtml(p.sku)}</td>
+                            <td>${escapeHtml(p.category_name || 'Unassigned')}</td>
+                            <td><strong class="stock-inline ${cls}">${qty}</strong></td>
+                            <td><span class="badge ${cls}">${stockBadgeText(cls)}</span></td>
+                        </tr>`;
+                    });
+                    featuredBody.innerHTML = rows.join('');
+                }
+
+                // --- Update low stock watchlist ---
+                if (alertsBody && data.alerts) {
+                    if (data.alerts.length === 0) {
+                        alertsBody.innerHTML = '<tr><td colspan="4">No low-stock items right now.</td></tr>';
+                    } else {
+                        alertsBody.innerHTML = data.alerts.map((a) => `<tr>
+                            <td>${escapeHtml(a.name)}</td>
+                            <td>${escapeHtml(a.sku)}</td>
+                            <td><strong class="stock-inline out">${escapeHtml(String(a.stock_quantity))}</strong></td>
+                            <td>${escapeHtml(String(a.min_threshold))}</td>
+                        </tr>`).join('');
+                    }
+                }
+
+                // --- Update recent activity table ---
+                if (activityBody && data.recent_activity) {
+                    if (data.recent_activity.length === 0) {
+                        activityBody.innerHTML = '<tr><td colspan="4">No recent stock activity yet.</td></tr>';
+                    } else {
+                        activityBody.innerHTML = data.recent_activity.map((ev) => `<tr>
+                            <td>${escapeHtml(ev.product_name)}</td>
+                            <td>${escapeHtml((ev.movement_type || '').toUpperCase())}</td>
+                            <td>${escapeHtml(String(ev.quantity))}</td>
+                            <td>${escapeHtml(ev.full_name)}</td>
+                        </tr>`).join('');
+                    }
+                }
+
+                // --- Update alert graph ---
+                if (data.alert_graph && typeof allProducts !== 'undefined') {
+                    allProducts = data.alert_graph;
+                    const graphData = getFilteredData(currentFilter);
+                    drawChart(graphData, 1);
+                }
+            } catch (_err) {
+                if (liveIndicator) liveIndicator.classList.add('stale');
+            }
+        };
+
+        // Poll every 2 seconds
+        setInterval(refreshDashboard, 2000);
     }
 });
 
