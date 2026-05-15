@@ -6,38 +6,81 @@ class AuthController
 {
     private const ROLE_PERMISSIONS = [
         'Manager' => [
-            'dashboard', 'dashboard.alert_graph', 'dashboard.activity',
-            'users.view', 'users.create', 'users.edit', 'users.deactivate',
-            'products.view', 'products.create', 'products.edit', 'products.delete', 'products.archive', 'products.movement',
-            'categories.view', 'categories.manage',
-            'suppliers.view', 'suppliers.manage',
-            'stock.view', 'stock.in', 'stock.out',
-            'po.view', 'po.create', 'po.tracking', 'po.receive', 'logistics.delivery_log', 'logistics.reorder',
-            'reports.inventory', 'reports.sales.monthly', 'reports.sales.daily', 'reports.low_stock', 'reports.stock_movement', 'reports.export', 'reports.import',
+            'dashboard',
+            'dashboard.alert_graph',
+            'dashboard.activity',
+            'users.view',
+            'users.create',
+            'users.edit',
+            'users.deactivate',
+            'products.view',
+            'products.create',
+            'products.edit',
+            'products.delete',
+            'products.archive',
+            'products.movement',
+            'categories.view',
+            'categories.manage',
+            'suppliers.view',
+            'suppliers.manage',
+            'stock.view',
+            'stock.in',
+            'stock.out',
+            'po.view',
+            'po.create',
+            'po.tracking',
+            'po.receive',
+            'logistics.delivery_log',
+            'logistics.reorder',
+            'reports.inventory',
+            'reports.sales.monthly',
+            'reports.sales.daily',
+            'reports.low_stock',
+            'reports.stock_movement',
+            'reports.export',
+            'reports.import',
             'reports.sales.insight',
             'sales.record',
         ],
         'Supervisor' => [
-            'dashboard', 'dashboard.alert_graph', 'dashboard.activity',
-            'products.view', 'products.movement',
+            'dashboard',
+            'dashboard.alert_graph',
+            'dashboard.activity',
+            'products.view',
+            'products.movement',
             'categories.view',
-            'stock.view', 'stock.in', 'stock.out',
+            'stock.view',
+            'stock.in',
+            'stock.out',
             'po.view',
             'logistics.reorder',
-            'reports.sales.monthly', 'reports.sales.daily', 'reports.low_stock', 'reports.stock_movement',
+            'reports.sales.monthly',
+            'reports.sales.daily',
+            'reports.low_stock',
+            'reports.stock_movement',
         ],
         'Salesman' => [
-            'dashboard', 'dashboard.activity',
-            'products.view', 'categories.view',
-            'stock.view', 'stock.out',
-            'reports.sales.daily', 'reports.low_stock',
+            'dashboard',
+            'dashboard.activity',
+            'products.view',
+            'categories.view',
+            'stock.view',
+            'stock.out',
+            'reports.sales.daily',
+            'reports.low_stock',
             'sales.record',
         ],
         'Logistic Handler' => [
-            'products.view', 'categories.view',
-            'stock.view', 'stock.in',
-            'po.view', 'po.create', 'po.tracking', 'po.receive',
-            'logistics.delivery_log', 'logistics.reorder',
+            'products.view',
+            'categories.view',
+            'stock.view',
+            'stock.in',
+            'po.view',
+            'po.create',
+            'po.tracking',
+            'po.receive',
+            'logistics.delivery_log',
+            'logistics.reorder',
         ],
     ];
 
@@ -93,8 +136,8 @@ class AuthController
     public function sendAccountSetupEmail(array $user): array
     {
         $token = $this->createPasswordToken((int) $user['id'], 'account_setup', 24 * 60 * 60);
-        $link  = appUrl('index.php?mode=set-password&token=' . urlencode($token));
-        $sent  = $this->mailer->sendAccountSetup(
+        $link = appUrl('index.php?mode=set-password&token=' . urlencode($token));
+        $sent = $this->mailer->sendAccountSetup(
             (string) $user['email'],
             (string) $user['full_name'],
             (string) $user['role'],
@@ -124,7 +167,7 @@ class AuthController
         $user = $this->userModel->findActiveByIdentifier($email);
         if ($user) {
             $token = $this->createPasswordToken((int) $user['id'], 'password_reset', 60 * 60);
-            $link  = appUrl('index.php?mode=reset-password&token=' . urlencode($token));
+            $link = appUrl('index.php?mode=reset-password&token=' . urlencode($token));
             $this->mailer->sendPasswordReset(
                 (string) $user['email'],
                 (string) $user['full_name'],
@@ -324,7 +367,7 @@ class AuthController
              WHERE ip = :ip AND attempted_at >= DATE_SUB(NOW(), INTERVAL 5 MINUTE)'
         );
         $stmt->execute(['ip' => $ip]);
-        
+
         if ((int) $stmt->fetchColumn() >= 10) {
             throw new RuntimeException('Too many login attempts. Please try again in 5 minutes.');
         }
