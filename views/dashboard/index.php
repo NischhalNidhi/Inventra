@@ -145,12 +145,17 @@
                 </tr>
                 </thead>
                 <tbody id="alerts-table-body">
-                <?php if ($dashboardAlerts): ?>
-                    <?php foreach ($dashboardAlerts as $alert): ?>
+                <?php
+                $activeAlerts = array_filter($dashboardAlerts ?? [], function($a) {
+                    return (int)($a['stock_quantity'] ?? 0) > 0;
+                });
+                ?>
+                <?php if ($activeAlerts): ?>
+                    <?php foreach ($activeAlerts as $alert): ?>
                         <tr>
                             <td><?= e($alert['name']); ?></td>
                             <td><?= e($alert['sku']); ?></td>
-                            <td><strong class="stock-inline out"><?= e((string) $alert['stock_quantity']); ?></strong></td>
+                            <td><strong class="stock-inline low"><?= e((string) $alert['stock_quantity']); ?></strong></td>
                             <td><?= e((string) $alert['min_threshold']); ?></td>
                         </tr>
                     <?php endforeach; ?>

@@ -844,13 +844,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // --- Update low stock watchlist ---
                 if (alertsBody && data.alerts) {
-                    if (data.alerts.length === 0) {
+                    const activeAlerts = data.alerts.filter(a => parseInt(a.stock_quantity) > 0);
+                    if (activeAlerts.length === 0) {
                         alertsBody.innerHTML = '<tr><td colspan="4">No low-stock items right now.</td></tr>';
                     } else {
-                        alertsBody.innerHTML = data.alerts.map((a) => `<tr>
+                        alertsBody.innerHTML = activeAlerts.map((a) => `<tr>
                             <td>${escapeHtml(a.name)}</td>
                             <td>${escapeHtml(a.sku)}</td>
-                            <td><strong class="stock-inline out">${escapeHtml(String(a.stock_quantity))}</strong></td>
+                            <td><strong class="stock-inline low">${escapeHtml(String(a.stock_quantity))}</strong></td>
                             <td>${escapeHtml(String(a.min_threshold))}</td>
                         </tr>`).join('');
                     }
