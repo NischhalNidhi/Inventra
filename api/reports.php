@@ -37,10 +37,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
     if ($type === 'sales-monthly') {
         $authController->authorize('reports.sales.monthly');
+        if ($fromDate && $toDate && strtotime($fromDate) > strtotime($toDate)) {
+            jsonResponse(['error' => 'End date must be after start date.', 'code' => 'INVALID_DATE_RANGE'], 400);
+        }
         jsonResponse(['rows' => $reportModel->getMonthlySales($fromDate, $toDate)]);
     }
     if ($type === 'sales-daily') {
         $authController->authorize('reports.sales.daily');
+        if ($fromDate && $toDate && strtotime($fromDate) > strtotime($toDate)) {
+            jsonResponse(['error' => 'End date must be after start date.', 'code' => 'INVALID_DATE_RANGE'], 400);
+        }
         jsonResponse(['rows' => $reportModel->getDailySales($fromDate, $toDate)]);
     }
     if ($type === 'low-stock') {

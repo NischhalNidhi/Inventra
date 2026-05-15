@@ -10,6 +10,29 @@ document.addEventListener('DOMContentLoaded', () => {
     body.classList.toggle('theme-dark', storedTheme === 'dark');
 
     // ---------------------------------------------------------------
+    // UTILITIES
+    // ---------------------------------------------------------------
+    
+    function debounce(callback, wait) {
+        let timeoutId;
+        return (...args) => {
+            window.clearTimeout(timeoutId);
+            timeoutId = window.setTimeout(() => callback(...args), wait);
+        };
+    }
+    
+    function escapeHtml(value) {
+        const div = document.createElement('div');
+        div.textContent = value ?? '';
+        return div.innerHTML;
+    }
+    
+    function formatCurrency(value) {
+        const amount = Number.parseFloat(value ?? '0');
+        return `NPR ${Number.isFinite(amount) ? amount.toFixed(2) : '0.00'}`;
+    }
+
+    // ---------------------------------------------------------------
     // LOGIN FORM — §5 client-side validation + loading spinner + AJAX
     // ---------------------------------------------------------------
     const loginForm = document.getElementById('login-form');
@@ -817,33 +840,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const cells = [];
             cells.push('<div class="heatmap-corner">Category / Status</div>');
-            statuses.forEach((status) => {
-                cells.push(`<div class="heatmap-header">${escapeHtml(status.label)}</div>`);
-            });
+            // statuses.forEach((status) => {
+            //     cells.push(`<div class="heatmap-header">${escapeHtml(status.label)}</div>`);
+            // });
 
             categories.forEach((category) => {
-                cells.push(`<div class="heatmap-row-label">${escapeHtml(category)}</div>`);
+                // cells.push(`<div class="heatmap-row-label">${escapeHtml(category)}</div>`);
+                cells.push('<div class="heatmap-row-label">' + escapeHtml(category) + '</div>');
                 statuses.forEach((status) => {
                     const cell = matrix[category][status.key];
                     const intensity = maxCount > 0 ? (cell.count / maxCount) : 0;
                     const alpha = 0.12 + (intensity * 0.78);
                     const colorMap = {
-                        healthy: `rgba(46, 138, 98, ${alpha})`,
-                        low: `rgba(203, 77, 93, ${alpha})`,
-                        out: `rgba(122, 127, 143, ${alpha})`,
+                        healthy: 'rgba(46, 138, 98, ' + alpha + ')',
+                        low: 'rgba(203, 77, 93, ' + alpha + ')',
+                        out: 'rgba(122, 127, 143, ' + alpha + ')',
                     };
-                    const title = `${category} | ${status.label}\nProducts: ${cell.count}\nUnits: ${cell.units}\nInventory value: NPR ${cell.value.toFixed(2)}`;
-                    cells.push(`
-                        <button type="button" class="heatmap-cell" title="${escapeHtml(title)}" style="background:${colorMap[status.key]}">
-                            <strong>${cell.count}</strong>
-                            <small>${cell.units} units</small>
-                        </button>
-                    `);
+                    // const title = `${category} | ${status.label}\nProducts: ${cell.count}\nUnits: ${cell.units}\nInventory value: NPR ${cell.value.toFixed(2)}`;
+                    const title = category + ' | ' + status.label + '\nProducts: ' + cell.count + '\nUnits: ' + cell.units + '\nInventory value: NPR ' + cell.value.toFixed(2);
+                    // cells.push(`
+                    //     <button type="button" class="heatmap-cell" title="${escapeHtml(title)}" style="background:${colorMap[status.key]}">
+                    //         <strong>${cell.count}</strong>
+                    //         <small>${cell.units} units</small>
+                    //     </button>
+                    // `);
                 });
             });
 
             grid.innerHTML = cells.join('');
-            grid.style.gridTemplateColumns = `minmax(180px, 1.3fr) repeat(${statuses.length}, minmax(120px, 1fr))`;
+            // grid.style.gridTemplateColumns = `minmax(180px, 1.3fr) repeat(${statuses.length}, minmax(120px, 1fr))`;
         }
     }
 
@@ -977,25 +1002,61 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// ---------------------------------------------------------------
-// UTILITIES
-// ---------------------------------------------------------------
+            const type = form.dataset.salesFilter; // 'monthly' or 'daily'
+            const fromDateInput = form.querySelector('input[name="from_date"]');
+            const toDateInput = form.querySelector('input[name="to_date"]');
+            const fromDate = fromDateInput ? fromDateInput.value : '';
+            const toDate = toDateInput ? toDateInput.value : '';
 
-function debounce(callback, wait) {
-    let timeoutId;
-    return (...args) => {
-        window.clearTimeout(timeoutId);
-        timeoutId = window.setTimeout(() => callback(...args), wait);
-    };
-}
+            if (fromDate && toDate && new Date(fromDate) > new Date(toDate)) {
+                alert('End date must be after start date.');
+                return;
+            }
 
-function escapeHtml(value) {
-    const div = document.createElement('div');
-    div.textContent = value ?? '';
-    return div.innerHTML;
-}
+            const table = document.querySelector(`[data-sales-table="${type}"]`);
+            if (!table) {
+                return;
+            }
 
-function formatCurrency(value) {
-    const amount = Number.parseFloat(value ?? '0');
-    return `NPR ${Number.isFinite(amount) ? amount.toFixed(2) : '0.00'}`;
-}
+            const tbody = table.querySelector('tbody');
+            tbody.innerHTML = '<tr><td colspan="2">Loading...</td></tr>';
+
+            try {
+                const params = new URLSearchParams();
+                params.append('type', `sales-${type}`);
+                if (fromDate) params.append('from_date', fromDate);
+                if (toDate) params.append('to_date', toDate);
+
+                const response = await fetch(`${apiBase}/reports.php?${params.toString()}`);
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || 'Failed to load sales data.');
+                }
+
+                const data = await response.json();
+                if (data.rows && data.rows.length > 0) {
+                    tbody.innerHTML = data.rows.map((row) => {
+                        if (type === 'monthly') {
+                            return `<tr><td>${escapeHtml(row.month)}</td><td>${formatCurrency(row.total)}</td></tr>`;
+                        }
+                        return `<tr><td>${escapeHtml(row.sale_date)}</td><td>${formatCurrency(row.total)}</td></tr>`;
+                    }).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="2">No data found for the selected date range.</td></tr>';
+                }
+
+                const exportButton = document.querySelector(`a[href*="export-${type}-csv"]`);
+                if (exportButton) {
+                    const exportParams = new URLSearchParams();
+                    exportParams.append('type', `export-${type}-csv`);
+                    if (fromDate) exportParams.append('from_date', fromDate);
+                    if (toDate) exportParams.append('to_date', toDate);
+                    exportButton.href = `${appRoot}/api/reports.php?${exportParams.toString()}`;
+                }
+            } catch (error) {
+                tbody.innerHTML = '<tr><td colspan="2">Error loading data. Please try again.</td></tr>';
+                console.error('Sales filter error:', error);
+            }
+        });
+    });
+});
