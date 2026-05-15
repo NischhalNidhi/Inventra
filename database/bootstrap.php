@@ -16,10 +16,10 @@ function readSchemaSql(): string
 
 function createRootDatabaseConnection(): PDO
 {
-    $host = env('DB_HOST', '127.0.0.1');
-    $port = env('DB_PORT', '3306');
-    $user = env('DB_USER', 'root');
-    $pass = env('DB_PASS', '');
+    $host = env('MYSQLHOST', env('DB_HOST', '127.0.0.1'));
+    $port = env('MYSQLPORT', env('DB_PORT', '3306'));
+    $user = env('MYSQLUSER', env('DB_USER', 'root'));
+    $pass = env('MYSQLPASSWORD', env('DB_PASS', ''));
 
     return new PDO(
         "mysql:host={$host};port={$port};charset=utf8mb4",
@@ -34,11 +34,11 @@ function createRootDatabaseConnection(): PDO
 
 function createConfiguredDatabaseConnection(): PDO
 {
-    $host = env('DB_HOST', '127.0.0.1');
-    $port = env('DB_PORT', '3306');
-    $dbName = env('DB_NAME', 'inventra');
-    $user = env('DB_USER', 'root');
-    $pass = env('DB_PASS', '');
+    $host = env('MYSQLHOST', env('DB_HOST', '127.0.0.1'));
+    $port = env('MYSQLPORT', env('DB_PORT', '3306'));
+    $dbName = env('MYSQLDATABASE', env('DB_NAME', 'inventra'));
+    $user = env('MYSQLUSER', env('DB_USER', 'root'));
+    $pass = env('MYSQLPASSWORD', env('DB_PASS', ''));
 
     return new PDO(
         "mysql:host={$host};port={$port};dbname={$dbName};charset=utf8mb4",
@@ -67,9 +67,17 @@ function applySchema(PDO $pdo, string $schema): void
 
 function initializeConfiguredDatabase(): void
 {
-    $dbName = env('DB_NAME', 'inventra');
-    $rootPdo = createRootDatabaseConnection();
-    $rootPdo->exec("CREATE DATABASE IF NOT EXISTS `{$dbName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci");
+    $dbName = env('MYSQLDATABASE', env('DB_NAME', 'inventra'));
+    
+    // Only attempt to create database if not using Railway's pre-provisioned DB
+    if (!env('MYSQLDATABASE')) {
+        try {
+            $rootPdo = createRootDatabaseConnection();
+            $rootPdo->exec("CREATE DATABASE IF NOT EXISTS `{$dbName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci");
+        } catch (PDOException $e) {
+            // Log or ignore if we don't have permission to create DB
+        }
+    }
 
     $dbPdo = createConfiguredDatabaseConnection();
     applySchema($dbPdo, readSchemaSql());
@@ -77,7 +85,7 @@ function initializeConfiguredDatabase(): void
 
 function rebuildConfiguredDatabase(): void
 {
-    $dbName = env('DB_NAME', 'inventra');
+    $dbName = env('MYSQLDATABASE', env('DB_NAME', 'inventra'));
     $lastException = null;
 
     for ($attempt = 1; $attempt <= 3; $attempt++) {

@@ -17,18 +17,32 @@ Inventra is a modern, AI-integrated inventory management system designed specifi
 - **Environment:** Optimized for XAMPP/Local development
 
 ## ⚙️ Setup & Installation
+
+### Local Development (XAMPP/Docker)
 1. **Clone the repository:**
    ```bash
    git clone https://github.com/NischhalNidhi/inventory-system.git
    ```
-2. **Database Configuration:**
-   - Import `database/schema.sql` into your MySQL server.
-   - (Optional) Run `database/seed_department_store.php` for demo data.
-3. **Environment Setup:**
+2. **Environment Setup:**
    - Rename `.env.example` to `.env`.
-   - Configure `DB_HOST`, `DB_NAME`, `DB_USER`, and `DB_PASS`.
-   - Add your `AI_INSIGHTS_API_KEY` for Gemini integration.
-4. **Run:** Access the project via `http://localhost/Inventra/public`.
+   - Configure your database credentials.
+3. **Initialize Database:**
+   ```bash
+   php database/init.php
+   php database/seed.php
+   ```
+4. **Run:** Access via `http://localhost/Inventra/public` (XAMPP) or use the included `Dockerfile`.
+
+### ☁️ Railway Deployment
+1. **Push to GitHub:** Commit all changes and push to your repository.
+2. **Connect to Railway:** Create a new project on Railway and link your GitHub repo.
+3. **Add MySQL:** Add a MySQL database service in your Railway project.
+4. **Environment Variables:** Railway will automatically provide `MYSQLHOST`, `MYSQLUSER`, etc. The app is pre-configured to detect these.
+5. **Finalize:**
+   - Open the Railway terminal for your app service.
+   - Run `php database/init.php` to set up the tables.
+   - Run `php database/seed.php` for initial data.
+
 
 ## 📜 License
 This project is licensed under the MIT License.

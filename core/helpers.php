@@ -54,8 +54,12 @@ function loadEnvFile(?string $path = null): void
             putenv($key . '=' . $value);
         }
 
-        $_ENV[$key] = $value;
-        $_SERVER[$key] = $value;
+        if (!isset($_ENV[$key])) {
+            $_ENV[$key] = $value;
+        }
+        if (!isset($_SERVER[$key])) {
+            $_SERVER[$key] = $value;
+        }
     }
 }
 

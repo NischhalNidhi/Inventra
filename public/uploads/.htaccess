@@ -1,0 +1,4 @@
+Options -ExecCGI
+php_flag engine off
+RemoveHandler .php
+ForceType application/octet-stream

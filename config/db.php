@@ -12,11 +12,11 @@ function getDatabaseConnection(): PDO
         return $pdo;
     }
 
-    $host = env('DB_HOST', '127.0.0.1');
-    $port = env('DB_PORT', '3306');
-    $dbName = env('DB_NAME', 'inventra');
-    $username = env('DB_USER', 'root');
-    $password = env('DB_PASS', '');
+    $host = env('MYSQLHOST', env('DB_HOST', '127.0.0.1'));
+    $port = env('MYSQLPORT', env('DB_PORT', '3306'));
+    $dbName = env('MYSQLDATABASE', env('DB_NAME', 'inventra'));
+    $username = env('MYSQLUSER', env('DB_USER', 'root'));
+    $password = env('MYSQLPASSWORD', env('DB_PASS', ''));
     $charset = 'utf8mb4';
 
     $dsn = "mysql:host={$host};port={$port};dbname={$dbName};charset={$charset}";
