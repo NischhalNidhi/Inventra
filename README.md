@@ -1,34 +1,50 @@
-# Inventra: AI-Powered Department Store Inventory
+# Inventra - Modern Inventory Management System
 
-Inventra is a modern, AI-integrated inventory management system designed specifically for department stores. It combines robust stock tracking with predictive insights to optimize retail operations.
+Inventra is a streamlined, web-based inventory management system designed for department stores. It features real-time stock tracking, purchase order management, and AI-driven sales insights.
 
-## 🚀 Key Features
-- **AI-Driven Insights:** Automated monthly sales summaries and predictive restock recommendations powered by Gemini.
-- **Role-Based Access:** Specialized dashboards for Managers, Supervisors, Salesmen, and Logistic Handlers.
-- **Smart Stock Tracking:** Real-time monitoring of SKU levels, thresholds, and automated stock movement logs.
-- **Supplier Management:** Integrated procurement workflow with Purchase Order (PO) tracking.
-- **Access Workflow:** Formalized `access_request` system for secure inventory overrides.
+## Features
+- **Dashboard**: High-level overview of stock health and sales trends.
+- **Inventory**: Complete product management with category and supplier associations.
+- **Logistics**: Manage purchase orders and track shipments.
+- **Reports**: Detailed sales and inventory reports with interactive charts.
+- **AI Insights**: Automated business analysis based on historical data.
 
-## 🛠️ Technical Stack
-- **Backend:** PHP 8.1+ (MVC Architecture)
-- **Database:** MySQL/MariaDB
-- **Frontend:** Vanilla JS & Custom CSS
-- **AI:** Google Gemini API
-- **Environment:** Optimized for XAMPP/Local development
+## Quick Setup
 
-## ⚙️ Setup & Installation
-1. **Clone the repository:**
+1. **Clone the repository**:
    ```bash
-   git clone https://github.com/NischhalNidhi/inventory-system.git
+   git clone https://github.com/your-username/Inventra.git
+   cd Inventra
    ```
-2. **Database Configuration:**
-   - Import `database/schema.sql` into your MySQL server.
-   - (Optional) Run `database/seed_department_store.php` for demo data.
-3. **Environment Setup:**
-   - Rename `.env.example` to `.env`.
-   - Configure `DB_HOST`, `DB_NAME`, `DB_USER`, and `DB_PASS`.
-   - Add your `AI_INSIGHTS_API_KEY` for Gemini integration.
-4. **Run:** Access the project via `http://localhost/Inventra/public`.
 
-## 📜 License
-This project is licensed under the MIT License.
+2. **Run the setup script**:
+   Open your terminal/command prompt and run:
+   ```bash
+   php setup.php
+   ```
+   *This will create your `.env` file, initialize the database, and seed demo data.*
+
+3. **Configure your Web Server**:
+   Point your web server (Apache/Nginx) document root to the `public/` folder.
+   
+   Example (Apache vhost):
+   ```apache
+   DocumentRoot "C:/xampp/htdocs/Inventra/public"
+   ```
+
+4. **Access the application**:
+   Open `http://localhost/` in your browser.
+
+### Default Login
+- **Username**: `manager`
+- **Password**: `password`
+
+## Database Management
+- **Initialize Schema**: `php database/init.php`
+- **Wipe and Rebuild**: `php database/rebuild.php`
+- **Seed Demo Data**: `php database/seed.php`
+
+## Requirements
+- PHP 8.1+
+- MySQL/MariaDB
+- Extensions: `pdo_mysql`, `curl`
