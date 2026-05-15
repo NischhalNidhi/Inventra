@@ -7,3 +7,5 @@ uploads/products/
 tests/_output/
 *.log
 *.tmp
+test_*.php
+cookie.txt

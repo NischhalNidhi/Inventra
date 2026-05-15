@@ -5,10 +5,38 @@ declare(strict_types=1);
 class UserController
 {
     private User $userModel;
+    private AuditLog $auditLog;
 
-    public function __construct(User $userModel)
+    public function __construct(User $userModel, AuditLog $auditLog)
     {
         $this->userModel = $userModel;
+        $this->auditLog = $auditLog;
+    }
+
+    public function handleUpdate(int $userId, array $input, int $actorId): array
+    {
+        $validated = $this->validateUpdate($userId, $input);
+        if ($validated['errors']) {
+            return ['success' => false, 'errors' => $validated['errors']];
+        }
+
+        $oldUser = $this->userModel->findById($userId);
+        $this->userModel->update($userId, $validated['data']);
+
+        if ($oldUser && $oldUser['role'] !== $validated['data']['role']) {
+            $this->auditLog->log($actorId, 'changed_role', 'user', $userId, [
+                'old_role' => $oldUser['role'],
+                'new_role' => $validated['data']['role']
+            ]);
+        }
+
+        return ['success' => true];
+    }
+
+    public function handleDeactivate(int $userId, int $actorId): void
+    {
+        $this->userModel->deactivate($userId);
+        $this->auditLog->log($actorId, 'deactivated', 'user', $userId);
     }
 
     public function validateCreate(array $input): array

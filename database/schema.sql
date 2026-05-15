@@ -48,8 +48,9 @@ CREATE TABLE IF NOT EXISTS password_tokens (
 CREATE TABLE IF NOT EXISTS login_attempts (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     ip VARCHAR(45) NOT NULL,
+    identifier VARCHAR(120) DEFAULT NULL,
     attempted_at DATETIME NOT NULL,
-    INDEX idx_login_attempts_ip_attempted_at (ip, attempted_at)
+    INDEX idx_login_attempts_ip_attempted_at (ip, identifier, attempted_at)
 );
 
 CREATE TABLE IF NOT EXISTS categories (
@@ -160,6 +161,7 @@ CREATE TABLE IF NOT EXISTS sales_transactions (
     unit_price DECIMAL(10,2) NOT NULL,
     sale_date DATE NOT NULL,
     region VARCHAR(120) DEFAULT NULL,
+    idempotency_key CHAR(64) DEFAULT NULL UNIQUE,
     source ENUM('manual_entry', 'import') NOT NULL DEFAULT 'manual_entry',
     created_by INT UNSIGNED NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -201,6 +203,17 @@ CREATE TABLE IF NOT EXISTS report_import_row_errors (
     CONSTRAINT fk_import_row_batch FOREIGN KEY (batch_id) REFERENCES report_import_batches(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS audit_log (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    actor_id INT UNSIGNED NOT NULL,
+    action VARCHAR(80) NOT NULL,
+    target_type VARCHAR(40) NOT NULL,
+    target_id INT UNSIGNED DEFAULT NULL,
+    metadata JSON DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_audit_log_actor FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 INSERT INTO categories (name, description)
 SELECT * FROM (
     SELECT 'Grocery Staples' AS name, 'Daily pantry items and packaged essentials' AS description
@@ -215,20 +228,23 @@ SELECT * FROM (
 ) AS seed_categories
 WHERE NOT EXISTS (SELECT 1 FROM categories WHERE categories.name = seed_categories.name);
 
-INSERT INTO users (full_name, email, username, password_hash, role, is_active)
+-- Seed users require setting a password through the setup flow or environment variable in bootstrapping.
+-- Default passwords are no longer hardcoded here for security.
+INSERT INTO users (full_name, email, username, password_hash, role, is_active, must_change_password)
 SELECT * FROM (
     SELECT
       'System Manager' AS full_name,
       'manager@inventra.local' AS email,
       'manager' AS username,
-      '$2y$12$g9t01Mpot.2IjSQCVU7K0eccXXo.nP8uTHDsumOl6X9WRzAfrwqR.' AS password_hash,
+      '' AS password_hash,
       'Manager' AS role,
-      1 AS is_active
+      1 AS is_active,
+      1 AS must_change_password
     UNION ALL
-    SELECT 'Sam Supervisor', 'supervisor@inventra.local', 'supervisor', '$2y$12$g9t01Mpot.2IjSQCVU7K0eccXXo.nP8uTHDsumOl6X9WRzAfrwqR.', 'Supervisor', 1
+    SELECT 'Sam Supervisor', 'supervisor@inventra.local', 'supervisor', '', 'Supervisor', 1, 1
     UNION ALL
-    SELECT 'Leo Salesman', 'salesman@inventra.local', 'salesman', '$2y$12$g9t01Mpot.2IjSQCVU7K0eccXXo.nP8uTHDsumOl6X9WRzAfrwqR.', 'Salesman', 1
+    SELECT 'Leo Salesman', 'salesman@inventra.local', 'salesman', '', 'Salesman', 1, 1
     UNION ALL
-    SELECT 'Mina Logistic', 'logistic@inventra.local', 'logistic', '$2y$12$g9t01Mpot.2IjSQCVU7K0eccXXo.nP8uTHDsumOl6X9WRzAfrwqR.', 'Logistic Handler', 1
+    SELECT 'Mina Logistic', 'logistic@inventra.local', 'logistic', '', 'Logistic Handler', 1, 1
 ) AS seed_users
 WHERE NOT EXISTS (SELECT 1 FROM users WHERE users.username = seed_users.username);

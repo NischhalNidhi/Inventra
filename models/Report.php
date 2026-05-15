@@ -13,17 +13,24 @@ class Report
 
     public function createSale(array $data, int $userId, string $source = 'manual_entry'): int
     {
+        $priceStmt = $this->pdo->prepare('SELECT unit_price FROM products WHERE id = :id LIMIT 1');
+        $priceStmt->execute(['id' => $data['product_id']]);
+        $canonicalPrice = (float)($priceStmt->fetchColumn() ?: $data['unit_price']);
+
+        $idempotencyKey = $data['idempotency_key'] ?? hash('sha256', $userId . '_' . $data['product_id'] . '_' . $data['quantity'] . '_' . $data['sale_date'] . '_' . microtime(true));
+
         $stmt = $this->pdo->prepare(
-            'INSERT INTO sales_transactions
-             (product_id, quantity, unit_price, sale_date, region, source, created_by)
-             VALUES (:product_id, :quantity, :unit_price, :sale_date, :region, :source, :created_by)'
+            'INSERT IGNORE INTO sales_transactions
+             (product_id, quantity, unit_price, sale_date, region, idempotency_key, source, created_by)
+             VALUES (:product_id, :quantity, :unit_price, :sale_date, :region, :idempotency_key, :source, :created_by)'
         );
         $stmt->execute([
             'product_id' => $data['product_id'],
             'quantity' => $data['quantity'],
-            'unit_price' => $data['unit_price'],
+            'unit_price' => $canonicalPrice,
             'sale_date' => $data['sale_date'],
             'region' => $data['region'],
+            'idempotency_key' => $idempotencyKey,
             'source' => $source,
             'created_by' => $userId,
         ]);

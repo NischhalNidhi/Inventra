@@ -2,17 +2,6 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../includes/helpers.php';
-require_once __DIR__ . '/../config/db.php';
-require_once __DIR__ . '/../models/User.php';
-require_once __DIR__ . '/../models/Supplier.php';
-require_once __DIR__ . '/../controllers/authController.php';
-require_once __DIR__ . '/../controllers/supplierController.php';
-
-$pdo = getDatabaseConnection();
-$authController = new AuthController(new User($pdo));
-$supplierModel = new Supplier($pdo);
-$supplierController = new SupplierController($supplierModel);
 require_once __DIR__ . '/../core/dependencies.php';
 
 extract(buildAppDependencies(), EXTR_SKIP);
@@ -22,7 +11,9 @@ $authController->authorize('suppliers.view');
 $id = (int) ($_GET['id'] ?? 0);
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    jsonResponse(['suppliers' => $supplierModel->getAll(1, 200)]);
+    $pagination = parsePagination($_GET);
+    $search = trim($_GET['search'] ?? '');
+    jsonResponse(['suppliers' => $supplierModel->getAll($pagination['page'], $pagination['limit'], $search)]);
 }
 
 if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {

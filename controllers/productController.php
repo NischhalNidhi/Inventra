@@ -5,10 +5,12 @@ declare(strict_types=1);
 class ProductController
 {
     private Product $productModel;
+    private AuditLog $auditLog;
 
-    public function __construct(Product $productModel)
+    public function __construct(Product $productModel, AuditLog $auditLog)
     {
         $this->productModel = $productModel;
+        $this->auditLog = $auditLog;
     }
 
     public function validate(array $input, ?int $productId = null): array
@@ -110,7 +112,7 @@ class ProductController
         return ['success' => true];
     }
 
-    public function handleDelete(int $id): void
+    public function handleDelete(int $id, int $actorId): void
     {
         $product = $this->productModel->findById($id);
         if (!$product) {
@@ -118,6 +120,7 @@ class ProductController
         }
 
         $this->productModel->delete($id);
+        $this->auditLog->log($actorId, 'deleted', 'product', $id, ['name' => $product['name'], 'sku' => $product['sku']]);
     }
 
     public function handleArchive(int $id): void

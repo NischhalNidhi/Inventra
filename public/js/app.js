@@ -3,7 +3,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const basePath = body.dataset.basePath || '';
     const appRoot = body.dataset.appRootPath || (basePath.endsWith('/public') ? basePath.slice(0, -7) : '');
     const apiBase = `${appRoot}/api`;
-    const csrfToken = body.dataset.csrfToken || '';
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') 
+        || document.querySelector('input[name="csrf_token"]')?.value 
+        || '';
     const storedTheme = window.localStorage.getItem('inventra_theme') || 'light';
     body.classList.toggle('theme-dark', storedTheme === 'dark');
 
@@ -843,6 +845,135 @@ document.addEventListener('DOMContentLoaded', () => {
             grid.innerHTML = cells.join('');
             grid.style.gridTemplateColumns = `minmax(180px, 1.3fr) repeat(${statuses.length}, minmax(120px, 1fr))`;
         }
+    }
+
+    // ---------------------------------------------------------------
+    // REPORT ANALYTICS CHARTS (Chart.js)
+    // ---------------------------------------------------------------
+    const initReportCharts = () => {
+        const isDark = () => document.body.classList.contains('theme-dark');
+        const getChartColor = () => isDark() ? '#e6ebf8' : '#323235';
+        const getGridColor = () => isDark() ? 'rgba(230, 235, 248, 0.1)' : 'rgba(50, 50, 53, 0.1)';
+
+        const commonOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: { color: getChartColor() }
+                }
+            }
+        };
+
+        const chartInstances = {};
+
+        // 1. Sales Trend Chart
+        const salesTrendCtx = document.getElementById('salesTrendChart');
+        if (salesTrendCtx) {
+            const labels = JSON.parse(salesTrendCtx.dataset.labels || '[]');
+            const values = JSON.parse(salesTrendCtx.dataset.values || '[]');
+            chartInstances['salesTrendChart'] = new Chart(salesTrendCtx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Daily Sales (NPR)',
+                        data: values,
+                        borderColor: '#4059aa',
+                        backgroundColor: 'rgba(64, 89, 170, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        y: { 
+                            beginAtZero: true,
+                            grid: { color: getGridColor() },
+                            ticks: { color: getChartColor() }
+                        },
+                        x: {
+                            grid: { color: getGridColor() },
+                            ticks: { color: getChartColor() }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 2. Stock Status Chart
+        const stockStatusCtx = document.getElementById('stockStatusChart');
+        if (stockStatusCtx) {
+            const labels = JSON.parse(stockStatusCtx.dataset.labels || '[]');
+            const values = JSON.parse(stockStatusCtx.dataset.values || '[]');
+            const colors = JSON.parse(stockStatusCtx.dataset.colors || '[]');
+            chartInstances['stockStatusChart'] = new Chart(stockStatusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: colors,
+                        borderWidth: 0
+                    }]
+                },
+                options: commonOptions
+            });
+        }
+
+        // 3. Category Distribution Chart
+        const categoryDistCtx = document.getElementById('categoryDistChart');
+        if (categoryDistCtx) {
+            const labels = JSON.parse(categoryDistCtx.dataset.labels || '[]');
+            const values = JSON.parse(categoryDistCtx.dataset.values || '[]');
+            chartInstances['categoryDistChart'] = new Chart(categoryDistCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Product Count',
+                        data: values,
+                        backgroundColor: '#4059aa'
+                    }]
+                },
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        y: { 
+                            beginAtZero: true,
+                            grid: { color: getGridColor() },
+                            ticks: { color: getChartColor() }
+                        },
+                        x: {
+                            grid: { color: getGridColor() },
+                            ticks: { color: getChartColor() }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Export Chart Logic
+        document.querySelectorAll('[data-export-chart]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const chartId = btn.dataset.exportChart;
+                const chart = chartInstances[chartId];
+                if (chart) {
+                    const base64Image = chart.toBase64Image('image/png', 1.0);
+                    const link = document.createElement('a');
+                    link.href = base64Image;
+                    link.download = `${chartId}.png`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            });
+        });
+    };
+
+    if (document.getElementById('salesTrendChart') || document.getElementById('stockStatusChart') || document.getElementById('categoryDistChart')) {
+        initReportCharts();
     }
 });
 

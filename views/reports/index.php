@@ -6,7 +6,63 @@
         <h1>Store Reports</h1>
         <p class="lead">Generate inventory summaries, review low-stock items, and track sales activity with clearer store-ready reporting.</p>
     </div>
+    <div class="topbar-actions">
+        <button class="button ghost" onclick="window.print()"><span class="material-symbols-outlined">print</span> Print Report</button>
+    </div>
 </header>
+
+<section class="panel no-print">
+    <div class="panel-header">
+        <h2>Visual Analytics</h2>
+        <p>Graphical representation of store performance and inventory health.</p>
+    </div>
+    <div class="grid-3">
+        <div class="chart-container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0;">Sales Trend</h3>
+                <button type="button" class="button ghost small" data-export-chart="salesTrendChart" aria-label="Export Sales Trend as Image"><span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">download</span> Export</button>
+            </div>
+            <canvas id="salesTrendChart" 
+                data-labels="<?= e(json_encode(array_column($dailySales ?: [], 'sale_date'))); ?>" 
+                data-values="<?= e(json_encode(array_column($dailySales ?: [], 'total'))); ?>">
+            </canvas>
+        </div>
+        <div class="chart-container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0;">Stock Status</h3>
+                <button type="button" class="button ghost small" data-export-chart="stockStatusChart" aria-label="Export Stock Status as Image"><span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">download</span> Export</button>
+            </div>
+            <?php
+            $outOfStock = (int) ($inventorySummary['out_of_stock_count'] ?? 0);
+            $lowStock = (int) ($inventorySummary['low_stock_count'] ?? 0);
+            $totalSkus = (int) ($inventorySummary['total_skus'] ?? 0);
+            $healthy = max(0, $totalSkus - $lowStock - $outOfStock);
+            ?>
+            <canvas id="stockStatusChart" 
+                data-labels='["Healthy", "Low Stock", "Out of Stock"]' 
+                data-values='[<?= $healthy; ?>, <?= $lowStock; ?>, <?= $outOfStock; ?>]'
+                data-colors='["#22c55e", "#f59e0b", "#ef4444"]'>
+            </canvas>
+        </div>
+        <div class="chart-container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0;">Category Distribution</h3>
+                <button type="button" class="button ghost small" data-export-chart="categoryDistChart" aria-label="Export Category Distribution as Image"><span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">download</span> Export</button>
+            </div>
+            <?php
+            $catDist = [];
+            foreach ($inventoryReport as $row) {
+                $cat = $row['category_name'] ?: 'Uncategorized';
+                $catDist[$cat] = ($catDist[$cat] ?? 0) + 1;
+            }
+            ?>
+            <canvas id="categoryDistChart" 
+                data-labels="<?= e(json_encode(array_keys($catDist))); ?>" 
+                data-values="<?= e(json_encode(array_values($catDist))); ?>">
+            </canvas>
+        </div>
+    </div>
+</section>
 
 <?php if ($inventorySummary): ?>
 <section class="stats-grid">
@@ -143,7 +199,12 @@
 
 <?php if ($inventoryReport): ?>
 <section class="panel">
-    <div class="panel-header"><h2>Inventory Report</h2></div>
+    <div class="panel-header">
+        <h2>Inventory Report</h2>
+        <?php if ($authController->can('reports.export')): ?>
+            <a href="<?= e(appRootPath('api/reports.php?type=export-inventory-csv' . ($fromDate ? '&from_date=' . urlencode($fromDate) : '') . ($toDate ? '&to_date=' . urlencode($toDate) : ''))); ?>" class="button ghost small">Export to CSV</a>
+        <?php endif; ?>
+    </div>
     <p class="lead">Use this summary for manager review, shift handover, or printing.</p>
     <div class="table-wrap">
         <table>

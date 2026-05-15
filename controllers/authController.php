@@ -71,12 +71,12 @@ class AuthController
         }
 
         $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
-        $this->checkRateLimit($ip);
+        $this->checkRateLimit($ip, $identifier);
 
         $user = $this->userModel->findByIdentifier($identifier);
 
         if (!$user || !$user['is_active'] || !password_verify($password, $user['password_hash'])) {
-            $this->recordAttempt($ip);
+            $this->recordAttempt($ip, $identifier);
             return ['success' => false, 'errors' => ['Invalid email or password.']];
         }
 
@@ -120,6 +120,10 @@ class AuthController
         if ($errors) {
             return ['success' => false, 'errors' => $errors];
         }
+
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+        $this->checkRateLimit($ip, $email);
+        $this->recordAttempt($ip, $email);
 
         $user = $this->userModel->findActiveByIdentifier($email);
         if ($user) {
@@ -306,7 +310,7 @@ class AuthController
     private function setAuthenticatedSession(array $user): void
     {
         if (session_status() === PHP_SESSION_ACTIVE) {
-            @session_regenerate_id(true);
+            session_regenerate_id(true);
         }
         $_SESSION['user'] = [
             'id' => (int) $user['id'],
@@ -317,24 +321,24 @@ class AuthController
         ];
     }
 
-    private function checkRateLimit(string $ip): void
+    private function checkRateLimit(string $ip, string $identifier = ''): void
     {
         $stmt = $this->pdo->prepare(
             'SELECT COUNT(*) FROM login_attempts 
-             WHERE ip = :ip AND attempted_at >= DATE_SUB(NOW(), INTERVAL 5 MINUTE)'
+             WHERE (ip = :ip OR identifier = :identifier) AND attempted_at >= DATE_SUB(NOW(), INTERVAL 5 MINUTE)'
         );
-        $stmt->execute(['ip' => $ip]);
+        $stmt->execute(['ip' => $ip, 'identifier' => $identifier]);
         
         if ((int) $stmt->fetchColumn() >= 10) {
-            throw new RuntimeException('Too many login attempts. Please try again in 5 minutes.');
+            throw new RuntimeException('Too many attempts. Please try again in 5 minutes.');
         }
     }
 
-    private function recordAttempt(string $ip): void
+    private function recordAttempt(string $ip, string $identifier = ''): void
     {
         $stmt = $this->pdo->prepare(
-            'INSERT INTO login_attempts (ip, attempted_at) VALUES (:ip, NOW())'
+            'INSERT INTO login_attempts (ip, identifier, attempted_at) VALUES (:ip, :identifier, NOW())'
         );
-        $stmt->execute(['ip' => $ip]);
+        $stmt->execute(['ip' => $ip, 'identifier' => $identifier]);
     }
 }

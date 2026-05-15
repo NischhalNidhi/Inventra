@@ -6,7 +6,17 @@ require_once __DIR__ . '/../core/bootstrap.php';
 
 $pdo = getDatabaseConnection();
 $userModel = new User($pdo);
-$hash = password_hash('password', PASSWORD_BCRYPT, ['cost' => 12]);
+
+$password = env('SEED_MANAGER_PASSWORD');
+if (empty($password)) {
+    // Generate a secure random password if none is provided via environment
+    $password = bin2hex(random_bytes(12));
+    echo "NOTICE: Using randomly generated password for seed users: " . $password . "\n";
+} else {
+    echo "Using environment-provided password for seed users.\n";
+}
+
+$hash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
 
 $seedUsers = [
     ['full_name' => 'Sam Supervisor', 'email' => 'supervisor@inventra.local', 'username' => 'supervisor', 'role' => 'Supervisor'],
@@ -19,6 +29,7 @@ foreach ($seedUsers as $seed) {
         continue;
     }
     $seed['password_hash'] = $hash;
+    $seed['must_change_password'] = 1;
     $userModel->create($seed);
 }
 

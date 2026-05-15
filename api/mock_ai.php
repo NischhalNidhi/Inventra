@@ -1,8 +1,17 @@
 <?php
-/**
- * Mock AI Insight Endpoint
- * Returns a realistic business insight based on input data.
- */
+require_once __DIR__ . '/../core/helpers.php';
+
+$apiKey = env('AI_INSIGHTS_API_KEY', '');
+if ($apiKey !== '') {
+    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
+    if (!str_starts_with($authHeader, 'Bearer ' . $apiKey)) {
+        http_response_code(401);
+        header('Content-Type: application/json');
+        echo json_encode(['error' => 'Unauthorized Access']);
+        exit;
+    }
+}
+
 header('Content-Type: application/json');
 
 $input = json_decode(file_get_contents('php://input'), true);

@@ -26,8 +26,10 @@ $topSearchPlaceholder = $topSearchPlaceholderMap[$topSearchPage] ?? 'Search prod
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= e(basePath('css/style.css')) . '?v=' . filemtime(dirname(__DIR__, 2) . '/public/css/style.css'); ?>">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <meta name="csrf-token" content="<?= e(csrfToken()); ?>">
 </head>
-<body class="app-body" data-base-path="<?= e(basePath()); ?>" data-app-root-path="<?= e(appRootPath()); ?>" data-csrf-token="<?= e(csrfToken()); ?>">
+<body class="app-body" data-base-path="<?= e(basePath()); ?>" data-app-root-path="<?= e(appRootPath()); ?>">
 <?php if ($flash): ?>
     <div class="toast toast-<?= e($flash['type']); ?>"><?= e($flash['message']); ?></div>
 <?php endif; ?>

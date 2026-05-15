@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../core/dependencies.php';
 
+sendSecurityHeaders();
+
 extract(buildAppDependencies(), EXTR_SKIP);
 $authController->requireAuthentication();
 
@@ -48,6 +50,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if ($type === 'stock-movement') {
         $authController->authorize('reports.stock_movement');
         jsonResponse(['rows' => $reportModel->getStockMovementSummary($fromDate, $toDate)]);
+    }
+
+    if ($type === 'export-inventory-csv') {
+        $authController->authorize('reports.export');
+        $inventory = $reportModel->getInventoryReport($fromDate, $toDate);
+        $csvRows = array_map(function ($row) {
+            return [
+                $row['name'],
+                $row['sku'],
+                $row['category_name'],
+                number_format((float) ($row['unit_price'] ?? 0), 2),
+                $row['stock_quantity'],
+                $row['min_threshold'],
+                (int) $row['stock_quantity'] <= (int) $row['min_threshold'] ? 'Low Stock' : 'Healthy',
+                $row['updated_at']
+            ];
+        }, $inventory);
+        downloadCsv('inventory-report', ['Product', 'SKU', 'Department', 'Price (NPR)', 'Stock', 'Min', 'Status', 'Updated'], $csvRows);
+        return;
     }
 
     // CSV export endpoints for sales reports.

@@ -64,7 +64,8 @@ loadEnvFile();
 if (session_status() === PHP_SESSION_NONE) {
     $defaultSessionPath = (string) session_save_path();
     if ($defaultSessionPath === '' || !is_dir($defaultSessionPath) || !is_writable($defaultSessionPath)) {
-        $fallbackSessionPath = dirname(__DIR__) . '/uploads/.sessions';
+        // Store sessions outside the web root for security
+        $fallbackSessionPath = dirname(__DIR__, 2) . '/sessions';
         if (!is_dir($fallbackSessionPath)) {
             mkdir($fallbackSessionPath, 0775, true);
         }
@@ -77,12 +78,24 @@ if (session_status() === PHP_SESSION_NONE) {
         'lifetime' => 0,
         'path' => '/',
         'domain' => $_SERVER['HTTP_HOST'] ?? '',
-        'secure' => ($_ENV['APP_ENV'] ?? '') === 'production',
+        'secure' => ($_ENV['APP_ENV'] ?? 'production') !== 'development',
         'httponly' => true,
         'samesite' => 'Strict'
     ]);
 
     session_start();
+}
+
+function sendSecurityHeaders(): void
+{
+    header("X-Content-Type-Options: nosniff");
+    header("X-Frame-Options: SAMEORIGIN");
+    header("Referrer-Policy: strict-origin-when-cross-origin");
+    header("Permissions-Policy: geolocation=(), microphone=()");
+    header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self';");
+    if (($_ENV['APP_ENV'] ?? 'production') !== 'development') {
+        header("Strict-Transport-Security: max-age=63072000; includeSubDomains; preload");
+    }
 }
 
 function e(?string $value): string
@@ -284,7 +297,7 @@ function downloadCsv(string $filename, array $headers, array $rows): void
 function parsePagination(array $input): array
 {
     $page = max(1, (int) ($input['p'] ?? 1));
-    $limit = max(1, min(100, (int) ($input['limit'] ?? 25)));
+    $limit = max(1, min(50, (int) ($input['limit'] ?? 25)));
     $offset = ($page - 1) * $limit;
 
     return ['page' => $page, 'limit' => $limit, 'offset' => $offset];

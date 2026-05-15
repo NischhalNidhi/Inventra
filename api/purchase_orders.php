@@ -2,17 +2,6 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../includes/helpers.php';
-require_once __DIR__ . '/../config/db.php';
-require_once __DIR__ . '/../models/User.php';
-require_once __DIR__ . '/../models/PurchaseOrder.php';
-require_once __DIR__ . '/../controllers/authController.php';
-require_once __DIR__ . '/../controllers/purchaseOrderController.php';
-
-$pdo = getDatabaseConnection();
-$authController = new AuthController(new User($pdo));
-$poModel = new PurchaseOrder($pdo);
-$poController = new PurchaseOrderController($poModel);
 require_once __DIR__ . '/../core/dependencies.php';
 
 extract(buildAppDependencies(), EXTR_SKIP);
@@ -30,7 +19,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         }
         jsonResponse(['purchase_order' => $po]);
     }
-    jsonResponse(['purchase_orders' => $poModel->getAll(trim($_GET['status'] ?? '') ?: null)]);
+    
+    $pagination = parsePagination($_GET);
+    $search = trim($_GET['search'] ?? '');
+    $status = trim($_GET['status'] ?? '') ?: null;
+    $poData = $poModel->getAll($pagination['page'], $pagination['limit'], $search, $status);
+    jsonResponse(['purchase_orders' => $poData]);
 }
 
 if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
@@ -54,6 +48,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if ($action === 'tracking') {
         $authController->authorize('po.tracking');
+        $po = $poModel->findById($id);
+        if (!$po) {
+            jsonResponse(['error' => 'Purchase order not found.', 'code' => 'PO_NOT_FOUND'], 404);
+        }
         $validated = $poController->validateTracking($_POST);
         if ($validated['errors']) {
             jsonResponse(['error' => implode(' ', $validated['errors']), 'code' => 'VALIDATION_ERROR'], 422);
@@ -63,6 +61,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if ($action === 'receive') {
         $authController->authorize('po.receive');
+        $po = $poModel->findById($id);
+        if (!$po) {
+            jsonResponse(['error' => 'Purchase order not found.', 'code' => 'PO_NOT_FOUND'], 404);
+        }
         $lineIds = $_POST['line_id'] ?? [];
         $lineReceived = $_POST['line_received'] ?? [];
         $receivedMap = [];

@@ -35,6 +35,14 @@ class ReportController
         }
         if ($saleDate === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $saleDate)) {
             $errors[] = 'Sale date must be YYYY-MM-DD.';
+        } else {
+            $d = DateTime::createFromFormat('Y-m-d', $saleDate);
+            if (!$d || $d->format('Y-m-d') !== $saleDate) {
+                $errors[] = 'Invalid calendar date.';
+            }
+        }
+        if (mb_strlen($region) > 120) {
+            $errors[] = 'Region cannot exceed 120 characters.';
         }
 
         return [
@@ -60,13 +68,17 @@ class ReportController
             return ['success' => false, 'errors' => ['Only CSV and XLSX files are supported.']];
         }
 
+        if (($file['size'] ?? 0) > 5 * 1024 * 1024) {
+            return ['success' => false, 'errors' => ['File size exceeds the 5MB limit.']];
+        }
+
         $tmpPath = (string) $file['tmp_name'];
         $batchId = $this->reportModel->createImportBatch((string) $file['name'], $extension, 'completed', $userId);
 
         $imported = 0;
         $skipped = 0;
         try {
-            $rows = $this->importParser->parse($tmpPath);
+            $rows = $this->importParser->parse($tmpPath, (string) $file['name']);
             foreach ($rows as $index => $row) {
                 $validated = $this->validateSale([
                     'product_id' => $row['product_id'] ?? null,

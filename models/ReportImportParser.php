@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 class ReportImportParser
 {
-    public function parse(string $filePath): array
+    public function parse(string $filePath, string $originalFileName = ''): array
     {
-        $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+        $nameToParse = $originalFileName !== '' ? $originalFileName : $filePath;
+        $extension = strtolower(pathinfo($nameToParse, PATHINFO_EXTENSION));
         if ($extension === 'csv') {
             return $this->parseCsv($filePath);
         }
@@ -15,6 +16,17 @@ class ReportImportParser
         }
 
         throw new RuntimeException('Unsupported file format. Only CSV and XLSX are allowed.');
+    }
+
+    private function loadXml(string $xmlString): \SimpleXMLElement|false
+    {
+        $prev = libxml_use_internal_errors(true);
+        if (\PHP_VERSION_ID < 80000) {
+            libxml_disable_entity_loader(true);
+        }
+        $xml = simplexml_load_string($xmlString, 'SimpleXMLElement', LIBXML_NONET | LIBXML_NOENT);
+        libxml_use_internal_errors($prev);
+        return $xml;
     }
 
     private function parseCsv(string $filePath): array
@@ -53,7 +65,7 @@ class ReportImportParser
         $sharedStrings = [];
         $sharedXml = $zip->getFromName('xl/sharedStrings.xml');
         if ($sharedXml !== false) {
-            $xml = simplexml_load_string($sharedXml);
+            $xml = $this->loadXml($sharedXml);
             if ($xml) {
                 foreach ($xml->si as $item) {
                     $sharedStrings[] = (string) ($item->t ?? '');
@@ -67,7 +79,7 @@ class ReportImportParser
             throw new RuntimeException('XLSX sheet1 not found.');
         }
 
-        $sheet = simplexml_load_string($sheetXml);
+        $sheet = $this->loadXml($sheetXml);
         if (!$sheet) {
             throw new RuntimeException('Invalid XLSX content.');
         }
