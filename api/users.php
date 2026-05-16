@@ -83,8 +83,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
     jsonResponse(['user' => $userModel->findById($id)]);
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'PATCH' && ($_GET['action'] ?? '') === 'activate') {
+    $authController->authorize('users.activate');
+    $userModel->activate($id);
+    jsonResponse(['message' => 'User reactivated.']);
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'PATCH' && ($_GET['action'] ?? '') === 'deactivate') {
     $authController->authorize('users.deactivate');
+    if ($id === (int) currentUser()['id']) {
+        jsonResponse(['error' => 'You cannot deactivate your own account.', 'code' => 'SELF_DEACTIVATION'], 422);
+    }
     $userModel->deactivate($id);
     jsonResponse(['message' => 'User deactivated.']);
 }

@@ -12,6 +12,7 @@ class AuthController
             'users.view',
             'users.create',
             'users.edit',
+            'users.activate',
             'users.deactivate',
             'products.view',
             'products.create',
@@ -118,9 +119,13 @@ class AuthController
 
         $user = $this->userModel->findByIdentifier($identifier);
 
-        if (!$user || !$user['is_active'] || !password_verify($password, $user['password_hash'])) {
+        if (!$user || !password_verify($password, $user['password_hash'])) {
             $this->recordAttempt($ip);
             return ['success' => false, 'errors' => ['Invalid email or password.']];
+        }
+
+        if (!(int) ($user['is_active'] ?? 0)) {
+            return ['success' => false, 'errors' => ['Account deactivated.']];
         }
 
         if ((int) ($user['must_change_password'] ?? 0) === 1) {
@@ -209,8 +214,8 @@ class AuthController
         }
 
         $errors = [];
-        if (strlen($password) < 8) {
-            $errors[] = 'Password must be at least 8 characters.';
+        if (!preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/', $password)) {
+            $errors[] = 'Password must be at least 8 characters and include uppercase, lowercase, a number, and a special character.';
         }
         if ($password !== $confirmPassword) {
             $errors[] = 'Password confirmation does not match.';
@@ -246,8 +251,8 @@ class AuthController
             return ['success' => false, 'errors' => ['Password setup session expired. Please sign in again.']];
         }
 
-        if (strlen($password) < 8) {
-            $errors[] = 'Password must be at least 8 characters.';
+        if (!preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/', $password)) {
+            $errors[] = 'Password must be at least 8 characters and include uppercase, lowercase, a number, and a special character.';
         }
         if ($password !== $confirmPassword) {
             $errors[] = 'Password confirmation does not match.';
