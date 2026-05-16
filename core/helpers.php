@@ -133,7 +133,7 @@ function basePath(string $path = ''): string
 
 function appRootPath(string $path = ''): string
 {
-    $root = (string) preg_replace('#/public$#', '', basePath());
+    $root = (string) preg_replace('#/public/?$#i', '', basePath());
     $root = $root === '' ? '/' : $root;
     return $path === '' ? $root : rtrim($root, '/') . '/' . ltrim($path, '/');
 }
