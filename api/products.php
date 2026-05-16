@@ -23,16 +23,20 @@ $filters = [
 ];
 $pagination = parsePagination($_GET);
 
-$productsData = $productModel->getAll($pagination['page'], $pagination['limit'], '', $filters);
-$products = $productsData['data'];
+$productsResult = $productModel->getAll($pagination['page'], $pagination['limit'], '', $filters);
+$products = $productsResult['data'];
 $data = array_map(
     static function (array $product) use ($authController): array {
+<<<<<<< HEAD
         $qty = (int) $product['stock_quantity'];
         $threshold = (int) $product['min_threshold'];
         $isOut = $qty === 0;
         $isLow = !$isOut && $qty <= $threshold;
         $imageName = !empty($product['image_name']) ? basename((string) $product['image_name']) : null;
         $imagePath = $imageName ? dirname(__DIR__) . '/public/uploads/products/' . $imageName : null;
+=======
+        $low = (int) $product['stock_quantity'] <= (int) $product['min_threshold'];
+>>>>>>> 51334e0fd1318d84db20c218ddca5f579f213080
 
         if ($isOut) {
             $statusClass = 'out';
@@ -49,7 +53,12 @@ $data = array_map(
             'id' => (int) $product['id'],
             'name' => $product['name'],
             'sku' => $product['sku'],
-            'image_name' => $imagePath && is_file($imagePath) ? $imageName : null,
+            'image_name' => $product['image_name'] ?? null,
+            'image_url' => mediaUrl(
+                !empty($product['image_name']) ? 'products/' . $product['image_name'] : null,
+                (string) $product['name'],
+                'product'
+            ),
             'category' => $product['category_name'] ?? 'Unassigned',
             'supplier' => $product['supplier_name'] ?? 'Unassigned',
             'unit_price' => (float) ($product['unit_price'] ?? 0),
@@ -59,7 +68,7 @@ $data = array_map(
             'status_class' => $statusClass,
             'edit_url' => basePath('index.php?page=new-entry&id=' . $product['id']),
             'can_edit' => $authController->can('products.edit'),
-            'can_archive' => $authController->can('products.archive') && (int) $product['is_archived'] === 0,
+            'can_archive' => $authController->can('products.archive'),
             'can_delete' => $authController->can('products.delete'),
         ];
     },
@@ -70,5 +79,5 @@ echo json_encode([
     'products' => $data,
     'page' => $pagination['page'],
     'limit' => $pagination['limit'],
-    'total' => $productsData['total'],
+    'total' => $productsResult['total'],
 ]);

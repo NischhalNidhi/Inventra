@@ -6,6 +6,12 @@
         <h1>Staff Accounts</h1>
         <p class="lead">Create staff accounts and send secure welcome setup links to new team members.</p>
     </div>
+    <div class="topbar-actions">
+        <form class="global-search" action="<?= e(basePath('index.php')); ?>" method="get">
+            <input type="hidden" name="page" value="users">
+            <input type="text" name="search" placeholder="Search staff accounts..." value="<?= e($_GET['search'] ?? ''); ?>">
+        </form>
+    </div>
 </header>
 
 <section class="panel">
@@ -49,29 +55,26 @@
                     <td><?= e($staff['username']); ?></td>
                     <td><?= e($staff['role']); ?></td>
                     <td><?= (int) $staff['is_active'] ? 'Active' : 'Inactive'; ?></td>
-                    <td class="td-actions">
-                        <div class="action-group">
+                    <td><div class="action-group">
                         <form method="post" action="<?= e(basePath('index.php?page=users')); ?>">
                             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()); ?>">
                             <input type="hidden" name="action" value="deactivate_user">
                             <input type="hidden" name="user_id" value="<?= e((string) $staff['id']); ?>">
-                            <button class="btn-action btn-delete" type="submit" title="Deactivate user">
-                                <span class="material-symbols-outlined">person_off</span>
-                                <span class="btn-label">Deactivate</span>
-                            </button>
+                            <button class="button small danger-outline" type="submit">Deactivate</button>
                         </form>
-                        </div>
-                    </td>
+                    </div></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>
         </table>
+        <?php require __DIR__ . '/../partials/pagination.php'; ?>
     </div>
 </section>
 
  </div>
 </main>
 </div>
-<script src="<?= e(assetPath('js/app.js')); ?>"></script>
+<script src="<?= e(basePath('js/app.js')); ?>"></script>
 </body>
 </html>
+

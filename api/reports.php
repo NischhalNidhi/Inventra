@@ -18,11 +18,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         }
 
         try {
-            $salesData = $reportModel->getCurrentMonthSalesInsightData();
-            $summary = $aiSalesInsightService->generateMonthlySalesInsight($salesData);
+            $salesData = $reportModel->getAdvancedSalesInsightData();
+            $analysis = $aiSalesInsightService->generateSalesAnalysis($salesData);
             jsonResponse([
-                'summary' => $summary,
-                'period' => $salesData['period'],
+                'summary' => $analysis['summary'],
+                'analysis' => $analysis,
+                'period' => $salesData['period'] ?? null,
             ]);
         } catch (Throwable $exception) {
             jsonResponse(['error' => 'Insight unavailable', 'code' => 'INSIGHT_UNAVAILABLE'], 502);
@@ -35,10 +36,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
     if ($type === 'sales-monthly') {
         $authController->authorize('reports.sales.monthly');
+        if ($fromDate && $toDate && strtotime($fromDate) > strtotime($toDate)) {
+            jsonResponse(['error' => 'End date must be after start date.', 'code' => 'INVALID_DATE_RANGE'], 400);
+        }
         jsonResponse(['rows' => $reportModel->getMonthlySales($fromDate, $toDate)]);
     }
     if ($type === 'sales-daily') {
         $authController->authorize('reports.sales.daily');
+        if ($fromDate && $toDate && strtotime($fromDate) > strtotime($toDate)) {
+            jsonResponse(['error' => 'End date must be after start date.', 'code' => 'INVALID_DATE_RANGE'], 400);
+        }
         jsonResponse(['rows' => $reportModel->getDailySales($fromDate, $toDate)]);
     }
     if ($type === 'low-stock') {
@@ -48,6 +55,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if ($type === 'stock-movement') {
         $authController->authorize('reports.stock_movement');
         jsonResponse(['rows' => $reportModel->getStockMovementSummary($fromDate, $toDate)]);
+    }
+
+    // CSV export endpoints for sales reports.
+    if ($type === 'export-daily-csv') {
+        $authController->authorize('reports.export');
+        $transactions = $reportModel->getSalesTransactionsForExport($fromDate, $toDate);
+        downloadCsv('daily-sales-report', ['Date', 'Product', 'Quantity', 'Unit Price', 'Total'], $transactions);
+        return;
+    }
+    if ($type === 'export-monthly-csv') {
+        $authController->authorize('reports.export');
+        $monthlySales = $reportModel->getMonthlySales($fromDate, $toDate);
+        // Format monthly data for CSV download.
+        $csvRows = array_map(function ($row) {
+            return [
+                $row['month'],
+                '',
+                '',
+                '',
+                $row['total'],
+            ];
+        }, $monthlySales);
+        downloadCsv('monthly-sales-report', ['Month', 'Product', 'Quantity', 'Unit Price', 'Total'], $csvRows);
+        return;
     }
 }
 

@@ -1,11 +1,34 @@
 document.addEventListener('DOMContentLoaded', () => {
     const body = document.body;
     const basePath = body.dataset.basePath || '';
-    const appRoot = basePath.endsWith('/public') ? basePath.slice(0, -7) : '';
+    const appRoot = body.dataset.appRootPath || (basePath.endsWith('/public') ? basePath.slice(0, -7) : '');
     const apiBase = `${appRoot}/api`;
     const csrfToken = body.dataset.csrfToken || '';
     const storedTheme = window.localStorage.getItem('inventra_theme') || 'light';
     body.classList.toggle('theme-dark', storedTheme === 'dark');
+
+    // ---------------------------------------------------------------
+    // UTILITIES
+    // ---------------------------------------------------------------
+    
+    function debounce(callback, wait) {
+        let timeoutId;
+        return (...args) => {
+            window.clearTimeout(timeoutId);
+            timeoutId = window.setTimeout(() => callback(...args), wait);
+        };
+    }
+    
+    function escapeHtml(value) {
+        const div = document.createElement('div');
+        div.textContent = value ?? '';
+        return div.innerHTML;
+    }
+    
+    function formatCurrency(value) {
+        const amount = Number.parseFloat(value ?? '0');
+        return `NPR ${Number.isFinite(amount) ? amount.toFixed(2) : '0.00'}`;
+    }
 
     // ---------------------------------------------------------------
     // LOGIN FORM — §5 client-side validation + loading spinner + AJAX
@@ -157,12 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const actions = [];
 
         if (product.can_edit) {
-            actions.push(`
-                <a class="btn-action btn-edit" href="${product.edit_url}" title="Edit product">
-                    <span class="material-symbols-outlined">edit</span>
-                    <span class="btn-label">Edit</span>
-                </a>
-            `);
+            actions.push(`<a class="button small ghost" href="${product.edit_url}">Edit</a>`);
         }
 
         if (product.can_archive) {
@@ -171,24 +189,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     <input type="hidden" name="csrf_token" value="${csrfToken}">
                     <input type="hidden" name="action" value="archive_product">
                     <input type="hidden" name="product_id" value="${product.id}">
-                    <button class="btn-action btn-archive" type="submit" title="Archive product">
-                        <span class="material-symbols-outlined">archive</span>
-                        <span class="btn-label">Archive</span>
-                    </button>
+                    <button class="button small ghost" type="submit">Archive</button>
                 </form>
             `);
         }
 
         if (product.can_delete) {
             actions.push(`
-                <form method="post" action="${basePath}/index.php?page=products" onsubmit="return confirm('Permanently delete this product?');">
+                <form method="post" action="${basePath}/index.php?page=products" onsubmit="return confirm('Delete this product?');">
                     <input type="hidden" name="csrf_token" value="${csrfToken}">
                     <input type="hidden" name="action" value="delete_product">
                     <input type="hidden" name="product_id" value="${product.id}">
-                    <button class="btn-action btn-delete" type="submit" title="Delete product">
-                        <span class="material-symbols-outlined">delete</span>
-                        <span class="btn-label">Delete</span>
-                    </button>
+                    <button class="button small danger-outline" type="submit">Delete</button>
                 </form>
             `);
         }
@@ -204,6 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+<<<<<<< HEAD
         const getStockIcon = (cls) => {
             if (cls === 'out') return 'error';
             if (cls === 'low') return 'warning';
@@ -223,22 +236,24 @@ document.addEventListener('DOMContentLoaded', () => {
             const pct = getStockPct(product.quantity, product.min_stock);
             return `
             <tr class="product-row" data-product-id="${product.id}">
+=======
+        tableBody.innerHTML = products.map((product) => `
+            <tr data-product-id="${product.id}">
+>>>>>>> 51334e0fd1318d84db20c218ddca5f579f213080
                 <td>
-                    <div class="product-cell-main">
-                        <div class="product-cell-image">
-                            ${product.image_name
-                                ? `<img src="${basePath}/uploads/products/${escapeHtml(product.image_name)}" alt="${escapeHtml(product.name)}" width="48" height="48">`
-                                : '<span class="material-symbols-outlined product-placeholder-icon icon-muted">inventory_2</span>'
-                            }
-                        </div>
-                        <div class="product-cell-info">
-                            <div class="product-cell-name">${escapeHtml(product.name)}</div>
-                            <div class="product-cell-meta">
+                    <div style="display:flex;align-items:center;gap:14px;">
+                        <button type="button" class="media-thumb-button" data-image-trigger data-image-src="${escapeHtml(product.image_url)}" data-image-title="${escapeHtml(product.name)}">
+                            <img src="${escapeHtml(product.image_url)}" alt="${escapeHtml(product.name)}" class="media-thumb media-thumb-product">
+                        </button>
+                        <div>
+                            <div style="font-weight:700;">${escapeHtml(product.name)}</div>
+                            <div style="font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;">
                                 ${escapeHtml(product.category)} / ${escapeHtml(product.supplier)}
                             </div>
                         </div>
                     </div>
                 </td>
+<<<<<<< HEAD
                 <td class="td-sku">${escapeHtml(product.sku)}</td>
                 <td class="td-qty">
                     <div class="stock-qty-cell ${product.status_class}">
@@ -256,6 +271,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     </span>
                 </td>
                 <td class="td-actions"><div class="action-group">${buildActionButtons(product)}</div></td>
+=======
+                <td style="font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;font-size:0.8rem;">${escapeHtml(product.sku)}</td>
+                <td style="font-weight:800;">${product.quantity}</td>
+                <td style="font-weight:700;">${formatCurrency(product.unit_price)}</td>
+                <td><span class="badge ${product.status_class}">${product.status_class === 'low' ? 'Low Stock' : 'In Stock'}</span></td>
+                <td class="action-group">${buildActionButtons(product)}</td>
+>>>>>>> 51334e0fd1318d84db20c218ddca5f579f213080
             </tr>
         `}).join('');
     };
@@ -326,11 +348,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // ---------------------------------------------------------------
     // AI SALES INSIGHT CARD
     // ---------------------------------------------------------------
-    const salesInsightCard = document.querySelector('[data-sales-insight-card]');
-    const salesInsightStatus = document.querySelector('[data-sales-insight-status]');
-    const salesInsightCopy = document.querySelector('[data-sales-insight-copy]');
+    document.querySelectorAll('[data-sales-insight-card]').forEach((salesInsightCard) => {
+        const salesInsightStatus = salesInsightCard.querySelector('[data-sales-insight-status]');
+        const salesInsightCopy = salesInsightCard.querySelector('[data-sales-insight-copy]');
 
-    if (salesInsightCard && salesInsightStatus && salesInsightCopy) {
+        if (!salesInsightStatus || !salesInsightCopy) { return; }
+
         const setSalesInsightState = (message, isLoading = false, isSummary = false) => {
             salesInsightStatus.textContent = message;
             salesInsightStatus.classList.toggle('is-loading', isLoading);
@@ -357,7 +380,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .catch(() => {
                 setSalesInsightState('Insight unavailable', false, false);
             });
-    }
+    });
 
     // ---------------------------------------------------------------
     // STEPPER BUTTONS
@@ -376,6 +399,54 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ---------------------------------------------------------------
+    // IMAGE LIGHTBOX
+    // ---------------------------------------------------------------
+    const lightbox = document.querySelector('[data-image-lightbox]');
+    const lightboxImage = document.querySelector('[data-lightbox-image]');
+    const lightboxCaption = document.querySelector('[data-lightbox-caption]');
+    const lightboxCloseTargets = document.querySelectorAll('[data-lightbox-close]');
+
+    const closeLightbox = () => {
+        if (!lightbox || !lightboxImage) { return; }
+        lightbox.hidden = true;
+        lightboxImage.setAttribute('src', '');
+        lightboxImage.setAttribute('alt', '');
+        if (lightboxCaption) {
+            lightboxCaption.textContent = '';
+        }
+        body.classList.remove('lightbox-open');
+    };
+
+    const openLightbox = (src, title) => {
+        if (!lightbox || !lightboxImage) { return; }
+        lightbox.hidden = false;
+        lightboxImage.setAttribute('src', src);
+        lightboxImage.setAttribute('alt', title || 'Preview image');
+        if (lightboxCaption) {
+            lightboxCaption.textContent = title || '';
+        }
+        body.classList.add('lightbox-open');
+    };
+
+    document.addEventListener('click', (event) => {
+        const trigger = event.target.closest('[data-image-trigger]');
+        if (!trigger) { return; }
+
+        event.preventDefault();
+        openLightbox(trigger.dataset.imageSrc || '', trigger.dataset.imageTitle || '');
+    });
+
+    lightboxCloseTargets.forEach((target) => {
+        target.addEventListener('click', closeLightbox);
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && lightbox && !lightbox.hidden) {
+            closeLightbox();
+        }
+    });
+
+    // ---------------------------------------------------------------
     // PROFILE / NOTIFICATIONS / SETTINGS MENUS + THEME TOGGLE
     // ---------------------------------------------------------------
     const profileMenu          = document.querySelector('[data-profile-menu]');
@@ -388,16 +459,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const clearNotificationsButton = document.querySelector('[data-clear-notifications]');
     const notifList            = document.querySelector('[data-notif-list]');
 
-    if (profileMenu && profileTrigger) {
-        const closeAllMenus = () => {
-            profileMenu.classList.remove('open');
-            notificationsMenu?.classList.remove('open');
-            settingsMenu?.classList.remove('open');
-            profileTrigger.setAttribute('aria-expanded', 'false');
-            notificationsTrigger?.setAttribute('aria-expanded', 'false');
-            settingsTrigger?.setAttribute('aria-expanded', 'false');
-        };
+    // Close all menus - this is now called independently
+    const closeAllMenus = () => {
+        profileMenu?.classList.remove('open');
+        notificationsMenu?.classList.remove('open');
+        settingsMenu?.classList.remove('open');
+        profileTrigger?.setAttribute('aria-expanded', 'false');
+        notificationsTrigger?.setAttribute('aria-expanded', 'false');
+        settingsTrigger?.setAttribute('aria-expanded', 'false');
+    };
 
+    // Profile menu
+    if (profileMenu && profileTrigger) {
         const closeProfileMenu = () => {
             profileMenu.classList.remove('open');
             profileTrigger.setAttribute('aria-expanded', 'false');
@@ -414,7 +487,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 closeProfileMenu();
             }
         });
+    }
 
+<<<<<<< HEAD
         if (notificationsMenu && notificationsTrigger) {
             notificationsTrigger.addEventListener('click', (event) => {
                 event.stopPropagation();
@@ -470,13 +545,65 @@ document.addEventListener('DOMContentLoaded', () => {
                 !settingsMenu?.contains(event.target)
             ) {
                 closeAllMenus();
+=======
+    // Notifications menu - INDEPENDENT of profile menu
+    if (notificationsMenu && notificationsTrigger) {
+        notificationsTrigger.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const nextOpen = !notificationsMenu.classList.contains('open');
+            closeAllMenus();
+            if (nextOpen) {
+                notificationsMenu.classList.add('open');
+                notificationsTrigger.setAttribute('aria-expanded', 'true');
+>>>>>>> 51334e0fd1318d84db20c218ddca5f579f213080
             }
         });
+    }
 
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') { closeAllMenus(); }
+    // Settings menu - INDEPENDENT of profile menu
+    if (settingsMenu && settingsTrigger) {
+        settingsTrigger.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const nextOpen = !settingsMenu.classList.contains('open');
+            closeAllMenus();
+            if (nextOpen) {
+                settingsMenu.classList.add('open');
+                settingsTrigger.setAttribute('aria-expanded', 'true');
+            }
         });
     }
+
+    // Theme toggle - INDEPENDENT of any menu
+    if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+            const nextTheme = body.classList.contains('theme-dark') ? 'light' : 'dark';
+            body.classList.toggle('theme-dark', nextTheme === 'dark');
+            window.localStorage.setItem('inventra_theme', nextTheme);
+        });
+    }
+
+    // Clear notifications button - INDEPENDENT
+    if (clearNotificationsButton && notifList) {
+        clearNotificationsButton.addEventListener('click', () => {
+            notifList.innerHTML = '<li><span class="material-symbols-outlined">notifications_off</span><div><strong>No new notifications</strong><small>All notifications have been cleared.</small></div></li>';
+        });
+    }
+
+    // Close menus when clicking outside - apply to all menus
+    document.addEventListener('click', (event) => {
+        if (
+            !profileMenu?.contains(event.target) &&
+            !notificationsMenu?.contains(event.target) &&
+            !settingsMenu?.contains(event.target)
+        ) {
+            closeAllMenus();
+        }
+    });
+
+    // Close menus on Escape key
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') { closeAllMenus(); }
+    });
 
     // ---------------------------------------------------------------
     // LOW STOCK ALERT GRAPH — Canvas bar chart
@@ -758,6 +885,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ---------------------------------------------------------------
+<<<<<<< HEAD
     // DASHBOARD AUTO-REFRESH — Poll every 2 seconds
     // ---------------------------------------------------------------
     const dashboardStats   = document.getElementById('dashboard-stats');
@@ -845,6 +973,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // --- Update low stock watchlist ---
                 if (alertsBody && data.alerts) {
                     const activeAlerts = data.alerts.filter(a => parseInt(a.stock_quantity) > 0);
+                    activeAlerts.sort((a, b) => parseInt(a.stock_quantity) - parseInt(b.stock_quantity));
                     if (activeAlerts.length === 0) {
                         alertsBody.innerHTML = '<tr><td colspan="4">No low-stock items right now.</td></tr>';
                     } else {
@@ -885,27 +1014,167 @@ document.addEventListener('DOMContentLoaded', () => {
         // Poll every 2 seconds
         setInterval(refreshDashboard, 2000);
     }
+=======
+    // AI PRODUCT DISTRIBUTION HEAT MAP
+    // ---------------------------------------------------------------
+    const heatmap = document.querySelector('[data-product-distribution-heatmap]');
+    if (heatmap) {
+        const grid = heatmap.querySelector('[data-heatmap-grid]');
+        const emptyState = heatmap.querySelector('[data-heatmap-empty]');
+        let rows = [];
+
+        try {
+            rows = JSON.parse(heatmap.dataset.heatmapRows || '[]');
+        } catch (_error) {
+            rows = [];
+        }
+
+        const categories = [...new Set(rows.map((row) => row.category_name || 'Unassigned'))];
+        const statuses = [
+            { key: 'healthy', label: 'Healthy' },
+            { key: 'low', label: 'Low Stock' },
+            { key: 'out', label: 'Out Of Stock' },
+        ];
+
+        const getStatusKey = (row) => {
+            const quantity = Number.parseInt(row.stock_quantity || '0', 10);
+            const threshold = Number.parseInt(row.min_threshold || '0', 10);
+            if (quantity <= 0) { return 'out'; }
+            if (quantity <= threshold) { return 'low'; }
+            return 'healthy';
+        };
+
+        if (!rows.length || !grid) {
+            if (emptyState) {
+                emptyState.hidden = false;
+            }
+        } else {
+            if (emptyState) {
+                emptyState.hidden = true;
+            }
+
+            const matrix = {};
+            let maxCount = 0;
+
+            categories.forEach((category) => {
+                matrix[category] = {};
+                statuses.forEach((status) => {
+                    matrix[category][status.key] = {
+                        count: 0,
+                        units: 0,
+                        value: 0,
+                    };
+                });
+            });
+
+            rows.forEach((row) => {
+                const category = row.category_name || 'Unassigned';
+                const statusKey = getStatusKey(row);
+                const quantity = Number.parseInt(row.stock_quantity || '0', 10);
+                const price = Number.parseFloat(row.unit_price || '0');
+                const cell = matrix[category][statusKey];
+                cell.count += 1;
+                cell.units += quantity;
+                cell.value += quantity * price;
+                maxCount = Math.max(maxCount, cell.count);
+            });
+
+            const cells = [];
+            cells.push('<div class="heatmap-corner">Category / Status</div>');
+            // statuses.forEach((status) => {
+            //     cells.push(`<div class="heatmap-header">${escapeHtml(status.label)}</div>`);
+            // });
+
+            categories.forEach((category) => {
+                // cells.push(`<div class="heatmap-row-label">${escapeHtml(category)}</div>`);
+                cells.push('<div class="heatmap-row-label">' + escapeHtml(category) + '</div>');
+                statuses.forEach((status) => {
+                    const cell = matrix[category][status.key];
+                    const intensity = maxCount > 0 ? (cell.count / maxCount) : 0;
+                    const alpha = 0.12 + (intensity * 0.78);
+                    const colorMap = {
+                        healthy: 'rgba(46, 138, 98, ' + alpha + ')',
+                        low: 'rgba(203, 77, 93, ' + alpha + ')',
+                        out: 'rgba(122, 127, 143, ' + alpha + ')',
+                    };
+                    // const title = `${category} | ${status.label}\nProducts: ${cell.count}\nUnits: ${cell.units}\nInventory value: NPR ${cell.value.toFixed(2)}`;
+                    const title = category + ' | ' + status.label + '\nProducts: ' + cell.count + '\nUnits: ' + cell.units + '\nInventory value: NPR ' + cell.value.toFixed(2);
+                    // cells.push(`
+                    //     <button type="button" class="heatmap-cell" title="${escapeHtml(title)}" style="background:${colorMap[status.key]}">
+                    //         <strong>${cell.count}</strong>
+                    //         <small>${cell.units} units</small>
+                    //     </button>
+                    // `);
+                });
+            });
+
+            grid.innerHTML = cells.join('');
+            // grid.style.gridTemplateColumns = `minmax(180px, 1.3fr) repeat(${statuses.length}, minmax(120px, 1fr))`;
+        }
+    }
+    // ---------------------------------------------------------------
+    // SALES REPORT FILTERS
+    // ---------------------------------------------------------------
+    document.querySelectorAll('.sales-filter-form').forEach((form) => {
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const type = form.dataset.salesFilter; // 'monthly' or 'daily'
+            const fromDateInput = form.querySelector('input[name="from_date"]');
+            const toDateInput = form.querySelector('input[name="to_date"]');
+            const fromDate = fromDateInput ? fromDateInput.value : '';
+            const toDate = toDateInput ? toDateInput.value : '';
+
+            if (fromDate && toDate && new Date(fromDate) > new Date(toDate)) {
+                alert('End date must be after start date.');
+                return;
+            }
+
+            const table = document.querySelector(`[data-sales-table="${type}"]`);
+            if (!table) {
+                return;
+            }
+
+            const tbody = table.querySelector('tbody');
+            tbody.innerHTML = '<tr><td colspan="2">Loading...</td></tr>';
+
+            try {
+                const params = new URLSearchParams();
+                params.append('type', `sales-${type}`);
+                if (fromDate) params.append('from_date', fromDate);
+                if (toDate) params.append('to_date', toDate);
+
+                const response = await fetch(`${apiBase}/reports.php?${params.toString()}`);
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || 'Failed to load sales data.');
+                }
+
+                const data = await response.json();
+                if (data.rows && data.rows.length > 0) {
+                    tbody.innerHTML = data.rows.map((row) => {
+                        if (type === 'monthly') {
+                            return `<tr><td>${escapeHtml(row.month)}</td><td>${formatCurrency(row.total)}</td></tr>`;
+                        }
+                        return `<tr><td>${escapeHtml(row.sale_date)}</td><td>${formatCurrency(row.total)}</td></tr>`;
+                    }).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="2">No data found for the selected date range.</td></tr>';
+                }
+
+                const exportButton = document.querySelector(`a[href*="export-${type}-csv"]`);
+                if (exportButton) {
+                    const exportParams = new URLSearchParams();
+                    exportParams.append('type', `export-${type}-csv`);
+                    if (fromDate) exportParams.append('from_date', fromDate);
+                    if (toDate) exportParams.append('to_date', toDate);
+                    exportButton.href = `${appRoot}/api/reports.php?${exportParams.toString()}`;
+                }
+            } catch (error) {
+                tbody.innerHTML = '<tr><td colspan="2">Error loading data. Please try again.</td></tr>';
+                console.error('Sales filter error:', error);
+            }
+        });
+    });
+>>>>>>> 51334e0fd1318d84db20c218ddca5f579f213080
 });
-
-// ---------------------------------------------------------------
-// UTILITIES
-// ---------------------------------------------------------------
-
-function debounce(callback, wait) {
-    let timeoutId;
-    return (...args) => {
-        window.clearTimeout(timeoutId);
-        timeoutId = window.setTimeout(() => callback(...args), wait);
-    };
-}
-
-function escapeHtml(value) {
-    const div = document.createElement('div');
-    div.textContent = value ?? '';
-    return div.innerHTML;
-}
-
-function formatCurrency(value) {
-    const amount = Number.parseFloat(value ?? '0');
-    return `NPR ${Number.isFinite(amount) ? amount.toFixed(2) : '0.00'}`;
-}

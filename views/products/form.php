@@ -88,10 +88,16 @@
                 <?php endif; ?>
             </div>
         </label>
-        <label>
+        <div class="media-preview-card">
             <span>Current Image</span>
-            <input type="text" value="<?= e((string) ($editingProduct['image_name'] ?? 'No file uploaded')); ?>" readonly>
-        </label>
+            <button type="button"
+                    class="media-thumb-button media-thumb-button-large"
+                    data-image-trigger
+                    data-image-src="<?= e(mediaUrl(!empty($editingProduct['image_name']) ? 'products/' . $editingProduct['image_name'] : null, (string) ($editingProduct['name'] ?? 'Product'), 'product')); ?>"
+                    data-image-title="<?= e((string) ($editingProduct['name'] ?? 'Product image')); ?>">
+                <img src="<?= e(mediaUrl(!empty($editingProduct['image_name']) ? 'products/' . $editingProduct['image_name'] : null, (string) ($editingProduct['name'] ?? 'Product'), 'product')); ?>" alt="<?= e((string) ($editingProduct['name'] ?? 'Product')); ?>" class="media-thumb media-thumb-large">
+            </button>
+        </div>
     </section>
 
     <?php if ($editingProduct): ?>
@@ -166,6 +172,6 @@
  </div>
 </main>
 </div>
-<script src="<?= e(assetPath('js/app.js')); ?>"></script>
+<script src="<?= e(basePath('js/app.js')); ?>"></script>
 </body>
 </html>

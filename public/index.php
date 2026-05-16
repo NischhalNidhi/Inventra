@@ -4,6 +4,25 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../core/dependencies.php';
 
+// ── Auto database initialization ─────────────────────────────────────────────
+// On a fresh clone, the database and tables won't exist yet.
+// This runs the schema automatically on first visit — no CLI commands needed.
+require_once __DIR__ . '/../database/bootstrap.php';
+try {
+    initializeConfiguredDatabase();
+} catch (Throwable $e) {
+    // If DB is already set up and tables exist, this is a no-op.
+    // Only fail loudly if the connection itself is broken.
+    if (str_contains($e->getMessage(), 'Access denied') || str_contains($e->getMessage(), 'Connection refused') || str_contains($e->getMessage(), '2002')) {
+        http_response_code(503);
+        echo '<h2 style="font-family:sans-serif;color:#c00">Database connection failed</h2>';
+        echo '<p style="font-family:sans-serif">Could not connect to MySQL. Please check your <code>.env</code> file (DB_HOST, DB_USER, DB_PASS, DB_NAME) and make sure MySQL is running.</p>';
+        echo '<pre style="font-family:monospace;background:#f5f5f5;padding:12px">' . htmlspecialchars($e->getMessage()) . '</pre>';
+        exit;
+    }
+}
+
+
 $cspHeader = ($_ENV['APP_ENV'] ?? '') === 'production' 
     ? 'Content-Security-Policy' 
     : 'Content-Security-Policy-Report-Only';
@@ -231,7 +250,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             case 'create_supplier':
                 $authController->authorize('suppliers.manage');
-                $validated = $supplierController->validate($_POST);
+                $validated = $supplierController->validate($_POST, $_FILES);
                 if ($validated['errors']) {
                     setFlash('error', implode(' ', $validated['errors']));
                 } else {
@@ -380,11 +399,19 @@ $authController->requireAuthentication();
 $pagination = parsePagination($_GET);
 $fromDate = trim($_GET['from_date'] ?? '');
 $toDate = trim($_GET['to_date'] ?? '');
+// Preserve separate date/category filters for the low stock alert report page.
+$lowFromDate = trim($_GET['low_from_date'] ?? '');
+$lowToDate = trim($_GET['low_to_date'] ?? '');
+$lowCategoryId = trim($_GET['category_id'] ?? '');
 
 switch ($page) {
     case 'users':
         $authController->authorize('users.view');
-        $users = $userModel->getAll($pagination['limit'], $pagination['offset']);
+        $search = trim($_GET['search'] ?? '');
+        $users = $userModel->getAll($pagination['limit'], $pagination['offset'], $search);
+        $totalItems = $userModel->countAll($search);
+        $currentPageNum = $pagination['page'];
+        $perPage = $pagination['limit'];
         $title = 'Inventra | Users';
         $currentPage = 'users';
         require __DIR__ . '/../views/users/index.php';
@@ -477,6 +504,37 @@ switch ($page) {
         require __DIR__ . '/../views/logistics/reorder.php';
         break;
 
+    case 'ai-insights':
+        $authController->authorize('reports.sales.insight');
+        
+        $aiInsight = 'Configure AI endpoint to see smart business insights.';
+        $insightData = [];
+        $aiAnalysis = [
+            'summary' => $aiInsight,
+            'opportunities' => [],
+            'risks' => [],
+            'recommendation' => '',
+            'model' => $aiSalesInsightService->getConfiguredModel(),
+        ];
+        if (env('AI_INSIGHTS_API_KEY')) {
+            try {
+                $insightData = $reportModel->getAdvancedSalesInsightData();
+                $aiAnalysis = $aiSalesInsightService->generateSalesAnalysis($insightData);
+                $aiInsight = $aiAnalysis['summary'];
+            } catch (Throwable $e) {
+                // Show real error in development so it is easy to diagnose
+                $aiInsight = env('APP_ENV') !== 'production'
+                    ? '⚠ AI Error: ' . $e->getMessage()
+                    : 'AI Insight temporarily unavailable.';
+                $aiAnalysis['summary'] = $aiInsight;
+            }
+        }
+
+        $title = 'Inventra | AI Sales Insights';
+        $currentPage = 'ai-insights';
+        require __DIR__ . '/../views/reports/ai-insights.php';
+        break;
+
     case 'reports':
         $canViewMonthly = $authController->can('reports.sales.monthly');
         $canViewDaily = $authController->can('reports.sales.daily');
@@ -490,11 +548,14 @@ switch ($page) {
         $inventoryReport = $canViewInventory ? $reportModel->getInventoryReport($fromDate ?: null, $toDate ?: null) : [];
         $monthlySales = $canViewMonthly ? $reportModel->getMonthlySales($fromDate ?: null, $toDate ?: null) : [];
         $dailySales = $canViewDaily ? $reportModel->getDailySales($fromDate ?: null, $toDate ?: null) : [];
-        $lowStockReport = $canViewLow ? $reportModel->getLowStockReport() : [];
+        $lowStockCategoryId = $lowCategoryId !== '' ? (int) $lowCategoryId : null;
+        // Use low stock filters only when the user can access the low stock report.
+        $lowStockReport = $canViewLow ? $reportModel->getLowStockReport($lowFromDate ?: null, $lowToDate ?: null, $lowStockCategoryId) : [];
         $movementSummary = $canViewMovement ? $reportModel->getStockMovementSummary($fromDate ?: null, $toDate ?: null) : [];
         $importBatches = $authController->can('reports.import') ? $reportModel->getImportBatches(12) : [];
         $productsData = $productModel->getAll(1, 200, '', ['archived' => '0']);
         $products = $productsData['data'];
+        $categories = $productModel->getCategories();
 
         $title = 'Inventra | Reports';
         $currentPage = 'reports';
@@ -540,6 +601,8 @@ switch ($page) {
         $alertGraph = $productModel->getAlertGraphData();
         $dashboardAlerts = $productModel->getDashboardAlerts();
         $recentActivity = $authController->can('dashboard.activity') ? $productModel->getRecentActivity() : [];
+        $categories = $productModel->getCategories();
+        
         $title = 'Inventra | Dashboard';
         $currentPage = 'dashboard';
         require __DIR__ . '/../views/dashboard/index.php';

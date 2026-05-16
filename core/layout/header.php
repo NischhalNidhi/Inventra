@@ -1,6 +1,19 @@
 <?php
 $flash = getFlash();
 $user = currentUser();
+$topSearchPage = in_array($currentPage ?? '', ['categories', 'suppliers', 'users', 'purchase-orders', 'products'], true)
+    ? $currentPage
+    : 'products';
+$topSearchName = $topSearchPage === 'products' ? 'keyword' : 'search';
+$topSearchValue = $_GET[$topSearchName] ?? '';
+$topSearchPlaceholderMap = [
+    'categories' => 'Search categories...',
+    'suppliers' => 'Search suppliers...',
+    'users' => 'Search staff accounts...',
+    'purchase-orders' => 'Search PO number or supplier...',
+    'products' => 'Search products or SKU...',
+];
+$topSearchPlaceholder = $topSearchPlaceholderMap[$topSearchPage] ?? 'Search products or SKU...';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -12,9 +25,9 @@ $user = currentUser();
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?= e(assetPath('css/style.css')); ?>">
+    <link rel="stylesheet" href="<?= e(basePath('css/style.css')) . '?v=' . filemtime(dirname(__DIR__, 2) . '/public/css/style.css'); ?>">
 </head>
-<body class="app-body" data-base-path="<?= e(basePath()); ?>" data-csrf-token="<?= e(csrfToken()); ?>">
+<body class="app-body" data-base-path="<?= e(basePath()); ?>" data-app-root-path="<?= e(appRootPath()); ?>" data-csrf-token="<?= e(csrfToken()); ?>">
 <?php if ($flash): ?>
     <div class="toast toast-<?= e($flash['type']); ?>"><?= e($flash['message']); ?></div>
 <?php endif; ?>
@@ -33,9 +46,9 @@ $user = currentUser();
             </div>
             <div class="top-nav-right">
                 <form class="top-search" action="<?= e(basePath('index.php')); ?>" method="get">
-                    <input type="hidden" name="page" value="products">
+                    <input type="hidden" name="page" value="<?= e($topSearchPage); ?>">
                     <span class="material-symbols-outlined">search</span>
-                    <input type="text" name="keyword" placeholder="Global Ledger Search..." value="<?= e($_GET['keyword'] ?? ''); ?>">
+                    <input type="text" name="<?= e($topSearchName); ?>" placeholder="<?= e($topSearchPlaceholder); ?>" value="<?= e((string) $topSearchValue); ?>">
                 </form>
                 <div class="icon-menu" data-notifications-menu>
                     <?php
@@ -125,4 +138,14 @@ $user = currentUser();
             <div class="main-bubble bubble-b"></div>
             <div class="main-bubble bubble-c"></div>
             <div class="main-content-inner">
+                <div class="media-lightbox" data-image-lightbox hidden>
+                    <div class="media-lightbox-backdrop" data-lightbox-close></div>
+                    <div class="media-lightbox-dialog" role="dialog" aria-modal="true" aria-label="Image preview">
+                        <button type="button" class="media-lightbox-close" data-lightbox-close aria-label="Close image preview">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                        <img src="" alt="" class="media-lightbox-image" data-lightbox-image>
+                        <div class="media-lightbox-caption" data-lightbox-caption></div>
+                    </div>
+                </div>
 <?php endif; ?>

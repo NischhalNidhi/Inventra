@@ -183,6 +183,10 @@ class Product
 
     public function delete(int $id): void
     {
+        if ($this->hasDeletionDependencies($id)) {
+            throw new RuntimeException('This product cannot be permanently deleted because it has inventory, delivery, purchase order, or sales history. Archive it instead.');
+        }
+
         $stmt = $this->pdo->prepare('DELETE FROM products WHERE id = :id');
         $stmt->execute(['id' => $id]);
     }
@@ -238,7 +242,7 @@ class Product
     public function getAlertGraphData(): array
     {
         return $this->pdo->query(
-            'SELECT name, stock_quantity, min_threshold
+            'SELECT name, image_name, stock_quantity, min_threshold
              FROM products
              WHERE is_archived = 0
              ORDER BY name ASC'
@@ -270,8 +274,8 @@ class Product
         $stmt = $this->pdo->prepare(
             'SELECT name, sku, stock_quantity, min_threshold
              FROM products
-             WHERE is_archived = 0 AND stock_quantity <= min_threshold
-             ORDER BY (min_threshold - stock_quantity) DESC, name ASC
+             WHERE is_archived = 0 AND stock_quantity <= min_threshold AND stock_quantity > 0
+             ORDER BY stock_quantity ASC, name ASC
              LIMIT :limit'
         );
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
@@ -280,14 +284,37 @@ class Product
         return $stmt->fetchAll();
     }
 
+    public function hasDeletionDependencies(int $id): bool
+    {
+        $checks = [
+            'SELECT COUNT(*) FROM delivery_logs WHERE product_id = :id',
+            'SELECT COUNT(*) FROM po_line_items WHERE product_id = :id',
+            'SELECT COUNT(*) FROM stock_movements WHERE product_id = :id',
+            'SELECT COUNT(*) FROM sales_transactions WHERE product_id = :id',
+        ];
+
+        foreach ($checks as $sql) {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute(['id' => $id]);
+            if ((int) $stmt->fetchColumn() > 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function buildFilterQuery(array $filters): array
     {
         $conditions = [];
         $params = [];
 
         if (!empty($filters['keyword'])) {
-            $conditions[] = '(p.name LIKE :keyword OR p.sku LIKE :keyword OR c.name LIKE :keyword)';
-            $params['keyword'] = '%' . trim($filters['keyword']) . '%';
+            $conditions[] = '(p.name LIKE :kw1 OR p.sku LIKE :kw2 OR c.name LIKE :kw3)';
+            $kw = '%' . trim($filters['keyword']) . '%';
+            $params['kw1'] = $kw;
+            $params['kw2'] = $kw;
+            $params['kw3'] = $kw;
         }
 
         if (!empty($filters['category'])) {

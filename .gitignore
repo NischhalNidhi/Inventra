@@ -1,9 +1,32 @@
-node_modules/
-vendor/
+# ── Dependencies ──────────────────────────────────────────────────────────────
+/vendor/
+/node_modules/
+
+# ── Local Environment (never commit secrets) ──────────────────────────────────
 .env
+.env.local
+.env.*.local
+
+# ── IDEs ──────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
 .DS_Store
-uploads/
-uploads/products/
-tests/_output/
+Thumbs.db
+
+# ── Session files (runtime data, not code) ────────────────────────────────────
+/uploads/.sessions/*
+!/uploads/.sessions/.gitkeep
+
+# ── Mail log (written at runtime) ─────────────────────────────────────────────
+/uploads/mail.log
+
+# ── Logs and Temp files ───────────────────────────────────────────────────────
 *.log
 *.tmp
+
+# ── User-uploaded avatars (personal data, not code) ──────────────────────────
+/public/uploads/avatars/*
+!/public/uploads/avatars/.gitkeep
+
+# NOTE: Product images in /public/uploads/products/ ARE tracked in Git
+# so the demo products display correctly after a fresh clone.

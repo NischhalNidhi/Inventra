@@ -112,6 +112,11 @@ class ProductController
 
     public function handleDelete(int $id): void
     {
+        $product = $this->productModel->findById($id);
+        if (!$product) {
+            throw new RuntimeException('The selected product was not found.');
+        }
+
         $this->productModel->delete($id);
     }
 

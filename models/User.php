@@ -35,14 +35,32 @@ class User
         return $user;
     }
 
-    public function getAll(int $limit = 25, int $offset = 0): array
+    public function getAll(int $limit = 25, int $offset = 0, string $search = ''): array
     {
+        $params = [];
+        $where = '';
+
+        if ($search !== '') {
+            $where = 'WHERE full_name LIKE :full_name OR email LIKE :email OR username LIKE :username OR role LIKE :role';
+            $keyword = '%' . $search . '%';
+            $params = [
+                'full_name' => $keyword,
+                'email' => $keyword,
+                'username' => $keyword,
+                'role' => $keyword,
+            ];
+        }
+
         $stmt = $this->pdo->prepare(
             'SELECT id, full_name, email, username, role, profile_image, is_active, created_at
              FROM users
+             ' . $where . '
              ORDER BY created_at DESC
              LIMIT :limit OFFSET :offset'
         );
+        foreach ($params as $key => $value) {
+            $stmt->bindValue(':' . $key, $value);
+        }
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
         $stmt->execute();
@@ -50,9 +68,26 @@ class User
         return $stmt->fetchAll();
     }
 
-    public function countAll(): int
+    public function countAll(string $search = ''): int
     {
-        return (int) $this->pdo->query('SELECT COUNT(*) FROM users')->fetchColumn();
+        if ($search === '') {
+            return (int) $this->pdo->query('SELECT COUNT(*) FROM users')->fetchColumn();
+        }
+
+        $keyword = '%' . $search . '%';
+        $stmt = $this->pdo->prepare(
+            'SELECT COUNT(*)
+             FROM users
+             WHERE full_name LIKE :full_name OR email LIKE :email OR username LIKE :username OR role LIKE :role'
+        );
+        $stmt->execute([
+            'full_name' => $keyword,
+            'email' => $keyword,
+            'username' => $keyword,
+            'role' => $keyword,
+        ]);
+
+        return (int) $stmt->fetchColumn();
     }
 
     public function create(array $data): int

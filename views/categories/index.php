@@ -6,12 +6,18 @@
         <h1>Category Management</h1>
         <p class="lead">Define product categories and keep classification taxonomy clean.</p>
     </div>
+    <div class="topbar-actions">
+        <form class="global-search" action="<?= e(basePath('index.php')); ?>" method="get">
+            <input type="hidden" name="page" value="categories">
+            <input type="text" name="search" placeholder="Search categories..." value="<?= e($_GET['search'] ?? ''); ?>">
+        </form>
+    </div>
 </header>
 
 <?php if ($authController->can('categories.manage')): ?>
 <section class="panel">
     <div class="panel-header"><h2>Create Category</h2></div>
-    <form class="form-grid category-form" method="post" action="<?= e(basePath('index.php?page=categories')); ?>">
+    <form class="form-grid" method="post" action="<?= e(basePath('index.php?page=categories')); ?>">
         <input type="hidden" name="csrf_token" value="<?= e(csrfToken()); ?>">
         <input type="hidden" name="action" value="create_category">
         <label><span>Name</span><input type="text" name="name" required></label>
@@ -24,43 +30,23 @@
 <section class="panel">
     <div class="panel-header"><h2>Categories</h2></div>
     <div class="table-wrap">
-        <table class="category-table <?= $authController->can('categories.manage') ? '' : 'view-only'; ?>">
-            <colgroup>
-                <col style="width: 34%;">
-                <col>
-                <?php if ($authController->can('categories.manage')): ?>
-                    <col style="width: 180px;">
-                <?php endif; ?>
-            </colgroup>
-            <thead>
-            <tr>
-                <th>Name</th>
-                <th>Description</th>
-                <?php if ($authController->can('categories.manage')): ?>
-                    <th>Actions</th>
-                <?php endif; ?>
-            </tr>
-            </thead>
+        <table>
+            <thead><tr><th>Name</th><th>Description</th><th>Actions</th></tr></thead>
             <tbody>
             <?php foreach ($categories as $category): ?>
                 <tr>
-                    <td class="category-name"><?= e($category['name']); ?></td>
+                    <td><?= e($category['name']); ?></td>
                     <td><?= e((string) $category['description']); ?></td>
-                    <?php if ($authController->can('categories.manage')): ?>
-                        <td class="category-actions">
-                            <div class="action-group">
+                    <td><div class="action-group">
+                        <?php if ($authController->can('categories.manage')): ?>
                             <form method="post" action="<?= e(basePath('index.php?page=categories')); ?>">
                                 <input type="hidden" name="csrf_token" value="<?= e(csrfToken()); ?>">
                                 <input type="hidden" name="action" value="delete_category">
                                 <input type="hidden" name="category_id" value="<?= e((string) $category['id']); ?>">
-                                <button class="btn-action btn-delete" type="submit" title="Delete category">
-                                    <span class="material-symbols-outlined">delete</span>
-                                    <span class="btn-label">Delete</span>
-                                </button>
+                                <button class="button small danger-outline" type="submit">Delete</button>
                             </form>
-                            </div>
-                        </td>
-                    <?php endif; ?>
+                        <?php endif; ?>
+                    </div></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>
@@ -72,6 +58,7 @@
  </div>
 </main>
 </div>
-<script src="<?= e(assetPath('js/app.js')); ?>"></script>
+<script src="<?= e(basePath('js/app.js')); ?>"></script>
 </body>
 </html>
+

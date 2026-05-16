@@ -15,15 +15,29 @@ class Report
     {
         $stmt = $this->pdo->prepare(
             'INSERT INTO sales_transactions
-             (product_id, quantity, unit_price, sale_date, region, source, created_by)
-             VALUES (:product_id, :quantity, :unit_price, :sale_date, :region, :source, :created_by)'
+             (invoice_id, branch_code, city, customer_type, customer_gender, product_id, quantity, unit_price, sale_date, sale_time, sold_at, region, payment_method, tax_amount, gross_total, cogs, gross_margin_percentage, gross_income, rating, source, created_by)
+             VALUES (:invoice_id, :branch_code, :city, :customer_type, :customer_gender, :product_id, :quantity, :unit_price, :sale_date, :sale_time, :sold_at, :region, :payment_method, :tax_amount, :gross_total, :cogs, :gross_margin_percentage, :gross_income, :rating, :source, :created_by)'
         );
         $stmt->execute([
+            'invoice_id' => $data['invoice_id'] ?? null,
+            'branch_code' => $data['branch_code'] ?? null,
+            'city' => $data['city'] ?? null,
+            'customer_type' => $data['customer_type'] ?? null,
+            'customer_gender' => $data['customer_gender'] ?? null,
             'product_id' => $data['product_id'],
             'quantity' => $data['quantity'],
             'unit_price' => $data['unit_price'],
             'sale_date' => $data['sale_date'],
+            'sale_time' => $data['sale_time'] ?? null,
+            'sold_at' => $data['sold_at'] ?? null,
             'region' => $data['region'],
+            'payment_method' => $data['payment_method'] ?? null,
+            'tax_amount' => $data['tax_amount'] ?? null,
+            'gross_total' => $data['gross_total'] ?? null,
+            'cogs' => $data['cogs'] ?? null,
+            'gross_margin_percentage' => $data['gross_margin_percentage'] ?? null,
+            'gross_income' => $data['gross_income'] ?? null,
+            'rating' => $data['rating'] ?? null,
             'source' => $source,
             'created_by' => $userId,
         ]);
@@ -173,6 +187,53 @@ class Report
         ];
     }
 
+    public function getAdvancedSalesInsightData(): array
+    {
+        $stmt = $this->pdo->query('SELECT MAX(sale_date) FROM sales_transactions');
+        $maxDate = $stmt->fetchColumn() ?: date('Y-m-d');
+        $baseDate = new DateTimeImmutable($maxDate);
+        $thisMonthStart = $baseDate->format('Y-m-01');
+        $thisMonthEnd = $baseDate->format('Y-m-t');
+        $prevDate = $baseDate->modify('-1 month');
+        $prevMonthStart = $prevDate->format('Y-m-01');
+        $prevMonthEnd = $prevDate->format('Y-m-t');
+
+        // This Month Summary
+        $stmt = $this->pdo->prepare('SELECT SUM(quantity * unit_price) as total_revenue, COUNT(*) as transaction_count FROM sales_transactions WHERE sale_date BETWEEN ? AND ?');
+        $stmt->execute([$thisMonthStart, $thisMonthEnd]);
+        $thisMonth = $stmt->fetch();
+
+        // Prev Month Summary
+        $stmt->execute([$prevMonthStart, $prevMonthEnd]);
+        $prevMonth = $stmt->fetch();
+
+        // Top Products
+        $stmt = $this->pdo->prepare('SELECT p.name, SUM(st.quantity * st.unit_price) as total FROM sales_transactions st JOIN products p ON p.id = st.product_id WHERE st.sale_date BETWEEN ? AND ? GROUP BY p.id ORDER BY total DESC LIMIT 3');
+        $stmt->execute([$thisMonthStart, $thisMonthEnd]);
+        $topProducts = $stmt->fetchAll();
+
+        // Low Products (sold at least once but least revenue)
+        $stmt = $this->pdo->prepare('SELECT p.name, SUM(st.quantity * st.unit_price) as total FROM sales_transactions st JOIN products p ON p.id = st.product_id WHERE st.sale_date BETWEEN ? AND ? GROUP BY p.id ORDER BY total ASC LIMIT 3');
+        $stmt->execute([$thisMonthStart, $thisMonthEnd]);
+        $lowProducts = $stmt->fetchAll();
+
+        // Category Breakdown
+        $stmt = $this->pdo->prepare('SELECT c.name, SUM(st.quantity * st.unit_price) as total FROM sales_transactions st JOIN products p ON p.id = st.product_id JOIN categories c ON c.id = p.category_id WHERE st.sale_date BETWEEN ? AND ? GROUP BY c.id ORDER BY total DESC');
+        $stmt->execute([$thisMonthStart, $thisMonthEnd]);
+        $categories = $stmt->fetchAll();
+
+        return [
+            'summary' => [
+                'total_revenue' => $thisMonth['total_revenue'] ?? 0,
+                'transaction_count' => $thisMonth['transaction_count'] ?? 0,
+                'prev_month_revenue' => $prevMonth['total_revenue'] ?? 0,
+            ],
+            'top_products' => $topProducts,
+            'low_products' => $lowProducts,
+            'category_breakdown' => $categories
+        ];
+    }
+
     public function getDailySales(?string $fromDate = null, ?string $toDate = null): array
     {
         $conditions = [];
@@ -198,14 +259,86 @@ class Report
         return $stmt->fetchAll();
     }
 
-    public function getLowStockReport(): array
+    /**
+     * Retrieve detailed sales transactions with product names for CSV export.
+     *
+     * @param string|null $fromDate Only include sales on or after this date.
+     * @param string|null $toDate   Only include sales on or before this date.
+     * @return array Sales transactions with product details.
+     */
+    public function getSalesTransactionsForExport(?string $fromDate = null, ?string $toDate = null): array
     {
-        return $this->pdo->query(
-            'SELECT name, sku, stock_quantity, min_threshold
-             FROM products
-             WHERE is_archived = 0 AND stock_quantity <= min_threshold
-             ORDER BY (min_threshold - stock_quantity) DESC'
-        )->fetchAll();
+        $conditions = [];
+        $params = [];
+        if ($fromDate) {
+            $conditions[] = 'st.sale_date >= :from_date';
+            $params['from_date'] = $fromDate;
+        }
+        if ($toDate) {
+            $conditions[] = 'st.sale_date <= :to_date';
+            $params['to_date'] = $toDate;
+        }
+
+        $whereSql = $conditions ? 'WHERE ' . implode(' AND ', $conditions) : '';
+
+        $stmt = $this->pdo->prepare(
+            'SELECT st.sale_date, p.name AS product_name, st.quantity, st.unit_price, (st.quantity * st.unit_price) AS total
+             FROM sales_transactions st
+             LEFT JOIN products p ON p.id = st.product_id
+             ' . $whereSql . '
+             ORDER BY st.sale_date DESC, st.id DESC'
+        );
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Retrieve low stock products with optional category and date filtering.
+     *
+     * @param string|null $fromDate   Only include products updated on or after this date.
+     * @param string|null $toDate     Only include products updated on or before this date.
+     * @param int|null    $categoryId Only include products from this category.
+     * @return array Low stock products with days below threshold metadata.
+     */
+    public function getLowStockReport(?string $fromDate = null, ?string $toDate = null, ?int $categoryId = null): array
+    {
+        $conditions = ['p.is_archived = 0', 'p.stock_quantity <= p.min_threshold'];
+        $params = [];
+
+        if ($categoryId !== null) {
+            $conditions[] = 'p.category_id = :category_id';
+            $params['category_id'] = $categoryId;
+        }
+        if ($fromDate) {
+            $conditions[] = 'DATE(p.updated_at) >= :low_from_date';
+            $params['low_from_date'] = $fromDate;
+        }
+        if ($toDate) {
+            $conditions[] = 'DATE(p.updated_at) <= :low_to_date';
+            $params['low_to_date'] = $toDate;
+        }
+
+        // Determine how long the product has remained below threshold.
+        // Prefer the most recent movement that crossed the threshold; otherwise fall back to first below-threshold movement or product update.
+        $stmt = $this->pdo->prepare(
+            'SELECT p.id, p.name, p.sku, p.stock_quantity, p.min_threshold, c.name AS category_name,
+                    TIMESTAMPDIFF(DAY,
+                        COALESCE(
+                            (SELECT MAX(sm.created_at) FROM stock_movements sm
+                             WHERE sm.product_id = p.id AND sm.previous_quantity > p.min_threshold AND sm.new_quantity <= p.min_threshold),
+                            (SELECT MIN(sm.created_at) FROM stock_movements sm
+                             WHERE sm.product_id = p.id AND sm.new_quantity <= p.min_threshold),
+                            p.updated_at
+                        ),
+                        NOW()
+                    ) AS days_below_threshold
+             FROM products p
+             LEFT JOIN categories c ON c.id = p.category_id
+             WHERE ' . implode(' AND ', $conditions) . '
+             ORDER BY (p.min_threshold - p.stock_quantity) DESC, p.name ASC'
+        );
+        $stmt->execute($params);
+        return $stmt->fetchAll();
     }
 
     public function getStockMovementSummary(?string $fromDate = null, ?string $toDate = null): array

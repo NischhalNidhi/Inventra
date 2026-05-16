@@ -6,6 +6,12 @@
         <h1>PO Tracker</h1>
         <p class="lead">Create purchase orders, monitor shipment details, and receive deliveries.</p>
     </div>
+    <div class="topbar-actions">
+        <form class="global-search" action="<?= e(basePath('index.php')); ?>" method="get">
+            <input type="hidden" name="page" value="purchase-orders">
+            <input type="text" name="search" placeholder="Search PO number or supplier..." value="<?= e($_GET['search'] ?? ''); ?>">
+        </form>
+    </div>
 </header>
 
 <?php if ($authController->can('po.create')): ?>
@@ -62,14 +68,9 @@
                     <td><?= e(strtoupper($po['status'])); ?></td>
                     <td><?= e(strtoupper((string) $po['shipment_status'])); ?></td>
                     <td><?= e((string) $po['expected_date']); ?></td>
-                    <td class="td-actions">
-                        <div class="action-group">
-                            <a class="btn-action btn-edit" href="<?= e(basePath('index.php?page=purchase-orders&id=' . $po['id'])); ?>" title="View purchase order">
-                                <span class="material-symbols-outlined">visibility</span>
-                                <span class="btn-label">View</span>
-                            </a>
-                        </div>
-                    </td>
+                    <td><div class="action-group">
+                        <a class="button small ghost" href="<?= e(basePath('index.php?page=purchase-orders&id=' . $po['id'])); ?>">View</a>
+                    </div></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>
@@ -139,6 +140,7 @@
  </div>
 </main>
 </div>
-<script src="<?= e(assetPath('js/app.js')); ?>"></script>
+<script src="<?= e(basePath('js/app.js')); ?>"></script>
 </body>
 </html>
+

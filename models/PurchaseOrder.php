@@ -33,8 +33,10 @@ class PurchaseOrder
             $params['status'] = $status;
         }
         if ($search !== '') {
-            $conditions[] = '(po.po_number LIKE :search OR s.name LIKE :search)';
-            $params['search'] = '%' . $search . '%';
+            $conditions[] = '(po.po_number LIKE :s1 OR s.name LIKE :s2)';
+            $kw = '%' . $search . '%';
+            $params['s1'] = $kw;
+            $params['s2'] = $kw;
         }
 
         $joinSql = 'INNER JOIN suppliers s ON s.id = po.supplier_id';
