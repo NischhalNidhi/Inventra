@@ -37,7 +37,7 @@
     </article>
 </section>
 
-<section class="panel ai-insight-panel" style="border-left: 4px solid #6366f1; background: #f8fafc;">
+<section class="panel ai-insight-panel" style="border-left: 4px solid #6366f1; background: #f8fafc;" data-sales-insight-card data-endpoint="<?= e(appRootPath('api/reports.php?type=sales-insight')); ?>">
     <div class="panel-header">
         <div>
             <h2 style="display: flex; align-items: center; gap: 0.5rem;">
@@ -48,7 +48,8 @@
         </div>
     </div>
     <div style="padding: 1rem; font-size: 1.1rem; line-height: 1.6; color: #1e293b;">
-        <p><em><?= e($aiInsight); ?></em></p>
+        <div class="sales-insight-state is-loading" data-sales-insight-status aria-live="polite">Generating insight...</div>
+        <p class="sales-insight-copy" data-sales-insight-copy hidden></p>
     </div>
 </section>
 
