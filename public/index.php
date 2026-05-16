@@ -195,6 +195,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $result = $productController->handleCreate($_POST, $_FILES, (int) currentUser()['id']);
                 if ($result['success']) {
                     clearOldInput();
+                    
+                    // Generate alerts instantly in case new product has low stock initially
+                    $recipients = $notificationModel->getAlertRecipients();
+                    $notificationModel->generateLowStockAlerts($recipients, $mailer, appUrl('index.php?page=dashboard'));
+
                     setFlash('success', 'Product created successfully.');
                     redirectTo(basePath('index.php?page=products'));
                 }
@@ -209,6 +214,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $result = $productController->handleUpdate($productId, $_POST, $_FILES, (int) currentUser()['id']);
                 if ($result['success']) {
                     clearOldInput();
+                    
+                    // Generate alerts instantly in case threshold or quantity was updated manually
+                    $recipients = $notificationModel->getAlertRecipients();
+                    $notificationModel->generateLowStockAlerts($recipients, $mailer, appUrl('index.php?page=dashboard'));
+
                     setFlash('success', 'Product updated successfully.');
                     redirectTo(basePath('index.php?page=products'));
                 }
@@ -593,11 +603,8 @@ switch ($page) {
     default:
         $authController->authorize('dashboard');
         
-        // Generate new low stock alerts
-        if ($authController->can('dashboard.alert_graph')) {
-            $recipients = $notificationModel->getAlertRecipients();
-            $newAlertsCount = $notificationModel->generateLowStockAlerts($recipients, $mailer, appUrl('index.php?page=dashboard'));
-        }
+        $recipients = $notificationModel->getAlertRecipients();
+        $newAlertsCount = $notificationModel->generateLowStockAlerts($recipients, $mailer, appUrl('index.php?page=dashboard'));
 
         $stats = $productModel->getDashboardStats();
         $featuredProducts = $productModel->getFeaturedProducts();

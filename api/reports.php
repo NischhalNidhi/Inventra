@@ -93,6 +93,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $type === 'sales') {
         jsonResponse(['error' => implode(' ', $validated['errors']), 'code' => 'VALIDATION_ERROR'], 422);
     }
     $id = $reportModel->createSale($validated['data'], (int) currentUser()['id']);
+
+    // Generate low stock alerts instantly after a sale drops inventory
+    $recipients = $notificationModel->getAlertRecipients();
+    $notificationModel->generateLowStockAlerts($recipients, $mailer, appUrl('index.php?page=dashboard'));
+
     jsonResponse(['sale_id' => $id], 201);
 }
 

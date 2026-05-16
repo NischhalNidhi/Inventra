@@ -10,6 +10,9 @@ extract(buildAppDependencies(), EXTR_SKIP);
 $authController->requireAuthentication();
 $authController->authorize('dashboard');
 
+$recipients = $notificationModel->getAlertRecipients();
+$notificationModel->generateLowStockAlerts($recipients, $mailer, appUrl('index.php?page=dashboard'));
+
 echo json_encode([
     'stats'             => $productModel->getDashboardStats(),
     'alerts'            => $productModel->getDashboardAlerts(),

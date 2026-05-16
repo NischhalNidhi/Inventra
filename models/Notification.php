@@ -216,14 +216,11 @@ class Notification
         return $alertCount;
     }
 
-    /**
-     * Get user IDs that should receive low-stock alerts (Managers + Supervisors).
-     */
     public function getAlertRecipients(): array
     {
         return array_column(
             $this->pdo->query(
-                "SELECT id FROM users WHERE is_active = 1 AND role IN ('Manager', 'Supervisor')"
+                "SELECT id FROM users WHERE is_active = 1"
             )->fetchAll(),
             'id'
         );
