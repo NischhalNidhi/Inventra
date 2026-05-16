@@ -7,7 +7,7 @@ require_once __DIR__ . '/../core/dependencies.php';
 // ── Auto database initialization ─────────────────────────────────────────────
 // On a fresh clone, the database and tables won't exist yet.
 // This runs the schema automatically on first visit — no CLI commands needed.
-require_once __DIR__ . '/../database/database.php';
+require_once __DIR__ . '/../database/bootstrap.php';
 try {
     initializeConfiguredDatabase();
 } catch (Throwable $e) {

@@ -1,3 +1,6 @@
+-- Inventra - Unified Database Schema and Seed Data
+-- This file contains the complete database structure and demo data.
+
 CREATE DATABASE IF NOT EXISTS inventra;
 USE inventra;
 
@@ -20,6 +23,7 @@ DROP TABLE IF EXISTS categories;
 DROP TABLE IF EXISTS users;
 SET FOREIGN_KEY_CHECKS = 1;
 
+-- 1. Tables Structure
 
 CREATE TABLE IF NOT EXISTS users (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -205,6 +209,7 @@ CREATE TABLE IF NOT EXISTS access_requests (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_access_review_user FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL
 );
+
 CREATE TABLE IF NOT EXISTS report_import_batches (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     file_name VARCHAR(255) NOT NULL,
@@ -226,34 +231,67 @@ CREATE TABLE IF NOT EXISTS report_import_row_errors (
     CONSTRAINT fk_import_row_batch FOREIGN KEY (batch_id) REFERENCES report_import_batches(id) ON DELETE CASCADE
 );
 
-INSERT INTO categories (name, description)
-SELECT * FROM (
-    SELECT 'Grocery Staples' AS name, 'Daily pantry items and packaged essentials' AS description
-    UNION ALL
-    SELECT 'Beverages', 'Cold drinks, juices, water, and ready-to-serve beverages'
-    UNION ALL
-    SELECT 'Snacks', 'Biscuits, chips, confectionery, and quick-grab treats'
-    UNION ALL
-    SELECT 'Household', 'Cleaning supplies, paper goods, and home-care items'
-    UNION ALL
-    SELECT 'Personal Care', 'Toiletries, hygiene, and self-care products'
-) AS seed_categories
-WHERE NOT EXISTS (SELECT 1 FROM categories WHERE categories.name = seed_categories.name);
+-- 2. Seed Data (Core Users and Categories)
 
-INSERT INTO users (full_name, email, username, password_hash, role, is_active)
-SELECT * FROM (
-    SELECT
-      'System Manager' AS full_name,
-      'manager@inventra.local' AS email,
-      'manager' AS username,
-      '$2y$12$fuzGDrJ18sy15/BTjMLJyuvMAKUV1Tls9NQ7mzZU0SzKxZujsbdYe' AS password_hash,
-      'Manager' AS role,
-      1 AS is_active
+INSERT INTO users (id, full_name, email, username, password_hash, role, is_active) VALUES
+(1, 'System Manager', 'manager@inventra.local', 'manager', '$2y$12$fuzGDrJ18sy15/BTjMLJyuvMAKUV1Tls9NQ7mzZU0SzKxZujsbdYe', 'Manager', 1);
 
+INSERT INTO categories (id, name, description) VALUES
+(1, 'Beverages', 'Soft drinks, milk, juices'),
+(2, 'Grocery Staples', 'Rice, bread, flour'),
+(3, 'Household', 'Cleaning supplies'),
+(4, 'Snacks', 'Chips, biscuits'),
+(5, 'Personal Care', 'Shampoo, soap'),
+(6, 'Electronics', 'Gadgets and accessories'),
+(7, 'Apparel', 'Clothing and footwear'),
+(8, 'Home & Kitchen', 'Appliances and decor'),
+(9, 'Stationery', 'Office and school supplies');
 
+INSERT INTO suppliers (id, name, contact_person, email, phone) VALUES
+(1, 'National Foods', 'John Doe', 'john@national.local', '123456789'),
+(2, 'CleanHome Co', 'Jane Doe', 'jane@clean.local', '987654321'),
+(3, 'Pantry Express', 'Mike Ross', 'mike@pantry.local', '555-0199'),
+(4, 'TechNova Solutions', 'Sarah Chen', 'sarah@technova.local', '555-0200'),
+(5, 'Global Trends Inc', 'David Miller', 'david@globaltrends.local', '555-0201'),
+(6, 'KitchenPro', 'Elena Rodriguez', 'elena@kitchenpro.local', '555-0202'),
+(7, 'Office Supply Co', 'Pam Beesly', 'pam@officesupply.local', '555-0300');
 
+INSERT INTO products (id, name, sku, description, image_name, stock_quantity, min_threshold, unit_price, category_id, supplier_id, created_by, updated_by) VALUES
+(1, 'Full Cream Milk 1L', 'BVG-MILK-1', 'Fresh full cream milk from local farms', 'milk.png', 50, 20, 120.00, 1, 1, 1, 1),
+(2, 'Classic Cola 500ml', 'BVG-COLA-1', 'Refreshing carbonated soft drink', 'cola.png', 120, 30, 65.00, 1, 1, 1, 1),
+(3, 'Green Tea Bags (25 Pack)', 'BVG-TEA-G', 'Pure organic green tea for daily wellness', 'tea.png', 80, 20, 180.00, 1, 1, 1, 1),
+(4, 'Organic Whole Wheat Bread', 'GRC-BREAD-1', 'Freshly baked whole wheat bread daily', 'bread.png', 30, 15, 80.00, 2, 1, 1, 1),
+(5, 'Basmati Rice 5kg', 'GRC-RICE-5', 'Premium long grain basmati rice for fine dining', 'rice.png', 60, 15, 850.00, 2, 3, 1, 1),
+(6, 'Sunflower Cooking Oil 1L', 'GRC-OIL-1', 'Refined sunflower oil for healthy cooking', 'oil.png', 45, 12, 280.00, 2, 3, 1, 1),
+(7, 'All-Purpose Cleaner', 'HHD-CLN-1', 'Tough on stains, gentle on surfaces', 'cleaner.png', 40, 10, 250.00, 3, 2, 1, 1),
+(8, 'Dishwashing Liquid 500ml', 'HHD-DISH-1', 'Cuts through grease effectively', 'dishwash.png', 45, 12, 120.00, 3, 2, 1, 1),
+(9, 'Paper Napkins (50 Pack)', 'HHD-NAP-1', 'Soft and absorbent 2-ply napkins', 'napkins.png', 200, 50, 45.00, 3, 7, 1, 1),
+(10, 'Potato Chips (Classic)', 'SNK-CHIPS-1', 'Crunchy salted classic potato chips', 'chips.png', 100, 30, 50.00, 4, 1, 1, 1),
+(11, 'Digestive Biscuits', 'SNK-BIS-1', 'High-fiber digestive biscuits for tea time', 'biscuits.png', 60, 20, 95.00, 4, 1, 1, 1),
+(12, 'Dark Chocolate Bar', 'SNK-CHOC-1', '70% cocoa rich dark chocolate', 'chocolate.png', 50, 15, 150.00, 4, 5, 1, 1),
+(13, 'Anti-Dandruff Shampoo', 'PC-SHMP-1', 'Scalp care shampoo for healthy hair', 'shampoo.png', 25, 10, 350.00, 5, 2, 1, 1),
+(14, 'Moisturizing Soap Bar', 'PC-SOAP-1', 'Enriched with vitamin E for soft skin', 'soap.png', 150, 40, 45.00, 5, 2, 1, 1),
+(15, 'Gentle Face Wash', 'PC-FWASH-1', 'Daily face wash for all skin types', 'facewash.png', 40, 15, 195.00, 5, 2, 1, 1),
+(16, 'AA Alkaline Batteries', 'ELC-BATT-AA', 'Long-lasting power for everyday devices', 'batteries.png', 300, 100, 250.00, 6, 4, 1, 1),
+(17, 'USB-C Charging Cable', 'ELC-CABLE-C', 'Fast charging and data sync cable 1m', 'cable.png', 80, 20, 450.00, 6, 4, 1, 1),
+(18, 'LED Desk Lamp', 'ELC-LAMP-1', 'Eye-friendly adjustable LED lamp', 'lamp.png', 15, 5, 1200.00, 6, 4, 1, 1),
+(19, 'A5 Spiral Notebook', 'STN-NB-A5', 'High-quality ruled paper notebook', 'notebook.png', 120, 30, 85.00, 9, 7, 1, 1),
+(20, 'Ballpoint Pens (Blue)', 'STN-PEN-B', 'Smooth writing blue ink pens (Pack of 10)', 'pens.png', 100, 25, 120.00, 9, 7, 1, 1),
+(21, 'Cotton Crew Neck T-Shirt', 'APR-TSH-1', '100% breathable cotton t-shirt', 'tshirt.png', 50, 15, 550.00, 7, 5, 1, 1);
 
+-- 3. Sample Transactions (Last 30 days)
 
+INSERT INTO sales_transactions (invoice_id, product_id, quantity, unit_price, sale_date, sale_time, region, payment_method, customer_type, created_by) VALUES
+('INV-S001', 1, 2, 120.00, CURDATE(), '10:30:00', 'North Store', 'Cash', 'Member', 1),
+('INV-S002', 5, 1, 850.00, CURDATE(), '11:15:00', 'Central Hub', 'Credit Card', 'Normal', 1),
+('INV-S003', 10, 3, 50.00, DATE_SUB(CURDATE(), INTERVAL 1 DAY), '14:20:00', 'East Mall', 'Mobile Pay', 'Member', 1),
+('INV-S004', 16, 2, 250.00, DATE_SUB(CURDATE(), INTERVAL 2 DAY), '16:45:00', 'West Plaza', 'Debit Card', 'Normal', 1),
+('INV-S005', 2, 5, 65.00, DATE_SUB(CURDATE(), INTERVAL 3 DAY), '09:00:00', 'South Store', 'Cash', 'Member', 1),
+('INV-S006', 7, 1, 250.00, DATE_SUB(CURDATE(), INTERVAL 5 DAY), '12:30:00', 'North Store', 'Credit Card', 'Normal', 1),
+('INV-S007', 12, 1, 150.00, DATE_SUB(CURDATE(), INTERVAL 7 DAY), '15:10:00', 'Central Hub', 'Mobile Pay', 'Member', 1),
+('INV-S008', 19, 2, 85.00, DATE_SUB(CURDATE(), INTERVAL 10 DAY), '11:00:00', 'East Mall', 'Cash', 'Normal', 1),
+('INV-S009', 4, 2, 80.00, DATE_SUB(CURDATE(), INTERVAL 15 DAY), '13:20:00', 'West Plaza', 'Credit Card', 'Member', 1),
+('INV-S010', 8, 3, 120.00, DATE_SUB(CURDATE(), INTERVAL 20 DAY), '10:45:00', 'South Store', 'Debit Card', 'Normal', 1);
 
-) AS seed_users
-WHERE NOT EXISTS (SELECT 1 FROM users WHERE users.username = seed_users.username);
+-- Note: Historical analytics data is usually generated via PHP for larger datasets.
+-- This SQL file provides the essential structure and initial data for a usable system.
