@@ -4,6 +4,25 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../core/dependencies.php';
 
+// ── Auto database initialization ─────────────────────────────────────────────
+// On a fresh clone, the database and tables won't exist yet.
+// This runs the schema automatically on first visit — no CLI commands needed.
+require_once __DIR__ . '/../database/bootstrap.php';
+try {
+    initializeConfiguredDatabase();
+} catch (Throwable $e) {
+    // If DB is already set up and tables exist, this is a no-op.
+    // Only fail loudly if the connection itself is broken.
+    if (str_contains($e->getMessage(), 'Access denied') || str_contains($e->getMessage(), 'Connection refused') || str_contains($e->getMessage(), '2002')) {
+        http_response_code(503);
+        echo '<h2 style="font-family:sans-serif;color:#c00">Database connection failed</h2>';
+        echo '<p style="font-family:sans-serif">Could not connect to MySQL. Please check your <code>.env</code> file (DB_HOST, DB_USER, DB_PASS, DB_NAME) and make sure MySQL is running.</p>';
+        echo '<pre style="font-family:monospace;background:#f5f5f5;padding:12px">' . htmlspecialchars($e->getMessage()) . '</pre>';
+        exit;
+    }
+}
+
+
 $cspHeader = ($_ENV['APP_ENV'] ?? '') === 'production' 
     ? 'Content-Security-Policy' 
     : 'Content-Security-Policy-Report-Only';

@@ -1,26 +1,32 @@
-# Dependencies
+# ── Dependencies ──────────────────────────────────────────────────────────────
 /vendor/
 /node_modules/
 
-# Local Environment
+# ── Local Environment (never commit secrets) ──────────────────────────────────
 .env
 .env.local
 .env.*.local
 
-# IDEs
+# ── IDEs ──────────────────────────────────────────────────────────────────────
 .vscode/
 .idea/
 .DS_Store
+Thumbs.db
 
-# Application Data (Railway ephemeral or Persistent Volume)
+# ── Session files (runtime data, not code) ────────────────────────────────────
 /uploads/.sessions/*
 !/uploads/.sessions/.gitkeep
+
+# ── Mail log (written at runtime) ─────────────────────────────────────────────
 /uploads/mail.log
 
-# If you want to keep default product images in the repo, unignore them:
-# !/public/uploads/products/
-
-# Logs and Temps
+# ── Logs and Temp files ───────────────────────────────────────────────────────
 *.log
 *.tmp
-/tests/_output/
+
+# ── User-uploaded avatars (personal data, not code) ──────────────────────────
+/public/uploads/avatars/*
+!/public/uploads/avatars/.gitkeep
+
+# NOTE: Product images in /public/uploads/products/ ARE tracked in Git
+# so the demo products display correctly after a fresh clone.
