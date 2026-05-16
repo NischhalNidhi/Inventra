@@ -509,15 +509,24 @@ switch ($page) {
         
         $aiInsight = 'Configure AI endpoint to see smart business insights.';
         $insightData = [];
+        $aiAnalysis = [
+            'summary' => $aiInsight,
+            'opportunities' => [],
+            'risks' => [],
+            'recommendation' => '',
+            'model' => $aiSalesInsightService->getConfiguredModel(),
+        ];
         if (env('AI_INSIGHTS_API_KEY')) {
             try {
                 $insightData = $reportModel->getAdvancedSalesInsightData();
-                $aiInsight = $aiSalesInsightService->generateMonthlySalesInsight($insightData);
+                $aiAnalysis = $aiSalesInsightService->generateSalesAnalysis($insightData);
+                $aiInsight = $aiAnalysis['summary'];
             } catch (Throwable $e) {
                 // Show real error in development so it is easy to diagnose
                 $aiInsight = env('APP_ENV') !== 'production'
                     ? '⚠ AI Error: ' . $e->getMessage()
                     : 'AI Insight temporarily unavailable.';
+                $aiAnalysis['summary'] = $aiInsight;
             }
         }
 
@@ -586,20 +595,6 @@ switch ($page) {
         $dashboardAlerts = $productModel->getDashboardAlerts();
         $recentActivity = $authController->can('dashboard.activity') ? $productModel->getRecentActivity() : [];
         
-        // AI Insight Integration
-        $aiInsight = 'Overall revenue has declined by approximately 21% this month compared to the previous period, despite a steady transaction volume of 140 orders. While high-ticket items like Extra Virgin Olive Oil and Electronics continue to drive value, everyday essentials are underperforming. Focus on bundling staples to recover volume in the Grocery and Snacks categories.';
-        if (env('AI_INSIGHTS_API_KEY')) {
-            try {
-                $insightData = $reportModel->getAdvancedSalesInsightData();
-                $aiInsight = $aiSalesInsightService->generateMonthlySalesInsight($insightData);
-            } catch (Throwable $e) {
-                // Show real error in development so it is easy to diagnose
-                $aiInsight = env('APP_ENV') !== 'production'
-                    ? '⚠ AI Error: ' . $e->getMessage()
-                    : 'AI Insight temporarily unavailable.';
-            }
-        }
-
         $title = 'Inventra | Dashboard';
         $currentPage = 'dashboard';
         require __DIR__ . '/../views/dashboard/index.php';

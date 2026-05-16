@@ -19,9 +19,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
         try {
             $salesData = $reportModel->getAdvancedSalesInsightData();
-            $summary = $aiSalesInsightService->generateMonthlySalesInsight($salesData);
+            $analysis = $aiSalesInsightService->generateSalesAnalysis($salesData);
             jsonResponse([
-                'summary' => $summary,
+                'summary' => $analysis['summary'],
+                'analysis' => $analysis,
                 'period' => $salesData['period'] ?? null,
             ]);
         } catch (Throwable $exception) {

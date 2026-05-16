@@ -17,12 +17,12 @@
             </h2>
             <p style="margin-top: 0.5rem; color: #64748b;">AI-generated report based on current month sales vs. historical patterns.</p>
         </div>
-        <span style="background: #e0e7ff; color: #4338ca; padding: 0.4rem 0.8rem; border-radius: 9999px; font-weight: 600; font-size: 0.875rem;">Gemini Pro 1.5</span>
+        <span style="background: #e0e7ff; color: #4338ca; padding: 0.4rem 0.8rem; border-radius: 9999px; font-weight: 600; font-size: 0.875rem;"><?= e($aiAnalysis['model'] ?? 'AI Model'); ?></span>
     </div>
     
     <div style="padding: 2rem; font-size: 1.25rem; line-height: 1.8; color: #334155; background: #fdfeff; border-radius: 0 0 8px 8px;">
         <div style="max-width: 800px;">
-            <p><?= nl2br(e($aiInsight)); ?></p>
+            <p><?= nl2br(e($aiAnalysis['summary'] ?? $aiInsight)); ?></p>
         </div>
     </div>
 </section>
@@ -84,9 +84,54 @@
     </section>
 </div>
 
+<div class="insight-grid" style="margin-top: 2rem;">
+    <section class="panel">
+        <div class="panel-header">
+            <h3>AI Opportunities</h3>
+        </div>
+        <div style="padding: 1rem 1.25rem;">
+            <?php if (!empty($aiAnalysis['opportunities'])): ?>
+                <ul style="margin: 0; padding-left: 1.25rem; line-height: 1.8; color: #334155;">
+                    <?php foreach ($aiAnalysis['opportunities'] as $item): ?>
+                        <li><?= e($item); ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php else: ?>
+                <p style="margin: 0; color: #64748b;">No AI opportunities available yet.</p>
+            <?php endif; ?>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h3>AI Risks</h3>
+        </div>
+        <div style="padding: 1rem 1.25rem;">
+            <?php if (!empty($aiAnalysis['risks'])): ?>
+                <ul style="margin: 0; padding-left: 1.25rem; line-height: 1.8; color: #334155;">
+                    <?php foreach ($aiAnalysis['risks'] as $item): ?>
+                        <li><?= e($item); ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php else: ?>
+                <p style="margin: 0; color: #64748b;">No AI risks available yet.</p>
+            <?php endif; ?>
+        </div>
+    </section>
+</div>
+
+<section class="panel" style="margin-top: 2rem;">
+    <div class="panel-header">
+        <h3>Recommended Action</h3>
+    </div>
+    <div style="padding: 1.25rem; color: #334155; line-height: 1.8;">
+        <p style="margin: 0;"><?= e($aiAnalysis['recommendation'] ?? 'No recommendation available yet.'); ?></p>
+    </div>
+</section>
+
  </div>
 </main>
 </div>
-<script src="<?= e(assetPath('js/app.js')); ?>"></script>
+<script src="<?= e(basePath('js/app.js')); ?>"></script>
 </body>
 </html>

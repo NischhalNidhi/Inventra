@@ -283,11 +283,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // ---------------------------------------------------------------
     // AI SALES INSIGHT CARD
     // ---------------------------------------------------------------
-    const salesInsightCard = document.querySelector('[data-sales-insight-card]');
-    const salesInsightStatus = document.querySelector('[data-sales-insight-status]');
-    const salesInsightCopy = document.querySelector('[data-sales-insight-copy]');
+    document.querySelectorAll('[data-sales-insight-card]').forEach((salesInsightCard) => {
+        const salesInsightStatus = salesInsightCard.querySelector('[data-sales-insight-status]');
+        const salesInsightCopy = salesInsightCard.querySelector('[data-sales-insight-copy]');
 
-    if (salesInsightCard && salesInsightStatus && salesInsightCopy) {
+        if (!salesInsightStatus || !salesInsightCopy) { return; }
+
         const setSalesInsightState = (message, isLoading = false, isSummary = false) => {
             salesInsightStatus.textContent = message;
             salesInsightStatus.classList.toggle('is-loading', isLoading);
@@ -314,7 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .catch(() => {
                 setSalesInsightState('Insight unavailable', false, false);
             });
-    }
+    });
 
     // ---------------------------------------------------------------
     // STEPPER BUTTONS

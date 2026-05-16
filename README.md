@@ -68,7 +68,6 @@ Inventra/
 │   ├── users.php
 │   ├── logistics.php
 │   ├── dashboard.php
-│   └── mock_ai.php      ← Local AI insight simulation
 │
 ├── core/                ← Shared utilities loaded by everything
 │   ├── helpers.php      ← Global functions (e(), env(), redirectTo(), etc.)
