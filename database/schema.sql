@@ -246,7 +246,7 @@ SELECT * FROM (
       'System Manager' AS full_name,
       'manager@inventra.local' AS email,
       'manager' AS username,
-      '$2y$12$g9t01Mpot.2IjSQCVU7K0eccXXo.nP8uTHDsumOl6X9WRzAfrwqR.' AS password_hash,
+      '$2y$12$fuzGDrJ18sy15/BTjMLJyuvMAKUV1Tls9NQ7mzZU0SzKxZujsbdYe' AS password_hash,
       'Manager' AS role,
       1 AS is_active
 

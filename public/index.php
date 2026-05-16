@@ -7,7 +7,7 @@ require_once __DIR__ . '/../core/dependencies.php';
 // ── Auto database initialization ─────────────────────────────────────────────
 // On a fresh clone, the database and tables won't exist yet.
 // This runs the schema automatically on first visit — no CLI commands needed.
-require_once __DIR__ . '/../database/bootstrap.php';
+require_once __DIR__ . '/../database/database.php';
 try {
     initializeConfiguredDatabase();
 } catch (Throwable $e) {
@@ -574,14 +574,23 @@ switch ($page) {
         $canViewSalesInsight = $authController->can('reports.sales.insight');
         $authController->authorize($canViewDaily ? 'reports.sales.daily' : 'reports.inventory');
 
-        $inventorySummary = $canViewInventory ? $reportModel->getInventorySummary() : [];
-        $inventoryReport = $canViewInventory ? $reportModel->getInventoryReport($fromDate ?: null, $toDate ?: null) : [];
-        $monthlySales = $canViewMonthly ? $reportModel->getMonthlySales($fromDate ?: null, $toDate ?: null) : [];
-        $dailySales = $canViewDaily ? $reportModel->getDailySales($fromDate ?: null, $toDate ?: null) : [];
         $lowStockCategoryId = $lowCategoryId !== '' ? (int) $lowCategoryId : null;
-        // Use low stock filters only when the user can access the low stock report.
-        $lowStockReport = $canViewLow ? $reportModel->getLowStockReport($lowFromDate ?: null, $lowToDate ?: null, $lowStockCategoryId) : [];
-        $movementSummary = $canViewMovement ? $reportModel->getStockMovementSummary($fromDate ?: null, $toDate ?: null) : [];
+        $reportDashboard = $reportModel->getReportDashboard(
+            $fromDate ?: null,
+            $toDate ?: null,
+            $lowFromDate ?: null,
+            $lowToDate ?: null,
+            $lowStockCategoryId
+        );
+        $inventorySummary = $canViewInventory ? $reportDashboard['inventory_summary'] : [];
+        $salesSummary = ($canViewMonthly || $canViewDaily) ? $reportDashboard['sales_summary'] : [];
+        $inventoryReport = $canViewInventory ? $reportDashboard['inventory_report'] : [];
+        $monthlySales = $canViewMonthly ? $reportDashboard['monthly_sales'] : [];
+        $dailySales = $canViewDaily ? $reportDashboard['daily_sales'] : [];
+        $lowStockReport = $canViewLow ? $reportDashboard['low_stock_report'] : [];
+        $movementSummary = $canViewMovement ? $reportDashboard['movement_summary'] : [];
+        $reportCharts = $reportDashboard['charts'];
+        $reportInsightData = $reportDashboard['insight_data'];
         $importBatches = $authController->can('reports.import') ? $reportModel->getImportBatches(12) : [];
         $productsData = $productModel->getAll(1, 200, '', ['archived' => '0']);
         $products = $productsData['data'];

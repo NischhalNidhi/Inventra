@@ -97,32 +97,49 @@ foreach ($products as $p) {
     $stmt->execute($p);
 }
 
-echo "Generating historical sales for analytics...\n";
+echo "Generating historical sales for analytics (last 12 months)...\n";
 $products = $pdo->query("SELECT id, unit_price FROM products")->fetchAll(PDO::FETCH_ASSOC);
-$regions = ['North', 'South', 'East', 'West', 'Central'];
-$stmt = $pdo->prepare("INSERT INTO sales_transactions (product_id, quantity, unit_price, sale_date, region, created_by) VALUES (?, ?, ?, ?, ?, 1)");
+$regions = ['North Store', 'South Store', 'East Mall', 'West Plaza', 'Central Hub'];
+$paymentMethods = ['Cash', 'Credit Card', 'Mobile Pay', 'Debit Card'];
 
 // Clear old transactions if any
 $pdo->exec("DELETE FROM sales_transactions");
 
-// Seed Current Month
-$currentMonthDays = (int)date('d');
-for ($i = 0; $i < 200; $i++) {
-    $prod = $products[array_rand($products)];
-    $qty = rand(1, 10);
-    $daysAgo = rand(0, $currentMonthDays - 1);
-    $date = date('Y-m-d', strtotime("-$daysAgo days"));
-    $region = $regions[array_rand($regions)];
-    $stmt->execute([$prod['id'], $qty, $prod['unit_price'], $date, $region]);
+$stmt = $pdo->prepare("INSERT INTO sales_transactions 
+    (invoice_id, product_id, quantity, unit_price, sale_date, sale_time, region, payment_method, customer_type, created_by) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)");
+
+for ($m = 11; $m >= 0; $m--) {
+    $monthDate = date('Y-m-01', strtotime("-$m months"));
+    $monthName = date('F', strtotime($monthDate));
+    $daysInMonth = (int)date('t', strtotime($monthDate));
+    if ($m === 0) $daysInMonth = (int)date('d');
+    
+    // Seasonal factor (higher sales in summer and end of year)
+    $monthNum = (int)date('n', strtotime($monthDate));
+    $seasonalFactor = 1.0;
+    if (in_array($monthNum, [11, 12, 1])) $seasonalFactor = 1.6; // Holiday peak
+    if (in_array($monthNum, [6, 7])) $seasonalFactor = 1.3;     // Summer peak
+    
+    $transactionCount = (int)(rand(150, 250) * $seasonalFactor);
+    echo "  - Seeding $monthName ($transactionCount transactions)...\n";
+    
+    for ($i = 0; $i < $transactionCount; $i++) {
+        $prod = $products[array_rand($products)];
+        $qty = rand(1, 5);
+        if ($prod['unit_price'] < 100) $qty = rand(2, 10);
+        
+        $day = rand(1, $daysInMonth);
+        $date = date('Y-m-d', strtotime(date('Y-m', strtotime($monthDate)) . "-$day"));
+        $time = sprintf('%02d:%02d:%02d', rand(9, 21), rand(0, 59), rand(0, 59));
+        
+        $invoiceId = 'INV-' . strtoupper(substr(md5((string)rand()), 0, 8));
+        $region = $regions[array_rand($regions)];
+        $pay = $paymentMethods[array_rand($paymentMethods)];
+        $cust = rand(0, 10) > 7 ? 'Member' : 'Normal';
+        
+        $stmt->execute([$invoiceId, $prod['id'], $qty, $prod['unit_price'], $date, $time, $region, $pay, $cust]);
+    }
 }
 
-// Seed Previous Month
-for ($i = 0; $i < 250; $i++) {
-    $prod = $products[array_rand($products)];
-    $qty = rand(1, 10);
-    $date = date('Y-m-d', strtotime('first day of last month +' . rand(0, 27) . ' days'));
-    $region = $regions[array_rand($regions)];
-    $stmt->execute([$prod['id'], $qty, $prod['unit_price'], $date, $region]);
-}
-
-echo "Database successfully seeded with real product data and images!\n";
+echo "Database successfully seeded with realistic, year-long sales data!\n";
