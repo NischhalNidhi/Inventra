@@ -513,8 +513,11 @@ switch ($page) {
             try {
                 $insightData = $reportModel->getAdvancedSalesInsightData();
                 $aiInsight = $aiSalesInsightService->generateMonthlySalesInsight($insightData);
-            } catch (Exception $e) {
-                $aiInsight = 'AI Insight temporarily unavailable.';
+            } catch (Throwable $e) {
+                // Show real error in development so it is easy to diagnose
+                $aiInsight = env('APP_ENV') !== 'production'
+                    ? '⚠ AI Error: ' . $e->getMessage()
+                    : 'AI Insight temporarily unavailable.';
             }
         }
 
@@ -589,8 +592,11 @@ switch ($page) {
             try {
                 $insightData = $reportModel->getAdvancedSalesInsightData();
                 $aiInsight = $aiSalesInsightService->generateMonthlySalesInsight($insightData);
-            } catch (Exception $e) {
-                $aiInsight = 'AI Insight temporarily unavailable.';
+            } catch (Throwable $e) {
+                // Show real error in development so it is easy to diagnose
+                $aiInsight = env('APP_ENV') !== 'production'
+                    ? '⚠ AI Error: ' . $e->getMessage()
+                    : 'AI Insight temporarily unavailable.';
             }
         }
 

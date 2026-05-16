@@ -63,6 +63,8 @@ class AiSalesInsightService
             ],
         ];
 
+        $isProduction = env('APP_ENV') === 'production';
+
         // Make the HTTP request
         $ch = curl_init($url);
         curl_setopt_array($ch, [
@@ -72,6 +74,11 @@ class AiSalesInsightService
             CURLOPT_POSTFIELDS     => json_encode($payload, JSON_UNESCAPED_SLASHES),
             CURLOPT_TIMEOUT        => 20,
             CURLOPT_CONNECTTIMEOUT => 8,
+            // On XAMPP Windows, the cURL CA certificate bundle is often not
+            // configured, causing SSL verification to fail for googleapis.com.
+            // It is safe to disable this on a local development machine.
+            CURLOPT_SSL_VERIFYPEER => $isProduction,
+            CURLOPT_SSL_VERIFYHOST => $isProduction ? 2 : 0,
         ]);
 
         $response  = curl_exec($ch);
