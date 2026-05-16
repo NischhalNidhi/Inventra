@@ -81,6 +81,16 @@ function initializeConfiguredDatabase(): void
 
     $dbPdo = createConfiguredDatabaseConnection();
     applySchema($dbPdo, readSchemaSql());
+
+    // Auto-seed demo data if the users table is empty (i.e. fresh DB)
+    $userCount = (int) $dbPdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
+    if ($userCount === 0) {
+        ob_start();
+        require_once __DIR__ . '/seed_demo_users.php';
+        require_once __DIR__ . '/seed_department_store.php';
+        require_once __DIR__ . '/seed_analytics.php';
+        ob_end_clean();
+    }
 }
 
 function rebuildConfiguredDatabase(): void
