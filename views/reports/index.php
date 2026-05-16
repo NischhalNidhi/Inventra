@@ -208,28 +208,70 @@
     </section>
 <?php endif; ?>
 
-<?php if ($monthlySales): ?>
+<?php if ($monthlySales !== false): ?>
+    <?php
+        $salesYear = $_GET['sales_year'] ?? date('Y');
+        $annualTotal = 0;
+        $bestMonthTotal = -1;
+        $bestMonthName = 'N/A';
+        foreach ($monthlySales as $row) {
+            $total = (float) $row['total'];
+            $annualTotal += $total;
+            if ($total > $bestMonthTotal) {
+                $bestMonthTotal = $total;
+                $bestMonthName = date('F', strtotime($row['month'] . '-01'));
+            }
+        }
+        $avgMonthly = count($monthlySales) > 0 ? $annualTotal / count($monthlySales) : 0;
+    ?>
     <section class="panel">
         <div class="panel-header">
             <h2>Monthly Sales</h2>
-        </div>
-        <div class="panel-header">
-            <h2>Monthly Sales</h2>
             <?php if ($authController->can('reports.export')): ?>
-                <a href="<?= e(appRootPath('api/reports.php?type=export-monthly-csv' . ($fromDate ? '&from_date=' . urlencode($fromDate) : '') . ($toDate ? '&to_date=' . urlencode($toDate) : ''))); ?>"
+                <a href="<?= e(appRootPath('api/reports.php?type=export-monthly-csv&from_date=' . $salesYear . '-01-01&to_date=' . $salesYear . '-12-31')); ?>"
                     class="button ghost small">Export to CSV</a>
             <?php endif; ?>
         </div>
         <div class="panel-header">
-            <h3>Filter by Date Range</h3>
-            <form class="form-grid sales-filter-form" data-sales-filter="monthly">
-                <label><span>Start Date</span><input type="date" name="from_date"
-                        value="<?= e($_GET['from_date'] ?? ''); ?>"></label>
-                <label><span>End Date</span><input type="date" name="to_date"
-                        value="<?= e($_GET['to_date'] ?? ''); ?>"></label>
+            <h3>Filter by Year</h3>
+            <form class="form-grid" method="get" action="<?= e(basePath('index.php')); ?>">
+                <input type="hidden" name="page" value="reports">
+                <label>
+                    <span>Year</span>
+                    <select name="sales_year">
+                        <?php 
+                        $currentYear = (int) date('Y');
+                        for ($y = $currentYear + 1; $y >= $currentYear - 5; $y--): ?>
+                            <option value="<?= $y ?>" <?= selectedIf((string) $salesYear, (string) $y) ?>><?= $y ?></option>
+                        <?php endfor; ?>
+                    </select>
+                </label>
                 <button class="button ghost" type="submit">Apply Filter</button>
             </form>
         </div>
+
+        <?php if ($authController->can('reports.export')): // Manager only ?>
+            <section class="stats-grid" style="margin-bottom: 2rem;">
+                <article class="stat-card primary">
+                    <span class="stat-label">Total Annual Sales</span>
+                    <strong>NPR <?= e(number_format($annualTotal, 2)); ?></strong>
+                </article>
+                <article class="stat-card muted">
+                    <span class="stat-label">Average Monthly</span>
+                    <strong>NPR <?= e(number_format($avgMonthly, 2)); ?></strong>
+                </article>
+                <article class="stat-card danger">
+                    <span class="stat-label">Best Month</span>
+                    <strong><?= e($bestMonthName); ?></strong>
+                    <small>NPR <?= e(number_format($bestMonthTotal > 0 ? $bestMonthTotal : 0, 2)); ?></small>
+                </article>
+            </section>
+
+            <div class="graph-container" style="margin-bottom: 2rem;" data-monthly-sales-graph='<?= e(json_encode($monthlySales, JSON_HEX_APOS | JSON_HEX_TAG)); ?>'>
+                <canvas id="monthly-sales-canvas"></canvas>
+            </div>
+        <?php endif; ?>
+
         <?php if (!empty($canViewSalesInsight)): ?>
             <article class="insight-card sales-ai-insight" data-sales-insight-card
                 data-endpoint="<?= e(appRootPath('api/reports.php?type=sales-insight')); ?>">
@@ -254,7 +296,7 @@
                 <tbody>
                     <?php foreach ($monthlySales as $row): ?>
                         <tr>
-                            <td><?= e($row['month']); ?></td>
+                            <td><?= e(date('F Y', strtotime($row['month'] . '-01'))); ?></td>
                             <td><?= e(number_format((float) $row['total'], 2)); ?></td>
                         </tr>
                     <?php endforeach; ?>

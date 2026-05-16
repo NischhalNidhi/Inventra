@@ -546,7 +546,10 @@ switch ($page) {
 
         $inventorySummary = $canViewInventory ? $reportModel->getInventorySummary() : [];
         $inventoryReport = $canViewInventory ? $reportModel->getInventoryReport($fromDate ?: null, $toDate ?: null) : [];
-        $monthlySales = $canViewMonthly ? $reportModel->getMonthlySales($fromDate ?: null, $toDate ?: null) : [];
+        $salesYear = trim($_GET['sales_year'] ?? date('Y'));
+        $monthlyFrom = $salesYear . '-01-01';
+        $monthlyTo = $salesYear . '-12-31';
+        $monthlySales = $canViewMonthly ? $reportModel->getMonthlySales($monthlyFrom, $monthlyTo) : [];
         $dailySales = $canViewDaily ? $reportModel->getDailySales($fromDate ?: null, $toDate ?: null) : [];
         $lowStockCategoryId = $lowCategoryId !== '' ? (int) $lowCategoryId : null;
         // Use low stock filters only when the user can access the low stock report.

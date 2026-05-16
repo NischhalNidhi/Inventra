@@ -113,11 +113,7 @@
                 <th>Actions</th>
             </tr>
             </thead>
-<<<<<<< HEAD
-            <tbody id="featured-products-body">
-=======
             <tbody id="product-table-body">
->>>>>>> 51334e0fd1318d84db20c218ddca5f579f213080
             <?php foreach ($featuredProducts as $product): ?>
                 <?php
                     $fpQty = (int) $product['stock_quantity'];
@@ -143,14 +139,9 @@
                     </td>
                     <td><?= e($product['sku']); ?></td>
                     <td><?= e($product['category_name'] ?? 'Unassigned'); ?></td>
-<<<<<<< HEAD
                     <td><strong class="stock-inline <?= $fpBadge ?>"><?= e((string) $fpQty); ?></strong></td>
                     <td><span class="badge <?= $fpBadge ?>"><?= $fpText ?></span></td>
-=======
-                    <td><?= e((string) $product['stock_quantity']); ?></td>
-                    <td><span class="badge <?= $low ? 'low' : 'healthy'; ?>"><?= $low ? 'LOW STOCK' : 'IN STOCK'; ?></span></td>
                     <td><a class="button small ghost" href="<?= e(basePath('index.php?page=products')); ?>">Open</a></td>
->>>>>>> 51334e0fd1318d84db20c218ddca5f579f213080
                 </tr>
             <?php endforeach; ?>
             </tbody>

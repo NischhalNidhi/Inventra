@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ---------------------------------------------------------------
-    // LOGIN FORM — §5 client-side validation + loading spinner + AJAX
+    // LOGIN FORM â€” Â§5 client-side validation + loading spinner + AJAX
     // ---------------------------------------------------------------
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
             input.focus();
         };
 
-        /** Show the generic error banner (§4.6) — always generic message */
+        /** Show the generic error banner (Â§4.6) â€” always generic message */
         const showBanner = (message) => {
             if (!errorBanner) { return; }
             const msgEl = errorBanner.querySelector('p');
@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
             errorBanner.classList.remove('hidden');
         };
 
-        /** Enter loading state — §4.5 */
+        /** Enter loading state â€” Â§4.5 */
         const setLoading = (loading) => {
             if (!submitBtn) { return; }
             submitBtn.setAttribute('aria-busy', loading ? 'true' : 'false');
@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (spinner) { spinner.style.display  = loading ? ''     : 'none'; }
         };
 
-        // Clear errors the moment user starts typing in either field (§4.6)
+        // Clear errors the moment user starts typing in either field (Â§4.6)
         [emailInput, passwordInput].forEach((el) => {
             if (el) {
                 el.addEventListener('input',   clearErrors);
@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const email    = (emailInput?.value    || '').trim();
             const password = (passwordInput?.value || '').trim();
 
-            // Client-side pre-flight validation (§5)
+            // Client-side pre-flight validation (Â§5)
             let hasError = false;
             if (!email) {
                 showFieldError(emailInput, emailError, 'Email is required.');
@@ -131,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                // Handle error statuses (§5 Server-Side Response Handling)
+                // Handle error statuses (Â§5 Server-Side Response Handling)
                 if (response.status === 401) {
                     showBanner('Invalid email or password.');
                 } else if (response.status === 429) {
@@ -148,7 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ---------------------------------------------------------------
-    // PASSWORD VISIBILITY TOGGLE — shared across all auth forms
+    // PASSWORD VISIBILITY TOGGLE â€” shared across all auth forms
     // Works with both .auth-password-input wrappers (new) and any
     // wrapper containing [data-password-input] (legacy).
     // ---------------------------------------------------------------
@@ -239,7 +239,6 @@ document.addEventListener('DOMContentLoaded', () => {
 =======
         tableBody.innerHTML = products.map((product) => `
             <tr data-product-id="${product.id}">
->>>>>>> 51334e0fd1318d84db20c218ddca5f579f213080
                 <td>
                     <div style="display:flex;align-items:center;gap:14px;">
                         <button type="button" class="media-thumb-button" data-image-trigger data-image-src="${escapeHtml(product.image_url)}" data-image-title="${escapeHtml(product.name)}">
@@ -277,7 +276,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td style="font-weight:700;">${formatCurrency(product.unit_price)}</td>
                 <td><span class="badge ${product.status_class}">${product.status_class === 'low' ? 'Low Stock' : 'In Stock'}</span></td>
                 <td class="action-group">${buildActionButtons(product)}</td>
->>>>>>> 51334e0fd1318d84db20c218ddca5f579f213080
             </tr>
         `}).join('');
     };
@@ -555,7 +553,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (nextOpen) {
                 notificationsMenu.classList.add('open');
                 notificationsTrigger.setAttribute('aria-expanded', 'true');
->>>>>>> 51334e0fd1318d84db20c218ddca5f579f213080
             }
         });
     }
@@ -606,7 +603,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ---------------------------------------------------------------
-    // LOW STOCK ALERT GRAPH — Canvas bar chart
+    // LOW STOCK ALERT GRAPH â€” Canvas bar chart
     // ---------------------------------------------------------------
     const graphContainer = document.getElementById('low-stock-graph-container');
     const canvas = document.getElementById('low-stock-canvas');
@@ -716,7 +713,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ctx.font = '600 11px Inter, sans-serif';
                 ctx.fillStyle = isLow ? (dark ? '#f58aa0' : '#9e3f4e') : textColor;
                 let displayName = product.name;
-                if (displayName.length > 18) displayName = displayName.substring(0, 17) + '…';
+                if (displayName.length > 18) displayName = displayName.substring(0, 17) + 'â€¦';
                 ctx.fillText(displayName, labelWidth - 12, y + barHeight / 2 + 4);
 
                 // Stock bar (animated)
@@ -843,7 +840,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${hoveredBar.isLow
                         ? `<div class="tt-row" style="color:#ff8b9a;margin-top:2px;">
                                <span>Deficit</span>
-                               <span>−${deficit} (${pct}%)</span>
+                               <span>âˆ’${deficit} (${pct}%)</span>
                            </div>`
                         : `<div class="tt-row" style="color:#6fd9a5;margin-top:2px;">
                                <span>Status</span>
@@ -885,8 +882,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ---------------------------------------------------------------
-<<<<<<< HEAD
-    // DASHBOARD AUTO-REFRESH — Poll every 2 seconds
+
+    // DASHBOARD AUTO-REFRESH â€” Poll every 2 seconds
     // ---------------------------------------------------------------
     const dashboardStats   = document.getElementById('dashboard-stats');
     const liveIndicator    = document.getElementById('live-indicator');
@@ -1014,7 +1011,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Poll every 2 seconds
         setInterval(refreshDashboard, 2000);
     }
-=======
+    }
+
     // AI PRODUCT DISTRIBUTION HEAT MAP
     // ---------------------------------------------------------------
     const heatmap = document.querySelector('[data-product-distribution-heatmap]');
@@ -1176,5 +1174,103 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
->>>>>>> 51334e0fd1318d84db20c218ddca5f579f213080
 });
+
+    // ---------------------------------------------------------------
+    // MONTHLY SALES BAR CHART WITH TREND LINE
+    // ---------------------------------------------------------------
+    const monthlySalesContainer = document.querySelector('[data-monthly-sales-graph]');
+    if (monthlySalesContainer) {
+        const canvas = document.getElementById('monthly-sales-canvas');
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            let data = [];
+            try { data = JSON.parse(monthlySalesContainer.dataset.monthlySalesGraph || '[]'); } catch (e) {}
+            if (data.length > 0) {
+                data.sort((a, b) => a.month.localeCompare(b.month));
+                const drawMonthlyChart = () => {
+                    const rect = monthlySalesContainer.getBoundingClientRect();
+                    canvas.width = rect.width;
+                    canvas.height = 300;
+                    const width = canvas.width;
+                    const height = canvas.height;
+                    const padding = { top: 40, right: 20, bottom: 40, left: 60 };
+                    const chartWidth = width - padding.left - padding.right;
+                    const chartHeight = height - padding.top - padding.bottom;
+                    ctx.clearRect(0, 0, width, height);
+                    const maxTotal = Math.max(...data.map(d => parseFloat(d.total))) || 1;
+                    const gridLines = 5;
+                    ctx.fillStyle = '#64748b';
+                    ctx.font = '12px Inter, sans-serif';
+                    ctx.textAlign = 'right';
+                    ctx.textBaseline = 'middle';
+                    for (let i = 0; i <= gridLines; i++) {
+                        const val = maxTotal * (i / gridLines);
+                        const y = height - padding.bottom - (chartHeight * (i / gridLines));
+                        ctx.fillText(val.toLocaleString(undefined, {maximumFractionDigits: 0}), padding.left - 10, y);
+                        ctx.beginPath();
+                        ctx.moveTo(padding.left, y);
+                        ctx.lineTo(width - padding.right, y);
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+                        ctx.stroke();
+                    }
+                    const barCount = data.length;
+                    const barWidth = Math.min((chartWidth / barCount) * 0.6, 60);
+                    const spacing = (chartWidth - (barWidth * barCount)) / (barCount + 1);
+                    const points = [];
+                    data.forEach((d, i) => {
+                        const x = padding.left + spacing + (i * (barWidth + spacing));
+                        const val = parseFloat(d.total);
+                        const barHeight = (val / maxTotal) * chartHeight;
+                        const y = height - padding.bottom - barHeight;
+                        const gradient = ctx.createLinearGradient(0, y, 0, height - padding.bottom);
+                        gradient.addColorStop(0, '#7c3aed');
+                        gradient.addColorStop(1, 'rgba(124, 58, 237, 0.2)');
+                        ctx.fillStyle = gradient;
+                        ctx.beginPath();
+                        ctx.roundRect ? ctx.roundRect(x, y, barWidth, barHeight, [4, 4, 0, 0]) : ctx.rect(x, y, barWidth, barHeight);
+                        ctx.fill();
+                        const monthStr = d.month.includes('-') ? d.month + '-01' : d.month;
+                        const monthLabel = new Date(monthStr).toLocaleDateString('en-US', { month: 'short' });
+                        ctx.fillStyle = '#94a3b8';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(monthLabel, x + barWidth / 2, height - padding.bottom + 20);
+                        points.push({ x: x + barWidth / 2, y: y });
+                    });
+                    if (points.length > 1) {
+                        ctx.beginPath();
+                        ctx.moveTo(points[0].x, points[0].y);
+                        for (let i = 0; i < points.length - 1; i++) {
+                            const p0 = points[i === 0 ? 0 : i - 1];
+                            const p1 = points[i];
+                            const p2 = points[i + 1];
+                            const p3 = points[i + 2 === points.length ? i + 1 : i + 2];
+                            const cp1x = p1.x + (p2.x - p0.x) / 6;
+                            const cp1y = p1.y + (p2.y - p0.y) / 6;
+                            const cp2x = p2.x - (p3.x - p1.x) / 6;
+                            const cp2y = p2.y - (p3.y - p1.y) / 6;
+                            ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
+                        }
+                        ctx.strokeStyle = '#f59e0b';
+                        ctx.lineWidth = 3;
+                        ctx.stroke();
+                        points.forEach(p => {
+                            ctx.beginPath();
+                            ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+                            ctx.fillStyle = '#1e293b';
+                            ctx.fill();
+                            ctx.lineWidth = 2;
+                            ctx.strokeStyle = '#f59e0b';
+                            ctx.stroke();
+                        });
+                    }
+                };
+                drawMonthlyChart();
+                let resizeTimer;
+                window.addEventListener('resize', () => {
+                    clearTimeout(resizeTimer);
+                    resizeTimer = setTimeout(drawMonthlyChart, 150);
+                });
+            }
+        }
+    }
