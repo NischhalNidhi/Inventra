@@ -11,12 +11,21 @@ function loadEnvFile(?string $path = null): void
     }
 
     $loaded = true;
-    $envPath = $path ?? dirname(__DIR__) . '/.env';
-    if (!is_file($envPath)) {
-        if ($path === null) {
-            $envPath = dirname(__DIR__) . '/.env.example';
+    $root    = dirname(__DIR__);
+    $envPath = $path ?? $root . '/.env';
+
+    // On a fresh clone, .env won't exist — auto-copy .env.example so the app
+    // works immediately without any manual setup step.
+    if (!is_file($envPath) && $path === null) {
+        $example = $root . '/.env.example';
+        if (is_file($example) && is_writable($root)) {
+            @copy($example, $envPath);
+        }
+        if (!is_file($envPath)) {
+            $envPath = $example; // read example directly if copy failed
         }
     }
+
     if (!is_file($envPath) || !is_readable($envPath)) {
         return;
     }
@@ -54,8 +63,12 @@ function loadEnvFile(?string $path = null): void
             putenv($key . '=' . $value);
         }
 
-        $_ENV[$key] = $value;
-        $_SERVER[$key] = $value;
+        if (!isset($_ENV[$key])) {
+            $_ENV[$key] = $value;
+        }
+        if (!isset($_SERVER[$key])) {
+            $_SERVER[$key] = $value;
+        }
     }
 }
 
@@ -101,11 +114,20 @@ function env(string $key, ?string $default = null): ?string
 
 function basePath(string $path = ''): string
 {
-    $base = env('APP_BASE_PATH');
-    if ($base === null) {
-        $base = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
-        $base = rtrim($base, '/');
+    // Use APP_BASE_PATH from .env if explicitly set (non-empty).
+    // Otherwise auto-detect from the URL: strip /public from the end of the
+    // script directory so that both XAMPP sub-folder installs and root-domain
+    // servers work without any configuration.
+    $configured = env('APP_BASE_PATH');
+    if ($configured !== null && $configured !== '') {
+        $base = rtrim($configured, '/');
+    } else {
+        $scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/'));
+        // If the script is served from /SomeFolder/public, base is /SomeFolder/public.
+        // If served from /public or /, base is '' (root).
+        $base = rtrim($scriptDir, '/');
     }
+
     return $path === '' ? ($base === '' ? '/' : $base) : $base . '/' . ltrim($path, '/');
 }
 

@@ -84,6 +84,51 @@
     </section>
 </div>
 
+<div class="insight-grid" style="margin-top: 2rem;">
+    <section class="panel">
+        <div class="panel-header">
+            <h3>AI Opportunities</h3>
+        </div>
+        <div style="padding: 1rem 1.25rem;">
+            <?php if (!empty($aiAnalysis['opportunities'])): ?>
+                <ul style="margin: 0; padding-left: 1.25rem; line-height: 1.8; color: #334155;">
+                    <?php foreach ($aiAnalysis['opportunities'] as $item): ?>
+                        <li><?= e($item); ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php else: ?>
+                <p style="margin: 0; color: #64748b;">No AI opportunities available yet.</p>
+            <?php endif; ?>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h3>AI Risks</h3>
+        </div>
+        <div style="padding: 1rem 1.25rem;">
+            <?php if (!empty($aiAnalysis['risks'])): ?>
+                <ul style="margin: 0; padding-left: 1.25rem; line-height: 1.8; color: #334155;">
+                    <?php foreach ($aiAnalysis['risks'] as $item): ?>
+                        <li><?= e($item); ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php else: ?>
+                <p style="margin: 0; color: #64748b;">No AI risks available yet.</p>
+            <?php endif; ?>
+        </div>
+    </section>
+</div>
+
+<section class="panel" style="margin-top: 2rem;">
+    <div class="panel-header">
+        <h3>Recommended Action</h3>
+    </div>
+    <div style="padding: 1.25rem; color: #334155; line-height: 1.8;">
+        <p style="margin: 0;"><?= e($aiAnalysis['recommendation'] ?? 'No recommendation available yet.'); ?></p>
+    </div>
+</section>
+
  </div>
 </main>
 </div>

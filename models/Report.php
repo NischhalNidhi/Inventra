@@ -15,15 +15,29 @@ class Report
     {
         $stmt = $this->pdo->prepare(
             'INSERT INTO sales_transactions
-             (product_id, quantity, unit_price, sale_date, region, source, created_by)
-             VALUES (:product_id, :quantity, :unit_price, :sale_date, :region, :source, :created_by)'
+             (invoice_id, branch_code, city, customer_type, customer_gender, product_id, quantity, unit_price, sale_date, sale_time, sold_at, region, payment_method, tax_amount, gross_total, cogs, gross_margin_percentage, gross_income, rating, source, created_by)
+             VALUES (:invoice_id, :branch_code, :city, :customer_type, :customer_gender, :product_id, :quantity, :unit_price, :sale_date, :sale_time, :sold_at, :region, :payment_method, :tax_amount, :gross_total, :cogs, :gross_margin_percentage, :gross_income, :rating, :source, :created_by)'
         );
         $stmt->execute([
+            'invoice_id' => $data['invoice_id'] ?? null,
+            'branch_code' => $data['branch_code'] ?? null,
+            'city' => $data['city'] ?? null,
+            'customer_type' => $data['customer_type'] ?? null,
+            'customer_gender' => $data['customer_gender'] ?? null,
             'product_id' => $data['product_id'],
             'quantity' => $data['quantity'],
             'unit_price' => $data['unit_price'],
             'sale_date' => $data['sale_date'],
+            'sale_time' => $data['sale_time'] ?? null,
+            'sold_at' => $data['sold_at'] ?? null,
             'region' => $data['region'],
+            'payment_method' => $data['payment_method'] ?? null,
+            'tax_amount' => $data['tax_amount'] ?? null,
+            'gross_total' => $data['gross_total'] ?? null,
+            'cogs' => $data['cogs'] ?? null,
+            'gross_margin_percentage' => $data['gross_margin_percentage'] ?? null,
+            'gross_income' => $data['gross_income'] ?? null,
+            'rating' => $data['rating'] ?? null,
             'source' => $source,
             'created_by' => $userId,
         ]);
@@ -175,10 +189,14 @@ class Report
 
     public function getAdvancedSalesInsightData(): array
     {
-        $thisMonthStart = (new DateTimeImmutable('first day of this month'))->format('Y-m-d');
-        $thisMonthEnd = (new DateTimeImmutable('last day of this month'))->format('Y-m-d');
-        $prevMonthStart = (new DateTimeImmutable('first day of last month'))->format('Y-m-d');
-        $prevMonthEnd = (new DateTimeImmutable('last day of last month'))->format('Y-m-d');
+        $stmt = $this->pdo->query('SELECT MAX(sale_date) FROM sales_transactions');
+        $maxDate = $stmt->fetchColumn() ?: date('Y-m-d');
+        $baseDate = new DateTimeImmutable($maxDate);
+        $thisMonthStart = $baseDate->format('Y-m-01');
+        $thisMonthEnd = $baseDate->format('Y-m-t');
+        $prevDate = $baseDate->modify('-1 month');
+        $prevMonthStart = $prevDate->format('Y-m-01');
+        $prevMonthEnd = $prevDate->format('Y-m-t');
 
         // This Month Summary
         $stmt = $this->pdo->prepare('SELECT SUM(quantity * unit_price) as total_revenue, COUNT(*) as transaction_count FROM sales_transactions WHERE sale_date BETWEEN ? AND ?');
