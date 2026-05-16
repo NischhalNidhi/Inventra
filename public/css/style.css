@@ -612,6 +612,13 @@ body.theme-dark .heatmap-row-label {
     opacity: 0.15;
 }
 
+body.theme-dark .blueprint-grid {
+    background-image:
+        linear-gradient(to right, rgba(255, 255, 255, 0.1) 1px, transparent 0),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 1px, transparent 0);
+    opacity: 0.08;
+}
+
 .main-bubble {
     position: absolute;
     pointer-events: none;
@@ -829,6 +836,96 @@ body.theme-dark .heatmap-row-label {
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
+}
+
+.ai-insight-panel {
+    border-left: 6px solid var(--primary);
+}
+
+.ai-insight-panel .panel-header {
+    border-bottom: 1px solid var(--surface-low);
+    padding-bottom: 1.5rem;
+}
+
+.ai-insight-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.5rem;
+    color: var(--text);
+}
+
+.ai-insight-icon {
+    color: var(--primary);
+}
+
+.ai-insight-subtitle {
+    margin-top: 0.5rem;
+    color: var(--text-muted);
+}
+
+.ai-insight-copy {
+    padding: 2rem;
+    font-size: 1.25rem;
+    line-height: 1.8;
+    color: var(--text);
+    background: var(--surface-low);
+    border-radius: 0 0 14px 14px;
+}
+
+.ai-insight-copy-inner {
+    max-width: 800px;
+}
+
+.metric-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
+    padding: 1rem;
+}
+
+.metric-card {
+    padding: 1rem;
+    background: var(--surface);
+    border-radius: 14px;
+}
+
+.metric-card p {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 0.75rem;
+}
+
+.metric-card strong {
+    display: block;
+    font-size: 1.5rem;
+    color: var(--text);
+}
+
+.metric-growth.positive {
+    color: #10b981;
+}
+
+.metric-growth.negative {
+    color: #ef4444;
+}
+
+body.theme-dark .ai-insight-panel,
+body.theme-dark .metric-card,
+body.theme-dark .ai-insight-copy {
+    background: var(--surface-mid);
+    border-color: var(--outline-variant);
+}
+
+body.theme-dark .ai-insight-panel .panel-header {
+    border-bottom-color: var(--surface);
+}
+
+body.theme-dark .insight-pill {
+    background: rgba(111, 141, 255, 0.16);
+    color: var(--primary);
 }
 
 .insight-kicker {

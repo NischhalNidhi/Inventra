@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-// Load all app dependencies (helpers, DB, models, controllers)
 require_once __DIR__ . '/../core/dependencies.php';
 
 extract(buildAppDependencies(), EXTR_SKIP);

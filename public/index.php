@@ -594,6 +594,7 @@ switch ($page) {
         $alertGraph = $productModel->getAlertGraphData();
         $dashboardAlerts = $productModel->getDashboardAlerts();
         $recentActivity = $authController->can('dashboard.activity') ? $productModel->getRecentActivity() : [];
+        $categories = $productModel->getCategories();
         
         $title = 'Inventra | Dashboard';
         $currentPage = 'dashboard';

@@ -78,10 +78,25 @@
     <div class="panel-header">
         <div>
             <h2>Recently Updated Products</h2>
-            <p>Quick view of the products most recently changed.</p>
+            <p>Search and filter products directly from the dashboard.</p>
         </div>
         <a class="button ghost" href="<?= e(basePath('index.php?page=products')); ?>">Open Inventory</a>
     </div>
+    <form class="form-grid dashboard-product-filters" action="#" method="get">
+        <label>
+            <span>Search</span>
+            <input id="live-search" type="text" name="keyword" placeholder="Search product, SKU, or category...">
+        </label>
+        <label>
+            <span>Category</span>
+            <select id="category-filter" name="category">
+                <option value="">All Categories</option>
+                <?php foreach ($categories as $category): ?>
+                    <option value="<?= e((string) $category['id']); ?>"><?= e($category['name']); ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+    </form>
     <div class="table-wrap">
         <table>
             <thead>
@@ -91,9 +106,10 @@
                 <th>Category</th>
                 <th>Quantity</th>
                 <th>Status</th>
+                <th>Actions</th>
             </tr>
             </thead>
-            <tbody>
+            <tbody id="product-table-body">
             <?php foreach ($featuredProducts as $product): ?>
                 <?php $low = (int) $product['stock_quantity'] <= (int) $product['min_threshold']; ?>
                 <tr>
@@ -113,6 +129,7 @@
                     <td><?= e($product['category_name'] ?? 'Unassigned'); ?></td>
                     <td><?= e((string) $product['stock_quantity']); ?></td>
                     <td><span class="badge <?= $low ? 'low' : 'healthy'; ?>"><?= $low ? 'LOW STOCK' : 'IN STOCK'; ?></span></td>
+                    <td><a class="button small ghost" href="<?= e(basePath('index.php?page=products')); ?>">Open</a></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>
