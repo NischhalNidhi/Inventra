@@ -509,7 +509,7 @@ switch ($page) {
         
         $aiInsight = 'Configure AI endpoint to see smart business insights.';
         $insightData = [];
-        if (env('AI_INSIGHTS_ENDPOINT')) {
+        if (env('AI_INSIGHTS_API_KEY')) {
             try {
                 $insightData = $reportModel->getAdvancedSalesInsightData();
                 $aiInsight = $aiSalesInsightService->generateMonthlySalesInsight($insightData);
@@ -585,7 +585,7 @@ switch ($page) {
         
         // AI Insight Integration
         $aiInsight = 'Overall revenue has declined by approximately 21% this month compared to the previous period, despite a steady transaction volume of 140 orders. While high-ticket items like Extra Virgin Olive Oil and Electronics continue to drive value, everyday essentials are underperforming. Focus on bundling staples to recover volume in the Grocery and Snacks categories.';
-        if (env('AI_INSIGHTS_ENDPOINT')) {
+        if (env('AI_INSIGHTS_API_KEY')) {
             try {
                 $insightData = $reportModel->getAdvancedSalesInsightData();
                 $aiInsight = $aiSalesInsightService->generateMonthlySalesInsight($insightData);
