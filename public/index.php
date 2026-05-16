@@ -80,13 +80,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($validated['errors']) {
                     setFlash('error', implode(' ', $validated['errors']));
                 } else {
-                    $userModel->createPendingSetup($validated['data']);
-                    $createdUser = $userModel->findByIdentifier((string) $validated['data']['email']);
-                    $mailResult = $createdUser ? $authController->sendAccountSetupEmail($createdUser) : ['success' => false];
-                    if ($mailResult['success']) {
-                        setFlash('success', 'User account created. A setup link was sent to the staff member.');
+                    if (!empty($validated['data']['manual_password'])) {
+                        $userModel->create($validated['data']);
+                        setFlash('success', 'User account created. They will be required to change their password on first login.');
                     } else {
-                        setFlash('error', 'User account created, but the setup email could not be sent. Check mail configuration.');
+                        $userModel->createPendingSetup($validated['data']);
+                        $createdUser = $userModel->findByIdentifier((string) $validated['data']['email']);
+                        $mailResult = $createdUser ? $authController->sendAccountSetupEmail($createdUser) : ['success' => false];
+                        if ($mailResult['success']) {
+                            setFlash('success', 'User account created. A setup link was sent to the staff member.');
+                        } else {
+                            setFlash('error', 'User account created, but the setup email could not be sent. User will need to use "Forgot Password" or you can Edit and set a password manually.');
+                        }
                     }
                 }
                 redirectTo(basePath('index.php?page=users'));
@@ -140,14 +145,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     setFlash('error', implode(' ', $validated['errors']));
                 } else {
                     $userModel->update($userId, $validated['data']);
-                    setFlash('success', 'User account updated.');
+                    $msg = 'User account updated.';
+                    if (!empty($validated['data']['password_hash'])) {
+                        $msg .= ' Password reset successfully. User must change it on next login.';
+                    }
+                    setFlash('success', $msg);
                 }
+                redirectTo(basePath('index.php?page=users'));
+                break;
+
+            case 'activate_user':
+                $authController->authorize('users.activate');
+                $userModel->activate((int) ($_POST['user_id'] ?? 0));
+                setFlash('success', 'User reactivated.');
                 redirectTo(basePath('index.php?page=users'));
                 break;
 
             case 'deactivate_user':
                 $authController->authorize('users.deactivate');
-                $userModel->deactivate((int) ($_POST['user_id'] ?? 0));
+                $targetUserId = (int) ($_POST['user_id'] ?? 0);
+
+                if ($targetUserId === (int) currentUser()['id']) {
+                    setFlash('error', 'You cannot deactivate your own account.');
+                    redirectTo(basePath('index.php?page=users'));
+                }
+
+                $userModel->deactivate($targetUserId);
                 setFlash('success', 'User deactivated.');
                 redirectTo(basePath('index.php?page=users'));
                 break;
@@ -409,6 +432,13 @@ switch ($page) {
         $authController->authorize('users.view');
         $search = trim($_GET['search'] ?? '');
         $users = $userModel->getAll($pagination['limit'], $pagination['offset'], $search);
+        
+        $editingUser = null;
+        if (isset($_GET['edit_id'])) {
+            $authController->authorize('users.edit');
+            $editingUser = $userModel->findById((int) $_GET['edit_id']);
+        }
+
         $totalItems = $userModel->countAll($search);
         $currentPageNum = $pagination['page'];
         $perPage = $pagination['limit'];
