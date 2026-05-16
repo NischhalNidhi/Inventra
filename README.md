@@ -19,7 +19,7 @@ Inventra is a modern, AI-integrated inventory management system designed specifi
 ## ⚙️ Setup & Installation
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/NischhalNidhi/inventory-system.git
+   git clone https://github.com/NischhalNidhi/Inventra.git
    ```
 2. **Database Configuration:**
    - Import `database/schema.sql` into your MySQL server.
