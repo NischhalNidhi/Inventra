@@ -416,16 +416,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const clearNotificationsButton = document.querySelector('[data-clear-notifications]');
     const notifList            = document.querySelector('[data-notif-list]');
 
-    if (profileMenu && profileTrigger) {
-        const closeAllMenus = () => {
-            profileMenu.classList.remove('open');
-            notificationsMenu?.classList.remove('open');
-            settingsMenu?.classList.remove('open');
-            profileTrigger.setAttribute('aria-expanded', 'false');
-            notificationsTrigger?.setAttribute('aria-expanded', 'false');
-            settingsTrigger?.setAttribute('aria-expanded', 'false');
-        };
+    // Close all menus - this is now called independently
+    const closeAllMenus = () => {
+        profileMenu?.classList.remove('open');
+        notificationsMenu?.classList.remove('open');
+        settingsMenu?.classList.remove('open');
+        profileTrigger?.setAttribute('aria-expanded', 'false');
+        notificationsTrigger?.setAttribute('aria-expanded', 'false');
+        settingsTrigger?.setAttribute('aria-expanded', 'false');
+    };
 
+    // Profile menu
+    if (profileMenu && profileTrigger) {
         const closeProfileMenu = () => {
             profileMenu.classList.remove('open');
             profileTrigger.setAttribute('aria-expanded', 'false');
@@ -442,59 +444,65 @@ document.addEventListener('DOMContentLoaded', () => {
                 closeProfileMenu();
             }
         });
+    }
 
-        if (notificationsMenu && notificationsTrigger) {
-            notificationsTrigger.addEventListener('click', (event) => {
-                event.stopPropagation();
-                const nextOpen = !notificationsMenu.classList.contains('open');
-                closeAllMenus();
-                if (nextOpen) {
-                    notificationsMenu.classList.add('open');
-                    notificationsTrigger.setAttribute('aria-expanded', 'true');
-                }
-            });
-        }
-
-        if (settingsMenu && settingsTrigger) {
-            settingsTrigger.addEventListener('click', (event) => {
-                event.stopPropagation();
-                const nextOpen = !settingsMenu.classList.contains('open');
-                closeAllMenus();
-                if (nextOpen) {
-                    settingsMenu.classList.add('open');
-                    settingsTrigger.setAttribute('aria-expanded', 'true');
-                }
-            });
-        }
-
-        if (themeToggle) {
-            themeToggle.addEventListener('click', () => {
-                const nextTheme = body.classList.contains('theme-dark') ? 'light' : 'dark';
-                body.classList.toggle('theme-dark', nextTheme === 'dark');
-                window.localStorage.setItem('inventra_theme', nextTheme);
-            });
-        }
-
-        if (clearNotificationsButton && notifList) {
-            clearNotificationsButton.addEventListener('click', () => {
-                notifList.innerHTML = '<li><span class="material-symbols-outlined">notifications_off</span><div><strong>No new notifications</strong><small>All notifications have been cleared.</small></div></li>';
-            });
-        }
-
-        document.addEventListener('click', (event) => {
-            if (
-                !profileMenu.contains(event.target) &&
-                !notificationsMenu?.contains(event.target) &&
-                !settingsMenu?.contains(event.target)
-            ) {
-                closeAllMenus();
+    // Notifications menu - INDEPENDENT of profile menu
+    if (notificationsMenu && notificationsTrigger) {
+        notificationsTrigger.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const nextOpen = !notificationsMenu.classList.contains('open');
+            closeAllMenus();
+            if (nextOpen) {
+                notificationsMenu.classList.add('open');
+                notificationsTrigger.setAttribute('aria-expanded', 'true');
             }
         });
+    }
 
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') { closeAllMenus(); }
+    // Settings menu - INDEPENDENT of profile menu
+    if (settingsMenu && settingsTrigger) {
+        settingsTrigger.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const nextOpen = !settingsMenu.classList.contains('open');
+            closeAllMenus();
+            if (nextOpen) {
+                settingsMenu.classList.add('open');
+                settingsTrigger.setAttribute('aria-expanded', 'true');
+            }
         });
     }
+
+    // Theme toggle - INDEPENDENT of any menu
+    if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+            const nextTheme = body.classList.contains('theme-dark') ? 'light' : 'dark';
+            body.classList.toggle('theme-dark', nextTheme === 'dark');
+            window.localStorage.setItem('inventra_theme', nextTheme);
+        });
+    }
+
+    // Clear notifications button - INDEPENDENT
+    if (clearNotificationsButton && notifList) {
+        clearNotificationsButton.addEventListener('click', () => {
+            notifList.innerHTML = '<li><span class="material-symbols-outlined">notifications_off</span><div><strong>No new notifications</strong><small>All notifications have been cleared.</small></div></li>';
+        });
+    }
+
+    // Close menus when clicking outside - apply to all menus
+    document.addEventListener('click', (event) => {
+        if (
+            !profileMenu?.contains(event.target) &&
+            !notificationsMenu?.contains(event.target) &&
+            !settingsMenu?.contains(event.target)
+        ) {
+            closeAllMenus();
+        }
+    });
+
+    // Close menus on Escape key
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') { closeAllMenus(); }
+    });
 
     // ---------------------------------------------------------------
     // LOW STOCK ALERT GRAPH — Canvas bar chart

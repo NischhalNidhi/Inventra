@@ -20,7 +20,7 @@ Inventra is a streamlined, web-based inventory management system designed for de
 2. **Run the setup script**:
    Open your terminal/command prompt and run:
    ```bash
-   php setup.php
+   git clone https://github.com/NischhalNidhi/Inventra.git
    ```
    *This will create your `.env` file, initialize the database, and seed demo data.*
 
