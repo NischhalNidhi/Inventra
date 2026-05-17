@@ -2,14 +2,13 @@
 
 <header class="topbar">
     <div>
-        <p class="eyebrow">MANAGER TOOLS / REPORTS</p>
-        <h1>Store Reports</h1>
-        <p class="lead">Generate inventory summaries, review low-stock items, and track sales activity with clearer
-            store-ready reporting.</p>
+        <p class="eyebrow">STORE PERFORMANCE / ANALYTICS</p>
+        <h1>Business Reports</h1>
+        <p class="lead">View detailed inventory summaries, sales trends, and AI-driven insights for store optimization.</p>
     </div>
 </header>
 
-<?php if ($inventorySummary): ?>
+<?php if (!empty($inventorySummary)): ?>
     <section class="stats-grid">
         <article class="stat-card primary">
             <span class="stat-label">Total SKUs</span>
@@ -57,19 +56,6 @@
     </section>
 <?php endif; ?>
 
-<section class="panel">
-    <div class="panel-header">
-        <h2>Inventory Report Filters</h2>
-        <form method="get" action="<?= e(basePath('index.php')); ?>" class="form-grid">
-            <input type="hidden" name="page" value="reports">
-            <label><span>From</span><input type="date" name="from_date"
-                    value="<?= e($_GET['from_date'] ?? ''); ?>"></label>
-            <label><span>To</span><input type="date" name="to_date" value="<?= e($_GET['to_date'] ?? ''); ?>"></label>
-            <button class="button ghost" type="submit">Generate Inventory Report</button>
-        </form>
-    </div>
-</section>
-
 <?php if ($authController->can('sales.record')): ?>
     <section class="panel">
         <div class="panel-header">
@@ -107,9 +93,13 @@
             class="form-grid">
             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()); ?>">
             <input type="hidden" name="action" value="import_sales">
-            <label class="wide"><span>Sales Import File</span><input type="file" name="sales_import" accept=".csv,.xlsx"
-                    required></label>
-            <button class="button primary" type="submit">Upload and Import</button>
+            <div class="wide" style="display: flex; align-items: flex-end; gap: 16px;">
+                <label style="flex: 1; margin: 0;">
+                    <span>Sales Import File</span>
+                    <input type="file" name="sales_import" accept=".csv,.xlsx" required>
+                </label>
+                <button class="button primary" type="submit">Upload and Import</button>
+            </div>
         </form>
         <div class="table-wrap">
             <table>
@@ -142,38 +132,28 @@
     </section>
 <?php endif; ?>
 
-<?php if ($authController->can('reports.low_stock')): ?>
-    <!-- Low stock report filter panel is only shown to authorized roles -->
-    <section class="panel">
-        <div class="panel-header">
-            <h2>Low Stock Alert Filters</h2>
-        </div>
-        <form method="get" action="<?= e(basePath('index.php')); ?>" class="form-grid">
-            <input type="hidden" name="page" value="reports">
-            <label><span>From</span><input type="date" name="low_from_date"
-                    value="<?= e($_GET['low_from_date'] ?? ''); ?>"></label>
-            <label><span>To</span><input type="date" name="low_to_date"
-                    value="<?= e($_GET['low_to_date'] ?? ''); ?>"></label>
-            <label>
-                <span>Category</span>
-                <select name="category_id">
-                    <option value="">All Categories</option>
-                    <?php foreach ($categories as $category): ?>
-                        <option value="<?= e((string) $category['id']); ?>" <?= selectedIf($_GET['category_id'] ?? '', (string) $category['id']); ?>><?= e($category['name']); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
-            <button class="button ghost" type="submit">Filter Low Stock</button>
-        </form>
-    </section>
-<?php endif; ?>
-
-<?php if ($inventoryReport): ?>
+<?php if ($canViewInventory): ?>
     <section class="panel">
         <div class="panel-header">
             <h2>Inventory Report</h2>
+            <?php if ($authController->can('reports.export')): ?>
+                <a href="<?= e(appRootPath('api/reports.php?type=export-inventory-csv' . ($fromDate ? '&from_date=' . urlencode($fromDate) : '') . ($toDate ? '&to_date=' . urlencode($toDate) : ''))); ?>"
+                    class="button ghost small">Export to CSV</a>
+            <?php endif; ?>
         </div>
-        <p class="lead">Use this summary for manager review, shift handover, or printing.</p>
+        <div class="panel-header">
+            <h3>Filter by Date Range</h3>
+            <form method="get" action="<?= e(basePath('index.php')); ?>" class="form-grid">
+                <input type="hidden" name="page" value="reports">
+                <label><span>Start Date</span><input type="date" name="from_date"
+                        value="<?= e($_GET['from_date'] ?? ''); ?>"></label>
+                <label><span>End Date</span><input type="date" name="to_date" value="<?= e($_GET['to_date'] ?? ''); ?>"></label>
+                <button class="button ghost" type="submit">Apply Filter</button>
+            </form>
+        </div>
+
+        <?php if ($inventoryReport): ?>
+        <h3>Inventory Details</h3>
         <div class="table-wrap">
             <table>
                 <thead>
@@ -205,14 +185,14 @@
                 </tbody>
             </table>
         </div>
+        <?php else: ?>
+            <p class="lead" style="padding: 20px 0;">No products match your current inventory filters.</p>
+        <?php endif; ?>
     </section>
 <?php endif; ?>
 
 <?php if ($monthlySales): ?>
     <section class="panel">
-        <div class="panel-header">
-            <h2>Monthly Sales</h2>
-        </div>
         <div class="panel-header">
             <h2>Monthly Sales</h2>
             <?php if ($authController->can('reports.export')): ?>
@@ -243,18 +223,23 @@
                 <p class="sales-insight-copy" data-sales-insight-copy hidden></p>
             </article>
         <?php endif; ?>
+        <h3>Monthly Summary</h3>
         <div class="table-wrap">
             <table data-sales-table="monthly">
                 <thead>
                     <tr>
                         <th>Month</th>
-                        <th>Total</th>
+                        <th>Transactions</th>
+                        <th>Units Sold</th>
+                        <th>Total Revenue</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ($monthlySales as $row): ?>
                         <tr>
                             <td><?= e($row['month']); ?></td>
+                            <td><strong><?= e((string) $row['transactions']); ?></strong></td>
+                            <td><?= e((string) $row['units_sold']); ?></td>
                             <td><?= e(number_format((float) $row['total'], 2)); ?></td>
                         </tr>
                     <?php endforeach; ?>
@@ -283,34 +268,104 @@
                 <button class="button ghost" type="submit">Apply Filter</button>
             </form>
         </div>
+        <h3>Daily Summary</h3>
         <div class="table-wrap">
             <table data-sales-table="daily">
                 <thead>
                     <tr>
                         <th>Date</th>
-                        <th>Total</th>
+                        <th>Transactions</th>
+                        <th>Units Sold</th>
+                        <th>Total Revenue</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ($dailySales as $row): ?>
                         <tr>
                             <td><?= e($row['sale_date']); ?></td>
+                            <td><strong><?= e((string) $row['transactions']); ?></strong></td>
+                            <td><?= e((string) $row['units_sold']); ?></td>
                             <td><?= e(number_format((float) $row['total'], 2)); ?></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
         </div>
+
+        <h3 style="margin-top: 2rem;">Detailed Sales Log</h3>
+        <div class="table-wrap">
+            <table data-sales-table="daily-detailed">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Invoice</th>
+                        <th>Product</th>
+                        <th>Category</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                        <th>Total</th>
+                        <th>Payment</th>
+                        <th>Region</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if ($detailedSales): ?>
+                        <?php foreach ($detailedSales as $row): ?>
+                            <tr>
+                                <td><small><?= e($row['sale_date']); ?></small></td>
+                                <td><code><?= e($row['invoice_id'] ?? '-'); ?></code></td>
+                                <td><strong><?= e($row['product_name']); ?></strong></td>
+                                <td><?= e($row['category_name'] ?? '-'); ?></td>
+                                <td><?= e((string) $row['quantity']); ?></td>
+                                <td><?= e(number_format((float) $row['unit_price'], 2)); ?></td>
+                                <td><strong><?= e(number_format((float) $row['total'], 2)); ?></strong></td>
+                                <td><small><?= e($row['payment_method'] ?? '-'); ?></small></td>
+                                <td><small><?= e($row['region'] ?? '-'); ?></small></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <tr><td colspan="9">No sales recorded for the selected period.</td></tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
     </section>
 <?php endif; ?>
 
-<?php if ($lowStockReport): ?>
-    <!-- Low stock alert report table summarises urgency per product -->
+<?php if ($authController->can('reports.low_stock')): ?>
     <section class="panel">
         <div class="panel-header">
             <h2>Low Stock Alert Report</h2>
+            <?php if ($authController->can('reports.export')): ?>
+                <a href="<?= e(appRootPath('api/reports.php?type=export-low-stock-csv' . 
+                    (!empty($_GET['low_from_date']) ? '&low_from_date=' . urlencode($_GET['low_from_date']) : '') . 
+                    (!empty($_GET['low_to_date']) ? '&low_to_date=' . urlencode($_GET['low_to_date']) : '') . 
+                    (!empty($_GET['category_id']) ? '&category_id=' . urlencode($_GET['category_id']) : ''))); ?>" 
+                    class="button ghost small">Export to CSV</a>
+            <?php endif; ?>
         </div>
-        <p class="lead">Products below threshold are ordered by urgency and include time below threshold.</p>
+        <div class="panel-header">
+            <h3>Filter Results</h3>
+            <form method="get" action="<?= e(basePath('index.php')); ?>" class="form-grid">
+                <input type="hidden" name="page" value="reports">
+                <label><span>Start Date</span><input type="date" name="low_from_date"
+                        value="<?= e($_GET['low_from_date'] ?? ''); ?>"></label>
+                <label><span>End Date</span><input type="date" name="low_to_date"
+                        value="<?= e($_GET['low_to_date'] ?? ''); ?>"></label>
+                <label>
+                    <span>Category</span>
+                    <select name="category_id">
+                        <option value="">All Categories</option>
+                        <?php foreach ($categories as $category): ?>
+                            <option value="<?= e((string) $category['id']); ?>" <?= selectedIf($_GET['category_id'] ?? '', (string) $category['id']); ?>><?= e($category['name']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+                <button class="button ghost" type="submit" style="align-self: end;">Apply Filter</button>
+            </form>
+        </div>
+        <?php if ($lowStockReport): ?>
+        <h3>Urgency Log</h3>
         <div class="table-wrap">
             <table>
                 <thead>
@@ -340,6 +395,9 @@
                 </tbody>
             </table>
         </div>
+        <?php else: ?>
+            <p class="lead" style="padding: 20px 0;">No products match your current low-stock filters.</p>
+        <?php endif; ?>
     </section>
 <?php endif; ?>
 
@@ -347,7 +405,21 @@
     <section class="panel">
         <div class="panel-header">
             <h2>Stock Movement Report</h2>
+            <?php if ($authController->can('reports.export')): ?>
+                <a href="<?= e(appRootPath('api/reports.php?type=export-stock-movement-csv' . ($fromDate ? '&from_date=' . urlencode($fromDate) : '') . ($toDate ? '&to_date=' . urlencode($toDate) : ''))); ?>" 
+                    class="button ghost small">Export to CSV</a>
+            <?php endif; ?>
         </div>
+        <div class="panel-header">
+            <h3>Filter by Date Range</h3>
+            <form method="get" action="<?= e(basePath('index.php')); ?>" class="form-grid">
+                <input type="hidden" name="page" value="reports">
+                <label><span>Start Date</span><input type="date" name="from_date" value="<?= e($_GET['from_date'] ?? ''); ?>"></label>
+                <label><span>End Date</span><input type="date" name="to_date" value="<?= e($_GET['to_date'] ?? ''); ?>"></label>
+                <button class="button ghost" type="submit">Apply Filter</button>
+            </form>
+        </div>
+        <h3>Summary by Type</h3>
         <div class="table-wrap">
             <table>
                 <thead>
@@ -365,6 +437,44 @@
                             <td><?= e((string) $row['total_events']); ?></td>
                         </tr>
                     <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+
+        <h3 style="margin-top: 2rem;">Detailed Movement Log</h3>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Product</th>
+                        <th>SKU</th>
+                        <th>Type</th>
+                        <th>Qty</th>
+                        <th>Prev</th>
+                        <th>New</th>
+                        <th>User</th>
+                        <th>Reason</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (!empty($movementLog)): ?>
+                        <?php foreach ($movementLog as $row): ?>
+                            <tr>
+                                <td><?= e($row['created_at']); ?></td>
+                                <td><strong><?= e($row['product_name']); ?></strong></td>
+                                <td><small><?= e($row['sku']); ?></small></td>
+                                <td><span class="badge <?= $row['movement_type'] === 'in' ? 'healthy' : 'low'; ?>"><?= e(strtoupper($row['movement_type'])); ?></span></td>
+                                <td><strong><?= e((string) $row['quantity']); ?></strong></td>
+                                <td><?= e((string) $row['previous_quantity']); ?></td>
+                                <td><?= e((string) $row['new_quantity']); ?></td>
+                                <td><?= e($row['full_name']); ?></td>
+                                <td><small><?= e($row['reason'] ?? '-'); ?></small></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <tr><td colspan="9">No movements found for the selected period.</td></tr>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>

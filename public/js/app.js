@@ -7,10 +7,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const storedTheme = window.localStorage.getItem('inventra_theme') || 'light';
     body.classList.toggle('theme-dark', storedTheme === 'dark');
 
-    // ---------------------------------------------------------------
-    // UTILITIES
-    // ---------------------------------------------------------------
-    
     function debounce(callback, wait) {
         let timeoutId;
         return (...args) => {
@@ -852,7 +848,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // });
 
             categories.forEach((category) => {
-                // cells.push(`<div class="heatmap-row-label">${escapeHtml(category)}</div>`);
                 cells.push('<div class="heatmap-row-label">' + escapeHtml(category) + '</div>');
                 statuses.forEach((status) => {
                     const cell = matrix[category][status.key];
@@ -863,19 +858,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         low: 'rgba(203, 77, 93, ' + alpha + ')',
                         out: 'rgba(122, 127, 143, ' + alpha + ')',
                     };
-                    // const title = `${category} | ${status.label}\nProducts: ${cell.count}\nUnits: ${cell.units}\nInventory value: NPR ${cell.value.toFixed(2)}`;
                     const title = category + ' | ' + status.label + '\nProducts: ' + cell.count + '\nUnits: ' + cell.units + '\nInventory value: NPR ' + cell.value.toFixed(2);
-                    // cells.push(`
-                    //     <button type="button" class="heatmap-cell" title="${escapeHtml(title)}" style="background:${colorMap[status.key]}">
-                    //         <strong>${cell.count}</strong>
-                    //         <small>${cell.units} units</small>
-                    //     </button>
-                    // `);
+                    cells.push(`
+                        <button type="button" class="heatmap-cell" title="${escapeHtml(title)}" style="background:${colorMap[status.key]}">
+                            <strong>${cell.count}</strong>
+                            <small>${cell.units} units</small>
+                        </button>
+                    `);
                 });
             });
 
             grid.innerHTML = cells.join('');
-            // grid.style.gridTemplateColumns = `minmax(180px, 1.3fr) repeat(${statuses.length}, minmax(120px, 1fr))`;
+            grid.style.gridTemplateColumns = `minmax(180px, 1.3fr) repeat(${statuses.length}, minmax(120px, 1fr))`;
         }
     }
     // ---------------------------------------------------------------
@@ -902,7 +896,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const tbody = table.querySelector('tbody');
+            const detailedTable = document.querySelector('[data-sales-table="daily-detailed"]');
+            const detailedTbody = detailedTable ? detailedTable.querySelector('tbody') : null;
+
             tbody.innerHTML = '<tr><td colspan="2">Loading...</td></tr>';
+            if (detailedTbody) detailedTbody.innerHTML = '<tr><td colspan="9">Loading...</td></tr>';
 
             try {
                 const params = new URLSearchParams();
@@ -917,13 +915,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 const data = await response.json();
-                if (data.rows && data.rows.length > 0) {
-                    tbody.innerHTML = data.rows.map((row) => {
+                
+                const summaryRows = type === 'monthly' ? data.rows : data.summary;
+                
+                if (summaryRows && summaryRows.length > 0) {
+                    tbody.innerHTML = summaryRows.map((row) => {
                         if (type === 'monthly') {
-                            return `<tr><td>${escapeHtml(row.month)}</td><td>${formatCurrency(row.total)}</td></tr>`;
+                            return `<tr>
+                                <td>${escapeHtml(row.month)}</td>
+                                <td><strong>${escapeHtml(row.transactions)}</strong></td>
+                                <td>${escapeHtml(row.units_sold)}</td>
+                                <td>${formatCurrency(row.total)}</td>
+                            </tr>`;
                         }
-                        return `<tr><td>${escapeHtml(row.sale_date)}</td><td>${formatCurrency(row.total)}</td></tr>`;
+                        return `<tr>
+                            <td>${escapeHtml(row.sale_date)}</td>
+                            <td><strong>${escapeHtml(row.transactions)}</strong></td>
+                            <td>${escapeHtml(row.units_sold)}</td>
+                            <td>${formatCurrency(row.total)}</td>
+                        </tr>`;
                     }).join('');
+
+                    if (type === 'daily' && detailedTbody && data.detailed) {
+                        detailedTbody.innerHTML = data.detailed.map(row => `
+                            <tr>
+                                <td><small>${escapeHtml(row.sale_date)}</small></td>
+                                <td><code>${escapeHtml(row.invoice_id)}</code></td>
+                                <td><strong>${escapeHtml(row.product_name)}</strong></td>
+                                <td>${escapeHtml(row.category_name)}</td>
+                                <td>${escapeHtml(row.quantity)}</td>
+                                <td>${Number(row.unit_price).toFixed(2)}</td>
+                                <td><strong>${formatCurrency(row.total)}</strong></td>
+                                <td><small>${escapeHtml(row.payment_method)}</small></td>
+                                <td><small>${escapeHtml(row.region)}</small></td>
+                            </tr>
+                        `).join('');
+                    }
                 } else {
                     tbody.innerHTML = '<tr><td colspan="2">No data found for the selected date range.</td></tr>';
                 }

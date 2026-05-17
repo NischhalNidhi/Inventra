@@ -41,8 +41,8 @@ class ProductController
             $errors[] = 'Initial quantity must be zero or greater.';
         }
 
-        if ($minThreshold === false || $minThreshold < 0) {
-            $errors[] = 'Minimum stock must be zero or greater.';
+        if ($minThreshold === false || $minThreshold <= 0) {
+            $errors[] = 'Minimum stock threshold must be greater than zero.';
         }
 
         if ($unitPrice === false || $unitPrice < 0) {

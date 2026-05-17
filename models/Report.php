@@ -100,7 +100,7 @@ class Report
             $params['to_date'] = $toDate;
         }
 
-        $sql = 'SELECT DATE_FORMAT(sale_date, "%Y-%m") AS month, SUM(quantity * unit_price) AS total
+        $sql = 'SELECT DATE_FORMAT(sale_date, "%Y-%m") AS month, SUM(quantity * unit_price) AS total, COUNT(*) AS transactions, SUM(quantity) AS units_sold
                 FROM sales_transactions';
         if ($conditions) {
             $sql .= ' WHERE ' . implode(' AND ', $conditions);
@@ -223,6 +223,11 @@ class Report
         $categories = $stmt->fetchAll();
 
         return [
+            'period' => [
+                'start_date' => $thisMonthStart,
+                'end_date' => $thisMonthEnd,
+                'label' => $baseDate->format('F Y'),
+            ],
             'summary' => [
                 'total_revenue' => $thisMonth['total_revenue'] ?? 0,
                 'transaction_count' => $thisMonth['transaction_count'] ?? 0,
@@ -247,7 +252,7 @@ class Report
             $params['to_date'] = $toDate;
         }
 
-        $sql = 'SELECT sale_date, SUM(quantity * unit_price) AS total
+        $sql = 'SELECT sale_date, SUM(quantity * unit_price) AS total, COUNT(*) AS transactions, SUM(quantity) AS units_sold
                 FROM sales_transactions';
         if ($conditions) {
             $sql .= ' WHERE ' . implode(' AND ', $conditions);
@@ -282,9 +287,10 @@ class Report
         $whereSql = $conditions ? 'WHERE ' . implode(' AND ', $conditions) : '';
 
         $stmt = $this->pdo->prepare(
-            'SELECT st.sale_date, p.name AS product_name, st.quantity, st.unit_price, (st.quantity * st.unit_price) AS total
+            'SELECT st.sale_date, st.invoice_id, p.name AS product_name, c.name AS category_name, st.quantity, st.unit_price, (st.quantity * st.unit_price) AS total, st.payment_method, st.region
              FROM sales_transactions st
              LEFT JOIN products p ON p.id = st.product_id
+             LEFT JOIN categories c ON c.id = p.category_id
              ' . $whereSql . '
              ORDER BY st.sale_date DESC, st.id DESC'
         );
@@ -336,6 +342,33 @@ class Report
              LEFT JOIN categories c ON c.id = p.category_id
              WHERE ' . implode(' AND ', $conditions) . '
              ORDER BY (p.min_threshold - p.stock_quantity) DESC, p.name ASC'
+        );
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
+    public function getStockMovementLog(?string $fromDate = null, ?string $toDate = null): array
+    {
+        $conditions = [];
+        $params = [];
+        if ($fromDate) {
+            $conditions[] = 'DATE(sm.created_at) >= :from_date';
+            $params['from_date'] = $fromDate;
+        }
+        if ($toDate) {
+            $conditions[] = 'DATE(sm.created_at) <= :to_date';
+            $params['to_date'] = $toDate;
+        }
+
+        $whereSql = $conditions ? 'WHERE ' . implode(' AND ', $conditions) : '';
+
+        $stmt = $this->pdo->prepare(
+            'SELECT sm.*, p.name AS product_name, p.sku, u.full_name
+             FROM stock_movements sm
+             INNER JOIN products p ON p.id = sm.product_id
+             INNER JOIN users u ON u.id = sm.user_id
+             ' . $whereSql . '
+             ORDER BY sm.created_at DESC'
         );
         $stmt->execute($params);
         return $stmt->fetchAll();

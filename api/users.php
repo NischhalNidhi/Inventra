@@ -20,8 +20,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     ]);
 }
 
-if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-    jsonResponse(['error' => 'Invalid request token.', 'code' => 'INVALID_TOKEN'], 422);
+if ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT' || $_SERVER['REQUEST_METHOD'] === 'PATCH') {
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? null)) {
+        jsonResponse(['error' => 'Invalid request token.', 'code' => 'INVALID_TOKEN'], 422);
+    }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

@@ -112,8 +112,8 @@
                 </div>
             </label>
             <label>
-                <span>Minimum Stock Level</span>
-                <input type="number" name="min_threshold" min="0" value="<?= $editingProduct ? e((string) $editingProduct['min_threshold']) : old('min_threshold', '0'); ?>" required>
+                <span>Minimum Stock Level <span class="required">*</span></span>
+                <input type="number" name="min_threshold" min="1" value="<?= $editingProduct ? e((string) $editingProduct['min_threshold']) : old('min_threshold', '1'); ?>" required>
             </label>
         </div>
     </section>
