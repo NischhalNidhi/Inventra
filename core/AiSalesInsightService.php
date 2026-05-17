@@ -9,7 +9,7 @@ class AiSalesInsightService
      */
     public function getConfiguredModel(): string
     {
-        return env('AI_MODEL_NAME', 'Gemini 3 Flash Live');
+        return env('AI_INSIGHTS_MODEL', 'llama-3.3-70b-versatile');
     }
 
     /**
@@ -21,10 +21,14 @@ class AiSalesInsightService
     public function generateMonthlySalesInsight(array $salesData): string
     {
         $endpoint = env('AI_INSIGHTS_ENDPOINT', '');
+        if ($endpoint === '') {
+            $endpoint = 'https://api.groq.com/openai/v1/chat/completions';
+        }
         $apiKey = env('AI_INSIGHTS_API_KEY', '');
+        $model = env('AI_INSIGHTS_MODEL', 'llama-3.3-70b-versatile');
 
-        if ($endpoint === '' || $apiKey === '') {
-            throw new RuntimeException('AI insight service is not fully configured. Check your .env file.');
+        if ($apiKey === '') {
+            throw new RuntimeException('AI insight service is not fully configured. Missing API Key.');
         }
 
         if (!function_exists('curl_init')) {
@@ -33,17 +37,19 @@ class AiSalesInsightService
 
         $prompt = "You are a business analytics assistant.
         Your task is to analyze monthly sales data and generate a concise business insight.
+        CURRENCY RULE: Always use NPR as the currency symbol. Never use $ or any other currency symbol.
         INPUT DATA:
-        - Total revenue: " . ($salesData['summary']['total_revenue'] ?? 'N/A') . "
+        - Total revenue: NPR " . ($salesData['summary']['total_revenue'] ?? 'N/A') . "
         - Total orders: " . ($salesData['summary']['transaction_count'] ?? 'N/A') . "
-        - Previous month revenue: " . ($salesData['summary']['prev_month_revenue'] ?? 'N/A') . "
+        - Previous month revenue: NPR " . ($salesData['summary']['prev_month_revenue'] ?? 'N/A') . "
         - Top selling products: " . implode(', ', array_map(fn($p) => $p['name'], $salesData['top_products'] ?? [])) . "
         - Lowest performing products: " . implode(', ', array_map(fn($p) => $p['name'], $salesData['low_products'] ?? [])) . "
-        - Revenue by category: " . implode(', ', array_map(fn($c) => $c['name'] . ": " . $c['total'], $salesData['category_breakdown'] ?? [])) . "
+        - Revenue by category: " . implode(', ', array_map(fn($c) => $c['name'] . ": NPR " . $c['total'], $salesData['category_breakdown'] ?? [])) . "
 
         INSTRUCTIONS:
         - Generate a 2–3 sentence summary.
         - Use plain, clear business language.
+        - Always refer to monetary values using NPR (e.g. NPR 10,000). Never use $.
         - Focus only on meaningful trends (growth, decline, anomalies, top/low performers).
         - Compare with previous month when data is available.
         - Highlight 1 key insight that a manager can act on.
@@ -54,18 +60,17 @@ class AiSalesInsightService
         A short paragraph (2–3 sentences max).";
 
         $payload = [
-            'contents' => [
-                ['parts' => [['text' => $prompt]]]
+            'model' => $model,
+            'messages' => [
+                ['role' => 'user', 'content' => $prompt]
             ]
         ];
 
         $headers = [
             'Accept: application/json',
             'Content-Type: application/json',
+            'Authorization: Bearer ' . $apiKey,
         ];
-        if ($apiKey !== '') {
-            $headers[] = 'X-goog-api-key: ' . $apiKey;
-        }
 
         $ch = curl_init($endpoint);
         curl_setopt_array($ch, [
@@ -91,12 +96,12 @@ class AiSalesInsightService
         }
 
         $decoded = json_decode($response, true);
-        if ($statusCode >= 400 || !isset($decoded['candidates'][0]['content']['parts'][0]['text'])) {
+        if ($statusCode >= 400 || !isset($decoded['choices'][0]['message']['content'])) {
             $preview = mb_substr((string)$response, 0, 100);
             throw new RuntimeException("AI insight service error (HTTP $statusCode). Response: $preview");
         }
 
-        $summary = trim((string) $decoded['candidates'][0]['content']['parts'][0]['text']);
+        $summary = trim((string) $decoded['choices'][0]['message']['content']);
         if ($summary === '') {
             throw new RuntimeException('AI insight response did not include a summary.');
         }
@@ -112,33 +117,41 @@ class AiSalesInsightService
     {
         try {
             $endpoint = env('AI_INSIGHTS_ENDPOINT', '');
+            if ($endpoint === '') {
+                $endpoint = 'https://api.groq.com/openai/v1/chat/completions';
+            }
             $apiKey = env('AI_INSIGHTS_API_KEY', '');
+            $model = env('AI_INSIGHTS_MODEL', 'llama-3.3-70b-versatile');
 
-            if ($endpoint === '' || $apiKey === '') {
+            if ($apiKey === '') {
                 throw new RuntimeException('AI insight service is not fully configured.');
             }
 
             $prompt = "Analyze this sales data and return a JSON object.
+            CURRENCY RULE: All monetary values must use NPR as the currency symbol. Never use $ or any other symbol.
             DATA: " . json_encode($salesData) . "
             
             REQUIRED JSON FORMAT:
             {
-                \"summary\": \"2-3 sentence overview\",
+                \"summary\": \"2-3 sentence overview (use NPR for all amounts, never $)\",
                 \"opportunities\": [\"3 specific growth ideas\"],
                 \"risks\": [\"2 potential business threats\"],
                 \"recommendation\": \"1 clear priority action\"
             }
-            Return ONLY the raw JSON.";
+            Return ONLY the raw JSON. Use NPR for all currency values, never $.";  
 
             $payload = [
-                'contents' => [['parts' => [['text' => $prompt]]]],
-                'generationConfig' => ['responseMimeType' => 'application/json']
+                'model' => $model,
+                'messages' => [
+                    ['role' => 'user', 'content' => $prompt]
+                ],
+                'response_format' => ['type' => 'json_object']
             ];
 
-            $headers = ['Content-Type: application/json'];
-            if ($apiKey !== '') {
-                $headers[] = 'X-goog-api-key: ' . $apiKey;
-            }
+            $headers = [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $apiKey,
+            ];
 
             $ch = curl_init($endpoint);
             curl_setopt_array($ch, [
@@ -162,7 +175,7 @@ class AiSalesInsightService
             }
 
             $outer = json_decode((string)$response, true);
-            $text = $outer['candidates'][0]['content']['parts'][0]['text'] ?? '';
+            $text = $outer['choices'][0]['message']['content'] ?? '';
             
             // Strip markdown JSON blocks if present
             if (str_starts_with($text, '```json')) {
@@ -190,8 +203,8 @@ class AiSalesInsightService
     private function normalizeSummary(string $summary): string
     {
         $summary = preg_replace('/\s+/', ' ', trim($summary)) ?? trim($summary);
-        if (mb_strlen($summary) > 420) {
-            $summary = rtrim(mb_substr($summary, 0, 417)) . '...';
+        if (mb_strlen($summary) > 1500) {
+            $summary = rtrim(mb_substr($summary, 0, 1497)) . '...';
         }
 
         return $summary;

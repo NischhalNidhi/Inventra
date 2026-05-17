@@ -597,25 +597,16 @@ switch ($page) {
         ];
 
         if (env('AI_INSIGHTS_API_KEY')) {
-            $lastRequest = $_SESSION['last_ai_request_at'] ?? 0;
-            $secondsRemaining = 180 - (time() - $lastRequest);
-
-            if ($secondsRemaining > 0) {
-                $aiInsight = "AI is cooling down. Please wait " . ceil($secondsRemaining / 60) . " minute(s).";
-                $aiAnalysis['summary'] = $aiInsight;
-            } else {
                 try {
                     $insightData = $reportModel->getAdvancedSalesInsightData();
                     $aiAnalysis = $aiSalesInsightService->generateSalesAnalysis($insightData);
                     $aiInsight = $aiAnalysis['summary'];
-                    $_SESSION['last_ai_request_at'] = time();
                 } catch (Throwable $e) {
                     $aiInsight = env('APP_ENV') !== 'production'
                         ? '⚠ AI Error: ' . $e->getMessage()
                         : 'AI Insight temporarily unavailable.';
                     $aiAnalysis['summary'] = $aiInsight;
                 }
-            }
         }
 
         $title = 'Inventra | AI Sales Insights';
@@ -646,6 +637,13 @@ switch ($page) {
         $productsData = $productModel->getAll(1, 200, '', ['archived' => '0']);
         $products = $productsData['data'];
         $categories = $productModel->getCategories();
+        $salesSummary = $reportModel->getSalesSummaryPublic($fromDate ?: null, $toDate ?: null);
+        $insightData = $reportModel->getAdvancedSalesInsightData($fromDate ?: null, $toDate ?: null);
+        $salesSummary['growth_percentage'] = percentageChange(
+            (float) ($insightData['summary']['total_revenue'] ?? 0),
+            (float) ($insightData['summary']['prev_month_revenue'] ?? 0)
+        );
+        $reportCharts = $reportModel->getChartDatasets($fromDate ?: null, $toDate ?: null, $lowFromDate ?: null, $lowToDate ?: null, $lowStockCategoryId);
 
         $title = 'Inventra | Reports';
         $currentPage = 'reports';
@@ -698,23 +696,14 @@ switch ($page) {
         $canViewSalesInsight = $authController->can('reports.sales.insight'); // Check permission
 
         if ($canViewSalesInsight && env('AI_INSIGHTS_API_KEY')) {
-            $lastRequest = $_SESSION['last_ai_request_at'] ?? 0;
-            $secondsRemaining = 180 - (time() - $lastRequest);
-
-            if ($secondsRemaining > 0) {
-                $aiInsight = "Analysis available again in " . $secondsRemaining . "s.";
-                $aiAnalysis['summary'] = $aiInsight;
-            } else {
                 try {
                     $insightData = $reportModel->getAdvancedSalesInsightData();
-                    $aiInsight = $aiSalesInsightService->generateMonthlySalesInsight($insightData); 
+                    $aiInsight = $aiSalesInsightService->generateMonthlySalesInsight($insightData);
                     $aiAnalysis['summary'] = $aiInsight;
-                    $_SESSION['last_ai_request_at'] = time();
                 } catch (Throwable $e) {
                     $aiInsight = env('APP_ENV') !== 'production' ? '⚠ AI Error: ' . $e->getMessage() : 'AI Insight temporarily unavailable.';
                     $aiAnalysis['summary'] = $aiInsight;
                 }
-            }
         }
         
         $title = 'Inventra | Dashboard';

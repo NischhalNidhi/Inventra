@@ -107,25 +107,34 @@ class Report
     {
         [$whereSql, $params] = $this->buildSalesDateWhere($fromDate, $toDate);
         $stmt = $this->pdo->prepare(
-            'SELECT DATE_FORMAT(sale_date, "%Y-%m") AS month, SUM(quantity * unit_price) AS total
+            'SELECT DATE_FORMAT(sale_date, "%Y-%m") AS month,
+                    SUM(quantity * unit_price) AS total,
+                    COUNT(*) AS transactions,
+                    COALESCE(SUM(quantity), 0) AS units_sold
              FROM sales_transactions ' . $whereSql . '
              GROUP BY DATE_FORMAT(sale_date, "%Y-%m")
              ORDER BY month ASC'
         );
         $stmt->execute($params);
 
-        $sql = 'SELECT DATE_FORMAT(sale_date, "%Y-%m") AS month, SUM(quantity * unit_price) AS total, COUNT(*) AS transactions, SUM(quantity) AS units_sold
-                FROM sales_transactions';
-        if ($conditions) {
-            $sql .= ' WHERE ' . implode(' AND ', $conditions);
-        }
-        $sql .= ' GROUP BY DATE_FORMAT(sale_date, "%Y-%m") ORDER BY month ASC';
+        return array_map(static function (array $row): array {
+            return [
+                'month'        => (string) ($row['month'] ?? ''),
+                'total'        => round((float) ($row['total'] ?? 0), 2),
+                'transactions' => (int) ($row['transactions'] ?? 0),
+                'units_sold'   => (int) ($row['units_sold'] ?? 0),
+            ];
+        }, $stmt->fetchAll());
+    }
 
     public function getDailySales(?string $fromDate = null, ?string $toDate = null): array
     {
         [$whereSql, $params] = $this->buildSalesDateWhere($fromDate, $toDate);
         $stmt = $this->pdo->prepare(
-            'SELECT sale_date, SUM(quantity * unit_price) AS total
+            'SELECT sale_date,
+                    SUM(quantity * unit_price) AS total,
+                    COUNT(*) AS transactions,
+                    COALESCE(SUM(quantity), 0) AS units_sold
              FROM sales_transactions ' . $whereSql . '
              GROUP BY sale_date
              ORDER BY sale_date ASC'
@@ -134,8 +143,10 @@ class Report
 
         return array_map(static function (array $row): array {
             return [
-                'sale_date' => (string) ($row['sale_date'] ?? ''),
-                'total' => round((float) ($row['total'] ?? 0), 2),
+                'sale_date'    => (string) ($row['sale_date'] ?? ''),
+                'total'        => round((float) ($row['total'] ?? 0), 2),
+                'transactions' => (int) ($row['transactions'] ?? 0),
+                'units_sold'   => (int) ($row['units_sold'] ?? 0),
             ];
         }, $stmt->fetchAll());
     }
@@ -282,9 +293,9 @@ class Report
 
         return [
             'period' => [
-                'start_date' => $thisMonthStart,
-                'end_date' => $thisMonthEnd,
-                'label' => $baseDate->format('F Y'),
+                'start_date' => $period['start_date'],
+                'end_date' => $period['end_date'],
+                'label' => $period['label'],
             ],
             'summary' => [
                 'total_revenue' => round((float) ($thisMonth['total_revenue'] ?? 0), 2),
@@ -312,30 +323,7 @@ class Report
         ];
     }
 
-    public function getDailySales(?string $fromDate = null, ?string $toDate = null): array
-    {
-        $conditions = [];
-        $params = [];
-        if ($fromDate) {
-            $conditions[] = 'sale_date >= :from_date';
-            $params['from_date'] = $fromDate;
-        }
-        if ($toDate) {
-            $conditions[] = 'sale_date <= :to_date';
-            $params['to_date'] = $toDate;
-        }
 
-        $sql = 'SELECT sale_date, SUM(quantity * unit_price) AS total, COUNT(*) AS transactions, SUM(quantity) AS units_sold
-                FROM sales_transactions';
-        if ($conditions) {
-            $sql .= ' WHERE ' . implode(' AND ', $conditions);
-        }
-        $sql .= ' GROUP BY sale_date ORDER BY sale_date ASC';
-
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($params);
-        return $stmt->fetchAll();
-    }
 
     /**
      * Retrieve detailed sales transactions with product names for CSV export.
@@ -489,7 +477,7 @@ class Report
         $insightData = $this->getAdvancedSalesInsightData($fromDate, $toDate);
         $charts = $this->getChartDatasets($fromDate, $toDate, $lowFromDate, $lowToDate, $categoryId);
 
-        $salesSummary = $this->getSalesSummary($fromDate, $toDate);
+        $salesSummary = $this->getSalesSummaryPublic($fromDate, $toDate);
         $periodLabel = $this->buildPeriodLabel($fromDate, $toDate);
         $growth = percentageChange(
             (float) ($insightData['summary']['total_revenue'] ?? 0),
@@ -632,7 +620,7 @@ class Report
         return [$conditions ? 'WHERE ' . implode(' AND ', $conditions) : '', $params];
     }
 
-    private function getSalesSummary(?string $fromDate = null, ?string $toDate = null): array
+    public function getSalesSummaryPublic(?string $fromDate = null, ?string $toDate = null): array
     {
         [$whereSql, $params] = $this->buildSalesDateWhere($fromDate, $toDate);
         $stmt = $this->pdo->prepare(
