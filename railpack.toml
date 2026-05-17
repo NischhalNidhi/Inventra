@@ -1,0 +1,6 @@
+[providers]
+php = true
+
+[options]
+phpVersion = "8.1"
+documentRoot = "public"

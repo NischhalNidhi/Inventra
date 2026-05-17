@@ -303,6 +303,28 @@ function downloadCsv(string $filename, array $headers, array $rows): void
     fclose($output);
 }
 
+function downloadHtml(string $filename, string $html): void
+{
+    header('Content-Type: text/html; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '_' . date('Y-m-d_His') . '.html"');
+    echo $html;
+    exit;
+}
+
+function formatCurrencyAmount(float $amount): string
+{
+    return 'NPR ' . number_format($amount, 2);
+}
+
+function percentageChange(float $current, float $previous): float
+{
+    if ($previous <= 0.0) {
+        return $current > 0.0 ? 100.0 : 0.0;
+    }
+
+    return (($current - $previous) / $previous) * 100;
+}
+
 function parsePagination(array $input): array
 {
     $page = max(1, (int) ($input['p'] ?? 1));

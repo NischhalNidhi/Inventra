@@ -196,4 +196,42 @@ class AiSalesInsightService
 
         return $summary;
     }
+
+    private function buildFallbackAnalysis(string $reason, array $salesData, string $model): array
+    {
+        $summary = $salesData['summary'] ?? [];
+        $totalRevenue = round((float) ($summary['total_revenue'] ?? 0), 2);
+        $prevRevenue = round((float) ($summary['prev_month_revenue'] ?? 0), 2);
+        $transactions = (int) ($summary['transaction_count'] ?? 0);
+        $change = percentageChange($totalRevenue, $prevRevenue);
+        $topProduct = (string) (($salesData['top_products'][0]['name'] ?? '') ?: 'No leading product yet');
+        $topCategory = (string) (($salesData['category_breakdown'][0]['name'] ?? '') ?: 'Unassigned');
+
+        $summaryText = sprintf(
+            '%s Revenue for the selected period is %s across %d transactions, with %s%% change versus the prior comparison period.',
+            $reason,
+            formatCurrencyAmount($totalRevenue),
+            $transactions,
+            number_format($change, 1)
+        );
+
+        return [
+            'summary' => $summaryText,
+            'opportunities' => [
+                'Prioritize demand around ' . $topProduct . ' because it currently leads sales.',
+                'Review assortment and promotions in ' . $topCategory . ' to protect category momentum.',
+                'Use the charts in this report to validate whether revenue concentration is becoming too narrow.',
+            ],
+            'risks' => [
+                'Insight is running in fallback mode, so qualitative recommendations are limited.',
+                'If transaction volume stays low, trend comparisons will be noisy.',
+                'Low-performing products may still need operational review even without AI ranking detail.',
+            ],
+            'recommendation' => 'Use the chart and KPI sections to confirm whether recent revenue growth is broad-based, then revisit Groq configuration for full narrative insight.',
+            'model' => $model,
+            'generated_at' => (new DateTimeImmutable('now'))->format(DATE_ATOM),
+            'status' => 'fallback',
+            'period' => $salesData['period'] ?? null,
+        ];
+    }
 }

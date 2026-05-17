@@ -39,9 +39,8 @@ try {
     die("Error during database initialization: " . $e->getMessage() . "\n");
 }
 
-// 4. Seed Database
-echo "Seeding database with demo data...\n";
-require_once "$root/database/seed.php";
+// 4. Seeding
+echo "Seeding handled by unified schema.sql.\n";
 
 echo "\nSetup complete! You can now access Inventra.\n";
 echo "Default Manager: manager / password\n";

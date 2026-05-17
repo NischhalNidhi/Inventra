@@ -41,6 +41,7 @@ class Report
             'source' => $source,
             'created_by' => $userId,
         ]);
+
         return (int) $this->pdo->lastInsertId();
     }
 
@@ -58,14 +59,29 @@ class Report
         }
 
         $stmt = $this->pdo->prepare(
-            'SELECT p.name, p.sku, p.unit_price, p.stock_quantity, p.min_threshold, c.name AS category_name, p.updated_at
+            'SELECT p.id, p.name, p.sku, p.unit_price, p.stock_quantity, p.min_threshold, c.name AS category_name, p.updated_at
              FROM products p
              LEFT JOIN categories c ON c.id = p.category_id
              WHERE ' . implode(' AND ', $conditions) . '
              ORDER BY p.name ASC'
         );
         $stmt->execute($params);
-        return $stmt->fetchAll();
+
+        return array_map(function (array $row): array {
+            $stock = (int) ($row['stock_quantity'] ?? 0);
+            $threshold = (int) ($row['min_threshold'] ?? 0);
+            $status = 'healthy';
+            if ($stock <= 0) {
+                $status = 'out';
+            } elseif ($stock <= $threshold) {
+                $status = 'low';
+            }
+
+            $row['stock_status'] = $status;
+            $row['inventory_value'] = round($stock * (float) ($row['unit_price'] ?? 0), 2);
+
+            return $row;
+        }, $stmt->fetchAll());
     }
 
     public function getInventorySummary(): array
@@ -89,16 +105,14 @@ class Report
 
     public function getMonthlySales(?string $fromDate = null, ?string $toDate = null): array
     {
-        $conditions = [];
-        $params = [];
-        if ($fromDate) {
-            $conditions[] = 'sale_date >= :from_date';
-            $params['from_date'] = $fromDate;
-        }
-        if ($toDate) {
-            $conditions[] = 'sale_date <= :to_date';
-            $params['to_date'] = $toDate;
-        }
+        [$whereSql, $params] = $this->buildSalesDateWhere($fromDate, $toDate);
+        $stmt = $this->pdo->prepare(
+            'SELECT DATE_FORMAT(sale_date, "%Y-%m") AS month, SUM(quantity * unit_price) AS total
+             FROM sales_transactions ' . $whereSql . '
+             GROUP BY DATE_FORMAT(sale_date, "%Y-%m")
+             ORDER BY month ASC'
+        );
+        $stmt->execute($params);
 
         $sql = 'SELECT DATE_FORMAT(sale_date, "%Y-%m") AS month, SUM(quantity * unit_price) AS total, COUNT(*) AS transactions, SUM(quantity) AS units_sold
                 FROM sales_transactions';
@@ -107,9 +121,23 @@ class Report
         }
         $sql .= ' GROUP BY DATE_FORMAT(sale_date, "%Y-%m") ORDER BY month ASC';
 
-        $stmt = $this->pdo->prepare($sql);
+    public function getDailySales(?string $fromDate = null, ?string $toDate = null): array
+    {
+        [$whereSql, $params] = $this->buildSalesDateWhere($fromDate, $toDate);
+        $stmt = $this->pdo->prepare(
+            'SELECT sale_date, SUM(quantity * unit_price) AS total
+             FROM sales_transactions ' . $whereSql . '
+             GROUP BY sale_date
+             ORDER BY sale_date ASC'
+        );
         $stmt->execute($params);
-        return $stmt->fetchAll();
+
+        return array_map(static function (array $row): array {
+            return [
+                'sale_date' => (string) ($row['sale_date'] ?? ''),
+                'total' => round((float) ($row['total'] ?? 0), 2),
+            ];
+        }, $stmt->fetchAll());
     }
 
     public function getCurrentMonthSalesInsightData(): array
@@ -187,40 +215,70 @@ class Report
         ];
     }
 
-    public function getAdvancedSalesInsightData(): array
+    public function getAdvancedSalesInsightData(?string $fromDate = null, ?string $toDate = null): array
     {
-        $stmt = $this->pdo->query('SELECT MAX(sale_date) FROM sales_transactions');
-        $maxDate = $stmt->fetchColumn() ?: date('Y-m-d');
-        $baseDate = new DateTimeImmutable($maxDate);
-        $thisMonthStart = $baseDate->format('Y-m-01');
-        $thisMonthEnd = $baseDate->format('Y-m-t');
-        $prevDate = $baseDate->modify('-1 month');
-        $prevMonthStart = $prevDate->format('Y-m-01');
-        $prevMonthEnd = $prevDate->format('Y-m-t');
+        $period = $this->resolveInsightPeriod($fromDate, $toDate);
+        $summaryStmt = $this->pdo->prepare(
+            'SELECT COALESCE(SUM(quantity * unit_price), 0) AS total_revenue,
+                    COUNT(*) AS transaction_count
+             FROM sales_transactions
+             WHERE sale_date BETWEEN :start_date AND :end_date'
+        );
+        $summaryStmt->execute([
+            'start_date' => $period['start_date'],
+            'end_date' => $period['end_date'],
+        ]);
+        $thisMonth = $summaryStmt->fetch() ?: [];
 
-        // This Month Summary
-        $stmt = $this->pdo->prepare('SELECT SUM(quantity * unit_price) as total_revenue, COUNT(*) as transaction_count FROM sales_transactions WHERE sale_date BETWEEN ? AND ?');
-        $stmt->execute([$thisMonthStart, $thisMonthEnd]);
-        $thisMonth = $stmt->fetch();
+        $summaryStmt->execute([
+            'start_date' => $period['previous_start_date'],
+            'end_date' => $period['previous_end_date'],
+        ]);
+        $prevMonth = $summaryStmt->fetch() ?: [];
 
-        // Prev Month Summary
-        $stmt->execute([$prevMonthStart, $prevMonthEnd]);
-        $prevMonth = $stmt->fetch();
+        $topStmt = $this->pdo->prepare(
+            'SELECT p.name, SUM(st.quantity * st.unit_price) AS total
+             FROM sales_transactions st
+             JOIN products p ON p.id = st.product_id
+             WHERE st.sale_date BETWEEN :start_date AND :end_date
+             GROUP BY p.id, p.name
+             ORDER BY total DESC
+             LIMIT 3'
+        );
+        $topStmt->execute([
+            'start_date' => $period['start_date'],
+            'end_date' => $period['end_date'],
+        ]);
+        $topProducts = $topStmt->fetchAll();
 
-        // Top Products
-        $stmt = $this->pdo->prepare('SELECT p.name, SUM(st.quantity * st.unit_price) as total FROM sales_transactions st JOIN products p ON p.id = st.product_id WHERE st.sale_date BETWEEN ? AND ? GROUP BY p.id ORDER BY total DESC LIMIT 3');
-        $stmt->execute([$thisMonthStart, $thisMonthEnd]);
-        $topProducts = $stmt->fetchAll();
+        $lowStmt = $this->pdo->prepare(
+            'SELECT p.name, SUM(st.quantity * st.unit_price) AS total
+             FROM sales_transactions st
+             JOIN products p ON p.id = st.product_id
+             WHERE st.sale_date BETWEEN :start_date AND :end_date
+             GROUP BY p.id, p.name
+             ORDER BY total ASC
+             LIMIT 3'
+        );
+        $lowStmt->execute([
+            'start_date' => $period['start_date'],
+            'end_date' => $period['end_date'],
+        ]);
+        $lowProducts = $lowStmt->fetchAll();
 
-        // Low Products (sold at least once but least revenue)
-        $stmt = $this->pdo->prepare('SELECT p.name, SUM(st.quantity * st.unit_price) as total FROM sales_transactions st JOIN products p ON p.id = st.product_id WHERE st.sale_date BETWEEN ? AND ? GROUP BY p.id ORDER BY total ASC LIMIT 3');
-        $stmt->execute([$thisMonthStart, $thisMonthEnd]);
-        $lowProducts = $stmt->fetchAll();
-
-        // Category Breakdown
-        $stmt = $this->pdo->prepare('SELECT c.name, SUM(st.quantity * st.unit_price) as total FROM sales_transactions st JOIN products p ON p.id = st.product_id JOIN categories c ON c.id = p.category_id WHERE st.sale_date BETWEEN ? AND ? GROUP BY c.id ORDER BY total DESC');
-        $stmt->execute([$thisMonthStart, $thisMonthEnd]);
-        $categories = $stmt->fetchAll();
+        $categoryStmt = $this->pdo->prepare(
+            'SELECT COALESCE(c.name, "Unassigned") AS name, SUM(st.quantity * st.unit_price) AS total
+             FROM sales_transactions st
+             JOIN products p ON p.id = st.product_id
+             LEFT JOIN categories c ON c.id = p.category_id
+             WHERE st.sale_date BETWEEN :start_date AND :end_date
+             GROUP BY c.id, c.name
+             ORDER BY total DESC'
+        );
+        $categoryStmt->execute([
+            'start_date' => $period['start_date'],
+            'end_date' => $period['end_date'],
+        ]);
 
         return [
             'period' => [
@@ -229,13 +287,28 @@ class Report
                 'label' => $baseDate->format('F Y'),
             ],
             'summary' => [
-                'total_revenue' => $thisMonth['total_revenue'] ?? 0,
-                'transaction_count' => $thisMonth['transaction_count'] ?? 0,
-                'prev_month_revenue' => $prevMonth['total_revenue'] ?? 0,
+                'total_revenue' => round((float) ($thisMonth['total_revenue'] ?? 0), 2),
+                'transaction_count' => (int) ($thisMonth['transaction_count'] ?? 0),
+                'prev_month_revenue' => round((float) ($prevMonth['total_revenue'] ?? 0), 2),
             ],
-            'top_products' => $topProducts,
-            'low_products' => $lowProducts,
-            'category_breakdown' => $categories
+            'top_products' => array_map(static function (array $row): array {
+                return [
+                    'name' => (string) ($row['name'] ?? ''),
+                    'total' => round((float) ($row['total'] ?? 0), 2),
+                ];
+            }, $topProducts),
+            'low_products' => array_map(static function (array $row): array {
+                return [
+                    'name' => (string) ($row['name'] ?? ''),
+                    'total' => round((float) ($row['total'] ?? 0), 2),
+                ];
+            }, $lowProducts),
+            'category_breakdown' => array_map(static function (array $row): array {
+                return [
+                    'name' => (string) ($row['name'] ?? ''),
+                    'total' => round((float) ($row['total'] ?? 0), 2),
+                ];
+            }, $categoryStmt->fetchAll()),
         ];
     }
 
@@ -273,19 +346,7 @@ class Report
      */
     public function getSalesTransactionsForExport(?string $fromDate = null, ?string $toDate = null): array
     {
-        $conditions = [];
-        $params = [];
-        if ($fromDate) {
-            $conditions[] = 'st.sale_date >= :from_date';
-            $params['from_date'] = $fromDate;
-        }
-        if ($toDate) {
-            $conditions[] = 'st.sale_date <= :to_date';
-            $params['to_date'] = $toDate;
-        }
-
-        $whereSql = $conditions ? 'WHERE ' . implode(' AND ', $conditions) : '';
-
+        [$whereSql, $params] = $this->buildSalesDateWhere($fromDate, $toDate, 'st.sale_date');
         $stmt = $this->pdo->prepare(
             'SELECT st.sale_date, st.invoice_id, p.name AS product_name, c.name AS category_name, st.quantity, st.unit_price, (st.quantity * st.unit_price) AS total, st.payment_method, st.region
              FROM sales_transactions st
@@ -295,17 +356,21 @@ class Report
              ORDER BY st.sale_date DESC, st.id DESC'
         );
         $stmt->execute($params);
-        return $stmt->fetchAll();
+
+        return array_map(static function (array $row): array {
+            return [
+                'sale_date' => (string) ($row['sale_date'] ?? ''),
+                'product_name' => (string) ($row['product_name'] ?? ''),
+                'category_name' => (string) ($row['category_name'] ?? ''),
+                'region' => (string) ($row['region'] ?? ''),
+                'quantity' => (int) ($row['quantity'] ?? 0),
+                'unit_price' => round((float) ($row['unit_price'] ?? 0), 2),
+                'total' => round((float) ($row['total'] ?? 0), 2),
+                'source' => (string) ($row['source'] ?? ''),
+            ];
+        }, $stmt->fetchAll());
     }
 
-    /**
-     * Retrieve low stock products with optional category and date filtering.
-     *
-     * @param string|null $fromDate   Only include products updated on or after this date.
-     * @param string|null $toDate     Only include products updated on or before this date.
-     * @param int|null    $categoryId Only include products from this category.
-     * @return array Low stock products with days below threshold metadata.
-     */
     public function getLowStockReport(?string $fromDate = null, ?string $toDate = null, ?int $categoryId = null): array
     {
         $conditions = ['p.is_archived = 0', 'p.stock_quantity <= p.min_threshold'];
@@ -324,8 +389,6 @@ class Report
             $params['low_to_date'] = $toDate;
         }
 
-        // Determine how long the product has remained below threshold.
-        // Prefer the most recent movement that crossed the threshold; otherwise fall back to first below-threshold movement or product update.
         $stmt = $this->pdo->prepare(
             'SELECT p.id, p.name, p.sku, p.stock_quantity, p.min_threshold, c.name AS category_name,
                     TIMESTAMPDIFF(DAY,
@@ -344,7 +407,15 @@ class Report
              ORDER BY (p.min_threshold - p.stock_quantity) DESC, p.name ASC'
         );
         $stmt->execute($params);
-        return $stmt->fetchAll();
+
+        return array_map(static function (array $row): array {
+            $stock = (int) ($row['stock_quantity'] ?? 0);
+            $threshold = (int) ($row['min_threshold'] ?? 0);
+            $row['gap'] = max(0, $threshold - $stock);
+            $row['severity'] = $threshold > 0 ? round(($row['gap'] / $threshold) * 100, 1) : 0.0;
+
+            return $row;
+        }, $stmt->fetchAll());
     }
 
     public function getStockMovementLog(?string $fromDate = null, ?string $toDate = null): array
@@ -396,7 +467,93 @@ class Report
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
-        return $stmt->fetchAll();
+
+        return array_map(static function (array $row): array {
+            return [
+                'movement_type' => (string) ($row['movement_type'] ?? ''),
+                'total_quantity' => (int) ($row['total_quantity'] ?? 0),
+                'total_events' => (int) ($row['total_events'] ?? 0),
+            ];
+        }, $stmt->fetchAll());
+    }
+
+    public function getReportDashboard(?string $fromDate = null, ?string $toDate = null, ?string $lowFromDate = null, ?string $lowToDate = null, ?int $categoryId = null): array
+    {
+        $inventorySummary = $this->getInventorySummary();
+        $inventoryReport = $this->getInventoryReport($fromDate, $toDate);
+        $monthlySales = $this->getMonthlySales($fromDate, $toDate);
+        $dailySales = $this->getDailySales($fromDate, $toDate);
+        $lowStockReport = $this->getLowStockReport($lowFromDate, $lowToDate, $categoryId);
+        $movementSummary = $this->getStockMovementSummary($fromDate, $toDate);
+        $salesTransactions = $this->getSalesTransactionsForExport($fromDate, $toDate);
+        $insightData = $this->getAdvancedSalesInsightData($fromDate, $toDate);
+        $charts = $this->getChartDatasets($fromDate, $toDate, $lowFromDate, $lowToDate, $categoryId);
+
+        $salesSummary = $this->getSalesSummary($fromDate, $toDate);
+        $periodLabel = $this->buildPeriodLabel($fromDate, $toDate);
+        $growth = percentageChange(
+            (float) ($insightData['summary']['total_revenue'] ?? 0),
+            (float) ($insightData['summary']['prev_month_revenue'] ?? 0)
+        );
+
+        return [
+            'period_label' => $periodLabel,
+            'inventory_summary' => $inventorySummary,
+            'sales_summary' => [
+                'revenue' => $salesSummary['revenue'],
+                'orders' => $salesSummary['orders'],
+                'units' => $salesSummary['units'],
+                'average_order_value' => $salesSummary['average_order_value'],
+                'growth_percentage' => round($growth, 1),
+            ],
+            'inventory_report' => $inventoryReport,
+            'monthly_sales' => $monthlySales,
+            'daily_sales' => $dailySales,
+            'low_stock_report' => $lowStockReport,
+            'movement_summary' => $movementSummary,
+            'sales_transactions' => $salesTransactions,
+            'insight_data' => $insightData,
+            'charts' => $charts,
+        ];
+    }
+
+    public function getChartDatasets(?string $fromDate = null, ?string $toDate = null, ?string $lowFromDate = null, ?string $lowToDate = null, ?int $categoryId = null): array
+    {
+        $dailySales = $this->getDailySales($fromDate, $toDate);
+        $monthlySales = $this->getMonthlySales($fromDate, $toDate);
+        $topProducts = $this->getTopProducts($fromDate, $toDate, 6);
+        $categoryBreakdown = $this->getCategoryBreakdown($fromDate, $toDate);
+        $lowStock = $this->getLowStockReport($lowFromDate, $lowToDate, $categoryId);
+        $movement = $this->getStockMovementSummary($fromDate, $toDate);
+
+        return [
+            'daily_sales' => [
+                'labels' => array_column($dailySales, 'sale_date'),
+                'values' => array_map(static fn (array $row): float => (float) $row['total'], $dailySales),
+            ],
+            'monthly_sales' => [
+                'labels' => array_column($monthlySales, 'month'),
+                'values' => array_map(static fn (array $row): float => (float) $row['total'], $monthlySales),
+            ],
+            'top_products' => [
+                'labels' => array_column($topProducts, 'name'),
+                'values' => array_map(static fn (array $row): float => (float) $row['revenue'], $topProducts),
+                'units' => array_map(static fn (array $row): int => (int) $row['units_sold'], $topProducts),
+            ],
+            'category_breakdown' => [
+                'labels' => array_column($categoryBreakdown, 'name'),
+                'values' => array_map(static fn (array $row): float => (float) $row['total'], $categoryBreakdown),
+            ],
+            'low_stock_severity' => [
+                'labels' => array_map(static fn (array $row): string => (string) $row['name'], array_slice($lowStock, 0, 8)),
+                'values' => array_map(static fn (array $row): float => (float) $row['severity'], array_slice($lowStock, 0, 8)),
+                'gaps' => array_map(static fn (array $row): int => (int) $row['gap'], array_slice($lowStock, 0, 8)),
+            ],
+            'stock_movement' => [
+                'labels' => array_map(static fn (array $row): string => strtoupper((string) $row['movement_type']), $movement),
+                'values' => array_map(static fn (array $row): int => (int) $row['total_quantity'], $movement),
+            ],
+        ];
     }
 
     public function createImportBatch(string $fileName, string $fileType, string $status, int $userId): int
@@ -411,6 +568,7 @@ class Report
             'status' => $status,
             'created_by' => $userId,
         ]);
+
         return (int) $this->pdo->lastInsertId();
     }
 
@@ -453,6 +611,134 @@ class Report
         );
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
+
         return $stmt->fetchAll();
+    }
+
+    private function buildSalesDateWhere(?string $fromDate, ?string $toDate, string $column = 'sale_date'): array
+    {
+        $conditions = [];
+        $params = [];
+
+        if ($fromDate) {
+            $conditions[] = $column . ' >= :from_date';
+            $params['from_date'] = $fromDate;
+        }
+        if ($toDate) {
+            $conditions[] = $column . ' <= :to_date';
+            $params['to_date'] = $toDate;
+        }
+
+        return [$conditions ? 'WHERE ' . implode(' AND ', $conditions) : '', $params];
+    }
+
+    private function getSalesSummary(?string $fromDate = null, ?string $toDate = null): array
+    {
+        [$whereSql, $params] = $this->buildSalesDateWhere($fromDate, $toDate);
+        $stmt = $this->pdo->prepare(
+            'SELECT COALESCE(SUM(quantity * unit_price), 0) AS revenue,
+                    COUNT(*) AS orders,
+                    COALESCE(SUM(quantity), 0) AS units,
+                    COALESCE(AVG(quantity * unit_price), 0) AS average_order_value
+             FROM sales_transactions ' . $whereSql
+        );
+        $stmt->execute($params);
+        $summary = $stmt->fetch() ?: [];
+
+        return [
+            'revenue' => round((float) ($summary['revenue'] ?? 0), 2),
+            'orders' => (int) ($summary['orders'] ?? 0),
+            'units' => (int) ($summary['units'] ?? 0),
+            'average_order_value' => round((float) ($summary['average_order_value'] ?? 0), 2),
+        ];
+    }
+
+    private function getTopProducts(?string $fromDate, ?string $toDate, int $limit = 5): array
+    {
+        [$whereSql, $params] = $this->buildSalesDateWhere($fromDate, $toDate, 'st.sale_date');
+        $stmt = $this->pdo->prepare(
+            'SELECT p.name,
+                    SUM(st.quantity) AS units_sold,
+                    SUM(st.quantity * st.unit_price) AS revenue
+             FROM sales_transactions st
+             INNER JOIN products p ON p.id = st.product_id
+             ' . $whereSql . '
+             GROUP BY p.id, p.name
+             ORDER BY revenue DESC, units_sold DESC, p.name ASC
+             LIMIT ' . (int) $limit
+        );
+        $stmt->execute($params);
+
+        return array_map(static function (array $row): array {
+            return [
+                'name' => (string) ($row['name'] ?? ''),
+                'units_sold' => (int) ($row['units_sold'] ?? 0),
+                'revenue' => round((float) ($row['revenue'] ?? 0), 2),
+            ];
+        }, $stmt->fetchAll());
+    }
+
+    private function getCategoryBreakdown(?string $fromDate, ?string $toDate): array
+    {
+        [$whereSql, $params] = $this->buildSalesDateWhere($fromDate, $toDate, 'st.sale_date');
+        $stmt = $this->pdo->prepare(
+            'SELECT COALESCE(c.name, "Unassigned") AS name,
+                    SUM(st.quantity * st.unit_price) AS total
+             FROM sales_transactions st
+             INNER JOIN products p ON p.id = st.product_id
+             LEFT JOIN categories c ON c.id = p.category_id
+             ' . $whereSql . '
+             GROUP BY c.id, c.name
+             ORDER BY total DESC'
+        );
+        $stmt->execute($params);
+
+        return array_map(static function (array $row): array {
+            return [
+                'name' => (string) ($row['name'] ?? ''),
+                'total' => round((float) ($row['total'] ?? 0), 2),
+            ];
+        }, $stmt->fetchAll());
+    }
+
+    private function resolveInsightPeriod(?string $fromDate, ?string $toDate): array
+    {
+        if ($fromDate && $toDate) {
+            $baseStart = new DateTimeImmutable($fromDate);
+            $baseEnd = new DateTimeImmutable($toDate);
+        } else {
+            $stmt = $this->pdo->query('SELECT MAX(sale_date) FROM sales_transactions');
+            $maxDate = $stmt->fetchColumn() ?: date('Y-m-d');
+            $baseDate = new DateTimeImmutable((string) $maxDate);
+            $baseStart = $baseDate->modify('first day of this month');
+            $baseEnd = $baseDate->modify('last day of this month');
+        }
+
+        $rangeDays = (int) $baseStart->diff($baseEnd)->days + 1;
+        $prevEnd = $baseStart->modify('-1 day');
+        $prevStart = $prevEnd->modify('-' . max($rangeDays - 1, 0) . ' days');
+
+        return [
+            'start_date' => $baseStart->format('Y-m-d'),
+            'end_date' => $baseEnd->format('Y-m-d'),
+            'previous_start_date' => $prevStart->format('Y-m-d'),
+            'previous_end_date' => $prevEnd->format('Y-m-d'),
+            'label' => $this->buildPeriodLabel($baseStart->format('Y-m-d'), $baseEnd->format('Y-m-d')),
+        ];
+    }
+
+    private function buildPeriodLabel(?string $fromDate, ?string $toDate): string
+    {
+        if ($fromDate && $toDate) {
+            return $fromDate . ' to ' . $toDate;
+        }
+        if ($fromDate) {
+            return 'From ' . $fromDate;
+        }
+        if ($toDate) {
+            return 'Until ' . $toDate;
+        }
+
+        return 'All available data';
     }
 }

@@ -305,6 +305,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-sales-insight-card]').forEach((salesInsightCard) => {
         const salesInsightStatus = salesInsightCard.querySelector('[data-sales-insight-status]');
         const salesInsightCopy = salesInsightCard.querySelector('[data-sales-insight-copy]');
+        const salesInsightDetails = salesInsightCard.querySelector('[data-sales-insight-details]');
+        const opportunitiesList = salesInsightCard.querySelector('[data-sales-insight-opportunities]');
+        const risksList = salesInsightCard.querySelector('[data-sales-insight-risks]');
+        const recommendation = salesInsightCard.querySelector('[data-sales-insight-recommendation]');
 
         if (!salesInsightStatus || !salesInsightCopy) { return; }
 
@@ -316,6 +320,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isSummary) {
                 salesInsightCopy.textContent = message;
             }
+            if (salesInsightDetails) {
+                salesInsightDetails.hidden = true;
+            }
+        };
+
+        const renderInsightList = (target, items) => {
+            if (!target) { return; }
+            target.innerHTML = (items || []).length
+                ? items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')
+                : '<li>No additional detail available.</li>';
         };
 
         setSalesInsightState('Generating insight...', true, false);
@@ -330,6 +344,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 setSalesInsightState(payload.summary, false, true);
+                renderInsightList(opportunitiesList, payload.analysis?.opportunities || []);
+                renderInsightList(risksList, payload.analysis?.risks || []);
+                if (recommendation) {
+                    recommendation.textContent = payload.analysis?.recommendation || 'No recommendation available.';
+                }
+                if (salesInsightDetails) {
+                    salesInsightDetails.hidden = false;
+                }
             })
             .catch(() => {
                 setSalesInsightState('Insight unavailable', false, false);
@@ -777,6 +799,191 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ---------------------------------------------------------------
+    // REPORT CHARTS
+    // ---------------------------------------------------------------
+    const reportChartPanel = document.querySelector('[data-report-charts]');
+    if (reportChartPanel) {
+        let chartData = {};
+        try {
+            chartData = JSON.parse(reportChartPanel.dataset.reportCharts || '{}');
+        } catch (_error) {
+            chartData = {};
+        }
+
+        const drawAxes = (ctx, width, height, padding, color) => {
+            const isDark = document.body.classList.contains('theme-dark');
+            const axisColor = isDark ? 'rgba(148, 163, 184, 0.2)' : 'rgba(148, 163, 184, 0.6)';
+            ctx.strokeStyle = color || axisColor;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(padding, height - padding);
+            ctx.lineTo(width - padding, height - padding);
+            ctx.moveTo(padding, padding);
+            ctx.lineTo(padding, height - padding);
+            ctx.stroke();
+        };
+
+        const drawLineChart = (canvas, labels, values, strokeColor) => {
+            const ctx = canvas.getContext('2d');
+            const width = canvas.clientWidth || 420;
+            const height = Number.parseInt(canvas.getAttribute('height') || '220', 10);
+            const dpr = window.devicePixelRatio || 1;
+            const padding = 28;
+            const max = Math.max(...values.map((value) => Number(value)), 1);
+
+            const isDark = document.body.classList.contains('theme-dark');
+            const textColor = isDark ? '#94a3b8' : '#475569';
+            const emptyColor = isDark ? '#64748b' : '#64748b';
+
+            canvas.width = width * dpr;
+            canvas.height = height * dpr;
+            canvas.style.width = `${width}px`;
+            canvas.style.height = `${height}px`;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            ctx.clearRect(0, 0, width, height);
+            drawAxes(ctx, width, height, padding, isDark ? 'rgba(148, 163, 184, 0.2)' : 'rgba(148, 163, 184, 0.6)');
+
+            if (!values.length) {
+                ctx.fillStyle = emptyColor;
+                ctx.font = '14px Inter, sans-serif';
+                ctx.fillText('No data available', padding, height / 2);
+                return;
+            }
+
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            values.forEach((value, index) => {
+                const x = padding + ((width - (padding * 2)) * (values.length === 1 ? 0 : (index / (values.length - 1))));
+                const y = height - padding - ((Number(value) / max) * (height - (padding * 2)));
+                if (index === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            ctx.stroke();
+
+            ctx.fillStyle = textColor;
+            ctx.font = '11px Inter, sans-serif';
+            labels.slice(0, 6).forEach((label, index) => {
+                const x = padding + ((width - (padding * 2)) * (labels.slice(0, 6).length === 1 ? 0 : (index / (labels.slice(0, 6).length - 1))));
+                ctx.fillText(String(label).slice(0, 10), x - 18, height - 8);
+            });
+        };
+
+        const drawBarChart = (canvas, labels, values, color) => {
+            const ctx = canvas.getContext('2d');
+            const width = canvas.clientWidth || 420;
+            const height = Number.parseInt(canvas.getAttribute('height') || '260', 10);
+            const dpr = window.devicePixelRatio || 1;
+            const padding = 28;
+            const max = Math.max(...values.map((value) => Number(value)), 1);
+            const barWidth = Math.max(((width - (padding * 2)) / Math.max(labels.length, 1)) - 12, 18);
+
+            const isDark = document.body.classList.contains('theme-dark');
+            const textColor = isDark ? '#94a3b8' : '#475569';
+            const emptyColor = isDark ? '#64748b' : '#64748b';
+
+            canvas.width = width * dpr;
+            canvas.height = height * dpr;
+            canvas.style.width = `${width}px`;
+            canvas.style.height = `${height}px`;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            ctx.clearRect(0, 0, width, height);
+            drawAxes(ctx, width, height, padding, isDark ? 'rgba(148, 163, 184, 0.2)' : 'rgba(148, 163, 184, 0.6)');
+
+            if (!values.length) {
+                ctx.fillStyle = emptyColor;
+                ctx.font = '14px Inter, sans-serif';
+                ctx.fillText('No data available', padding, height / 2);
+                return;
+            }
+
+            labels.forEach((label, index) => {
+                const value = Number(values[index] || 0);
+                const x = padding + index * ((width - (padding * 2)) / labels.length) + 6;
+                const barHeight = (value / max) * (height - (padding * 2));
+                const y = height - padding - barHeight;
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, barWidth, barHeight);
+                ctx.fillStyle = textColor;
+                ctx.font = '10px Inter, sans-serif';
+                ctx.fillText(String(label).slice(0, 10), x, height - 8);
+            });
+        };
+
+        document.querySelectorAll('[data-report-chart]').forEach((canvas) => {
+            const key = canvas.dataset.reportChart;
+            const dataset = chartData[key] || { labels: [], values: [] };
+
+            if (key === 'daily_sales') {
+                drawLineChart(canvas, dataset.labels || [], dataset.values || [], '#1d4ed8');
+            } else if (key === 'monthly_sales') {
+                drawLineChart(canvas, dataset.labels || [], dataset.values || [], '#0f766e');
+            } else if (key === 'low_stock_severity') {
+                drawBarChart(canvas, dataset.labels || [], dataset.values || [], '#dc2626');
+            } else if (key === 'stock_movement') {
+                drawBarChart(canvas, dataset.labels || [], dataset.values || [], '#7c3aed');
+            } else {
+                drawBarChart(canvas, dataset.labels || [], dataset.values || [], '#2563eb');
+            }
+        });
+
+        // AI Visual Analysis Handlers
+        document.querySelectorAll('[data-ai-visual-trigger]').forEach((btn) => {
+            btn.addEventListener('click', async () => {
+                const chartType = btn.dataset.aiVisualTrigger;
+                const card = btn.closest('[data-visual-chart-card]');
+                const insightBox = card?.querySelector('[data-ai-visual-insight]');
+                
+                if (!insightBox) return;
+
+                if (btn.classList.contains('loading')) return;
+
+                // Toggle visibility if already loaded
+                if (insightBox.textContent && !insightBox.hidden) {
+                    insightBox.hidden = true;
+                    btn.classList.remove('active');
+                    return;
+                }
+
+                if (insightBox.textContent && insightBox.hidden) {
+                    insightBox.hidden = false;
+                    btn.classList.add('active');
+                    return;
+                }
+
+                btn.classList.add('loading');
+                insightBox.textContent = 'AI is analyzing chart trends...';
+                insightBox.hidden = false;
+
+                try {
+                    const params = new URLSearchParams(window.location.search);
+                    params.set('type', 'visual-insight');
+                    params.set('chart_type', chartType);
+
+                    const response = await fetch(`${apiBase}/reports.php?${params.toString()}`, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    const payload = await response.json();
+
+                    if (response.ok && payload.insight) {
+                        insightBox.innerHTML = `<div class="ai-spark-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg></div><span>${escapeHtml(payload.insight)}</span>`;
+                        btn.classList.add('active');
+                    } else {
+                        insightBox.textContent = 'Analysis currently unavailable.';
+                    }
+                } catch (err) {
+                    insightBox.textContent = 'Connection error. Please try again.';
+                } finally {
+                    btn.classList.remove('loading');
+                }
+            });
+        });
+    }
+
+    // ---------------------------------------------------------------
     // AI PRODUCT DISTRIBUTION HEAT MAP
     // ---------------------------------------------------------------
     const heatmap = document.querySelector('[data-product-distribution-heatmap]');
@@ -843,9 +1050,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const cells = [];
             cells.push('<div class="heatmap-corner">Category / Status</div>');
-            // statuses.forEach((status) => {
-            //     cells.push(`<div class="heatmap-header">${escapeHtml(status.label)}</div>`);
-            // });
+            statuses.forEach((status) => {
+                cells.push(`<div class="heatmap-header">${escapeHtml(status.label)}</div>`);
+            });
 
             categories.forEach((category) => {
                 cells.push('<div class="heatmap-row-label">' + escapeHtml(category) + '</div>');

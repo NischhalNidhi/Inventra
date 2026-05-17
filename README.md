@@ -40,9 +40,8 @@ Inventra is a streamlined, web-based inventory management system designed for de
 - **Password**: `password`
 
 ## Database Management
-- **Initialize Schema**: `php database/init.php`
-- **Wipe and Rebuild**: `php database/rebuild.php`
-- **Seed Demo Data**: `php database/seed.php`
+- **Manual Import**: Import `database/schema.sql` into your MySQL database.
+- **Auto Setup**: The application automatically initializes the database on first run.
 
 ## Requirements
 - PHP 8.1+

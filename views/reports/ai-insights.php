@@ -17,7 +17,7 @@
             </h2>
             <p class="ai-insight-subtitle">AI-generated report based on current month sales vs. historical patterns.</p>
         </div>
-        <span class="insight-pill"><?= e($aiAnalysis['model'] ?? 'Gemini 3 Flash Live'); ?></span>
+        <span class="insight-pill"><?= e($aiAnalysis['model'] ?? 'Groq'); ?></span>
     </div>
     
     <div class="ai-insight-copy">
