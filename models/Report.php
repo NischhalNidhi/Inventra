@@ -114,13 +114,12 @@ class Report
         );
         $stmt->execute($params);
 
-        return array_map(static function (array $row): array {
-            return [
-                'month' => (string) ($row['month'] ?? ''),
-                'total' => round((float) ($row['total'] ?? 0), 2),
-            ];
-        }, $stmt->fetchAll());
-    }
+        $sql = 'SELECT DATE_FORMAT(sale_date, "%Y-%m") AS month, SUM(quantity * unit_price) AS total, COUNT(*) AS transactions, SUM(quantity) AS units_sold
+                FROM sales_transactions';
+        if ($conditions) {
+            $sql .= ' WHERE ' . implode(' AND ', $conditions);
+        }
+        $sql .= ' GROUP BY DATE_FORMAT(sale_date, "%Y-%m") ORDER BY month ASC';
 
     public function getDailySales(?string $fromDate = null, ?string $toDate = null): array
     {
@@ -283,9 +282,9 @@ class Report
 
         return [
             'period' => [
-                'start_date' => $period['start_date'],
-                'end_date' => $period['end_date'],
-                'label' => $period['label'],
+                'start_date' => $thisMonthStart,
+                'end_date' => $thisMonthEnd,
+                'label' => $baseDate->format('F Y'),
             ],
             'summary' => [
                 'total_revenue' => round((float) ($thisMonth['total_revenue'] ?? 0), 2),
@@ -313,18 +312,43 @@ class Report
         ];
     }
 
+    public function getDailySales(?string $fromDate = null, ?string $toDate = null): array
+    {
+        $conditions = [];
+        $params = [];
+        if ($fromDate) {
+            $conditions[] = 'sale_date >= :from_date';
+            $params['from_date'] = $fromDate;
+        }
+        if ($toDate) {
+            $conditions[] = 'sale_date <= :to_date';
+            $params['to_date'] = $toDate;
+        }
+
+        $sql = 'SELECT sale_date, SUM(quantity * unit_price) AS total, COUNT(*) AS transactions, SUM(quantity) AS units_sold
+                FROM sales_transactions';
+        if ($conditions) {
+            $sql .= ' WHERE ' . implode(' AND ', $conditions);
+        }
+        $sql .= ' GROUP BY sale_date ORDER BY sale_date ASC';
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Retrieve detailed sales transactions with product names for CSV export.
+     *
+     * @param string|null $fromDate Only include sales on or after this date.
+     * @param string|null $toDate   Only include sales on or before this date.
+     * @return array Sales transactions with product details.
+     */
     public function getSalesTransactionsForExport(?string $fromDate = null, ?string $toDate = null): array
     {
         [$whereSql, $params] = $this->buildSalesDateWhere($fromDate, $toDate, 'st.sale_date');
         $stmt = $this->pdo->prepare(
-            'SELECT st.sale_date,
-                    COALESCE(p.name, "Unknown Product") AS product_name,
-                    COALESCE(c.name, "Unassigned") AS category_name,
-                    st.region,
-                    st.quantity,
-                    st.unit_price,
-                    (st.quantity * st.unit_price) AS total,
-                    st.source
+            'SELECT st.sale_date, st.invoice_id, p.name AS product_name, c.name AS category_name, st.quantity, st.unit_price, (st.quantity * st.unit_price) AS total, st.payment_method, st.region
              FROM sales_transactions st
              LEFT JOIN products p ON p.id = st.product_id
              LEFT JOIN categories c ON c.id = p.category_id
@@ -392,6 +416,33 @@ class Report
 
             return $row;
         }, $stmt->fetchAll());
+    }
+
+    public function getStockMovementLog(?string $fromDate = null, ?string $toDate = null): array
+    {
+        $conditions = [];
+        $params = [];
+        if ($fromDate) {
+            $conditions[] = 'DATE(sm.created_at) >= :from_date';
+            $params['from_date'] = $fromDate;
+        }
+        if ($toDate) {
+            $conditions[] = 'DATE(sm.created_at) <= :to_date';
+            $params['to_date'] = $toDate;
+        }
+
+        $whereSql = $conditions ? 'WHERE ' . implode(' AND ', $conditions) : '';
+
+        $stmt = $this->pdo->prepare(
+            'SELECT sm.*, p.name AS product_name, p.sku, u.full_name
+             FROM stock_movements sm
+             INNER JOIN products p ON p.id = sm.product_id
+             INNER JOIN users u ON u.id = sm.user_id
+             ' . $whereSql . '
+             ORDER BY sm.created_at DESC'
+        );
+        $stmt->execute($params);
+        return $stmt->fetchAll();
     }
 
     public function getStockMovementSummary(?string $fromDate = null, ?string $toDate = null): array

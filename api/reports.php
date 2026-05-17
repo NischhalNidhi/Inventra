@@ -21,18 +21,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             jsonResponse(['error' => 'Forbidden', 'code' => 'FORBIDDEN'], 403);
         }
 
-        $salesData = $reportModel->getAdvancedSalesInsightData($fromDate, $toDate);
-        $analysis = $aiSalesInsightService->generateSalesAnalysis($salesData);
-        jsonResponse([
-            'summary' => $analysis['summary'],
-            'analysis' => $analysis,
-            'period' => $salesData['period'] ?? null,
-        ]);
-    }
+        try {
+            $lastRequest = $_SESSION['last_ai_request_at'] ?? 0;
+            $secondsRemaining = 180 - (time() - $lastRequest);
 
-    if ($type === 'visual-insight') {
-        if (!$authController->can('reports.sales.insight')) {
-            jsonResponse(['error' => 'Forbidden', 'code' => 'FORBIDDEN'], 403);
+            if ($secondsRemaining > 0) {
+                jsonResponse(['error' => "Rate limit: Please wait {$secondsRemaining} seconds.", 'code' => 'RATE_LIMIT'], 429);
+            }
+
+            // Mark request time before closing session to allow AI call to run in background
+            $_SESSION['last_ai_request_at'] = time();
+
+            // Release session lock before making the AI request to prevent 
+            // deadlocks on local servers (XAMPP/Windows).
+            if (session_status() === PHP_SESSION_ACTIVE) {
+                session_write_close();
+            }
+
+            $salesData = $reportModel->getAdvancedSalesInsightData();
+            $summary = $aiSalesInsightService->generateMonthlySalesInsight($salesData);
+            jsonResponse([
+                'summary' => $summary,
+                'period' => $salesData['period'] ?? null,
+            ]);
+        } catch (Throwable $exception) {
+            error_log("[Inventra AI Error] " . $exception->getMessage());
+            $message = env('APP_ENV') !== 'production' 
+                ? 'AI Error: ' . $exception->getMessage() 
+                : 'Insight unavailable';
+                
+            jsonResponse(['error' => $message, 'code' => 'INSIGHT_UNAVAILABLE'], 502);
         }
 
         $chartType = trim($_GET['chart_type'] ?? 'generic');
@@ -61,8 +79,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
     if ($type === 'sales-daily') {
         $authController->authorize('reports.sales.daily');
-        assertValidDateRange($fromDate, $toDate);
-        jsonResponse(['rows' => $reportModel->getDailySales($fromDate, $toDate)]);
+        if ($fromDate && $toDate && strtotime($fromDate) > strtotime($toDate)) {
+            jsonResponse(['error' => 'End date must be after start date.', 'code' => 'INVALID_DATE_RANGE'], 400);
+        }
+        jsonResponse([
+            'summary' => $reportModel->getDailySales($fromDate, $toDate),
+            'detailed' => $reportModel->getSalesTransactionsForExport($fromDate, $toDate)
+        ]);
     }
     if ($type === 'low-stock') {
         $authController->authorize('reports.low_stock');
@@ -70,53 +93,98 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
     if ($type === 'stock-movement') {
         $authController->authorize('reports.stock_movement');
-        jsonResponse(['rows' => $reportModel->getStockMovementSummary($fromDate, $toDate)]);
+        jsonResponse([
+            'summary' => $reportModel->getStockMovementSummary($fromDate, $toDate),
+            'log' => $reportModel->getStockMovementLog($fromDate, $toDate)
+        ]);
     }
     if ($type === 'export-daily-csv') {
         $authController->authorize('reports.export');
         $transactions = $reportModel->getSalesTransactionsForExport($fromDate, $toDate);
-        $csvRows = array_map(static function (array $row): array {
-            return [
-                $row['sale_date'],
-                $row['product_name'],
-                $row['category_name'],
-                $row['region'],
-                $row['quantity'],
-                $row['unit_price'],
-                $row['total'],
-                $row['source'],
-            ];
-        }, $transactions);
-        downloadCsv('daily-sales-report', ['Date', 'Product', 'Category', 'Region', 'Quantity', 'Unit Price', 'Total', 'Source'], $csvRows);
+        $csvRows = array_map(fn($r) => [
+            'Date' => $r['sale_date'],
+            'Invoice' => $r['invoice_id'],
+            'Product' => $r['product_name'],
+            'Category' => $r['category_name'],
+            'Qty' => $r['quantity'],
+            'Price' => $r['unit_price'],
+            'Total' => $r['total'],
+            'Payment' => $r['payment_method'],
+            'Region' => $r['region']
+        ], $transactions);
+        downloadCsv('daily-sales-report', ['Date', 'Invoice', 'Product', 'Category', 'Qty', 'Price', 'Total', 'Payment', 'Region'], $csvRows);
+        return;
+    }
+    if ($type === 'export-inventory-csv') {
+        $authController->authorize('reports.export');
+        $data = $reportModel->getInventoryReport($fromDate, $toDate);
+        $csvRows = array_map(fn($r) => [
+            'Product' => $r['name'],
+            'SKU' => $r['sku'],
+            'Department' => $r['category_name'],
+            'Price' => $r['unit_price'],
+            'Stock' => $r['stock_quantity'],
+            'Min Threshold' => $r['min_threshold'],
+            'Last Updated' => $r['updated_at']
+        ], $data);
+        downloadCsv('inventory-report', ['Product', 'SKU', 'Department', 'Price', 'Stock', 'Min Threshold', 'Last Updated'], $csvRows);
+        return;
+    }
+    if ($type === 'export-low-stock-csv') {
+        $authController->authorize('reports.export');
+        $lFrom = trim($_GET['low_from_date'] ?? '') ?: null;
+        $lTo = trim($_GET['low_to_date'] ?? '') ?: null;
+        $catId = isset($_GET['category_id']) && $_GET['category_id'] !== '' ? (int)$_GET['category_id'] : null;
+        $data = $reportModel->getLowStockReport($lFrom, $lTo, $catId);
+        $csvRows = array_map(fn($r) => [
+            'Product' => $r['name'],
+            'SKU' => $r['sku'],
+            'Category' => $r['category_name'],
+            'Current Stock' => $r['stock_quantity'],
+            'Min Stock' => $r['min_threshold'],
+            'Gap' => (int)$r['min_threshold'] - (int)$r['stock_quantity'],
+            'Days Below' => $r['days_below_threshold']
+        ], $data);
+        downloadCsv('low-stock-report', ['Product', 'SKU', 'Category', 'Current Stock', 'Min Stock', 'Gap', 'Days Below'], $csvRows);
+        return;
+    }
+    if ($type === 'export-stock-movement-csv') {
+        $authController->authorize('reports.export');
+        $data = $reportModel->getStockMovementLog($fromDate, $toDate);
+        $csvRows = array_map(fn($r) => [
+            'Date' => $r['created_at'],
+            'Product' => $r['product_name'],
+            'SKU' => $r['sku'],
+            'Type' => strtoupper($r['movement_type']),
+            'Quantity' => $r['quantity'],
+            'Previous' => $r['previous_quantity'],
+            'New' => $r['new_quantity'],
+            'User' => $r['full_name'],
+            'Reason' => $r['reason']
+        ], $data);
+        downloadCsv('stock-movement-report', ['Date', 'Product', 'SKU', 'Type', 'Quantity', 'Previous', 'New', 'User', 'Reason'], $csvRows);
+        return;
     }
     if ($type === 'export-monthly-csv') {
         $authController->authorize('reports.export');
         $monthlySales = $reportModel->getMonthlySales($fromDate, $toDate);
         $csvRows = array_map(static function (array $row): array {
             return [
-                $row['month'],
-                $row['total'],
+                'Month' => $row['month'],
+                'Transactions' => $row['transactions'],
+                'Units Sold' => $row['units_sold'],
+                'Total Revenue' => $row['total'],
             ];
         }, $monthlySales);
-        downloadCsv('monthly-sales-report', ['Month', 'Total Revenue'], $csvRows);
-    }
-    if ($type === 'export-summary-html') {
-        $authController->authorize('reports.export');
-        $dashboard = $reportModel->getReportDashboard($fromDate, $toDate, $lowFromDate, $lowToDate, $lowCategoryId);
-        $analysis = $authController->can('reports.sales.insight')
-            ? $aiSalesInsightService->generateSalesAnalysis($dashboard['insight_data'])
-            : [
-                'summary' => 'AI insight not available for this user.',
-                'opportunities' => [],
-                'risks' => [],
-                'recommendation' => 'Review report charts and KPI trends manually.',
-            ];
-        downloadHtml('inventra-report', buildReportExportHtml($dashboard, $analysis));
+        downloadCsv('monthly-sales-report', ['Month', 'Transactions', 'Units Sold', 'Total Revenue'], $csvRows);
+        return;
     }
 }
 
-if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-    jsonResponse(['error' => 'Invalid request token.', 'code' => 'INVALID_TOKEN'], 422);
+if ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT' || $_SERVER['REQUEST_METHOD'] === 'PATCH') {
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? null)) {
+        jsonResponse(['error' => 'Invalid request token.', 'code' => 'INVALID_TOKEN'], 422);
+    }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $type === 'sales') {

@@ -89,9 +89,9 @@
         <div class="panel-header">
             <h3>AI Opportunities</h3>
         </div>
-        <div style="padding: 1rem 1.25rem;">
+        <div style="padding: 1rem 1.25rem; color: var(--text);">
             <?php if (!empty($aiAnalysis['opportunities'])): ?>
-                <ul style="margin: 0; padding-left: 1.25rem; line-height: 1.8; color: #334155;">
+                <ul style="margin: 0; padding-left: 1.25rem; line-height: 1.8;">
                     <?php foreach ($aiAnalysis['opportunities'] as $item): ?>
                         <li><?= e($item); ?></li>
                     <?php endforeach; ?>
@@ -106,9 +106,9 @@
         <div class="panel-header">
             <h3>AI Risks</h3>
         </div>
-        <div style="padding: 1rem 1.25rem;">
+        <div style="padding: 1rem 1.25rem; color: var(--text);">
             <?php if (!empty($aiAnalysis['risks'])): ?>
-                <ul style="margin: 0; padding-left: 1.25rem; line-height: 1.8; color: #334155;">
+                <ul style="margin: 0; padding-left: 1.25rem; line-height: 1.8;">
                     <?php foreach ($aiAnalysis['risks'] as $item): ?>
                         <li><?= e($item); ?></li>
                     <?php endforeach; ?>
@@ -124,7 +124,7 @@
     <div class="panel-header">
         <h3>Recommended Action</h3>
     </div>
-    <div style="padding: 1.25rem; color: #334155; line-height: 1.8;">
+    <div style="padding: 1.25rem; color: var(--text); line-height: 1.8;">
         <p style="margin: 0;"><?= e($aiAnalysis['recommendation'] ?? 'No recommendation available yet.'); ?></p>
     </div>
 </section>

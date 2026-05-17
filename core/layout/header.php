@@ -26,6 +26,16 @@ $topSearchPlaceholder = $topSearchPlaceholderMap[$topSearchPage] ?? 'Search prod
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= e(basePath('css/style.css')) . '?v=' . filemtime(dirname(__DIR__, 2) . '/public/css/style.css'); ?>">
+    <style>
+        /* Ensure AI Insight Cards support Dark Mode */
+        body.theme-dark .insight-card, body.theme-dark .ai-insight-panel {
+            background: var(--surface-mid) !important;
+            border-color: var(--outline-variant);
+        }
+        body.theme-dark .sales-insight-copy, body.theme-dark .ai-insight-copy {
+            color: var(--text);
+        }
+    </style>
 </head>
 <body class="app-body" data-base-path="<?= e(basePath()); ?>" data-app-root-path="<?= e(appRootPath()); ?>" data-csrf-token="<?= e(csrfToken()); ?>">
 <?php if ($flash): ?>
