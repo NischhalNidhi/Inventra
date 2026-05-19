@@ -5,7 +5,7 @@ declare(strict_types=1);
 class AiSalesInsightService
 {
     /**
-     * Returns the name of the AI model being used for display in the UI.
+     * Returns the Name of the AI model being used for display in the UI.
      */
     public function getConfiguredModel(): string
     {
@@ -97,7 +97,7 @@ class AiSalesInsightService
 
         $decoded = json_decode($response, true);
         if ($statusCode >= 400 || !isset($decoded['choices'][0]['message']['content'])) {
-            $preview = mb_substr((string)$response, 0, 100);
+            $preview = mb_substr((string) $response, 0, 100);
             throw new RuntimeException("AI insight service error (HTTP $statusCode). Response: $preview");
         }
 
@@ -138,7 +138,7 @@ class AiSalesInsightService
                 \"risks\": [\"2 potential business threats\"],
                 \"recommendation\": \"1 clear priority action\"
             }
-            Return ONLY the raw JSON. Use NPR for all currency values, never $.";  
+            Return ONLY the raw JSON. Use NPR for all currency values, never $.";
 
             $payload = [
                 'model' => $model,
@@ -174,14 +174,14 @@ class AiSalesInsightService
                 throw new RuntimeException("AI analysis request failed with status $statusCode. Target URL: $endpoint");
             }
 
-            $outer = json_decode((string)$response, true);
+            $outer = json_decode((string) $response, true);
             $text = $outer['choices'][0]['message']['content'] ?? '';
-            
+
             // Strip markdown JSON blocks if present
             if (str_starts_with($text, '```json')) {
                 $text = trim(str_replace(['```json', '```'], '', $text));
             }
-            
+
             $analysis = json_decode($text, true);
 
             if (!$analysis) {
