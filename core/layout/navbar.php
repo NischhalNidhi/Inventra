@@ -60,6 +60,12 @@ $user = currentUser();
                 <span>AI Insights</span>
             </a>
         <?php endif; ?>
+        <?php if ($authController->can('reports.heatmap')): ?>
+            <a class="nav-link <?= $currentPage === 'heatmap' ? 'active' : ''; ?>" href="<?= e(basePath('index.php?page=heatmap')); ?>" title="Sales Heatmap">
+                <span class="material-symbols-outlined nav-icon">map</span>
+                <span>Sales Heatmap</span>
+            </a>
+        <?php endif; ?>
         <?php if ($authController->can('reports.sales.daily') || $authController->can('reports.inventory')): ?>
             <a class="nav-link <?= $currentPage === 'reports' ? 'active' : ''; ?>" href="<?= e(basePath('index.php?page=reports')); ?>" title="Reports">
                 <span class="material-symbols-outlined nav-icon">analytics</span>

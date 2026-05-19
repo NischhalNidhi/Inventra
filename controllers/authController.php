@@ -40,6 +40,7 @@ class AuthController
             'reports.export',
             'reports.import',
             'reports.sales.insight',
+            'reports.heatmap',
             'sales.record',
         ],
         'Supervisor' => [
@@ -66,8 +67,6 @@ class AuthController
             'categories.view',
             'stock.view',
             'stock.out',
-            'reports.sales.daily',
-            'reports.low_stock',
             'sales.record',
         ],
         'Logistic Handler' => [

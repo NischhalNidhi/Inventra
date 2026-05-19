@@ -496,9 +496,9 @@ if ($isSetPassword) {
 
             <!-- Footer Links -->
             <footer class="mt-12 flex flex-wrap justify-center gap-6 text-xs font-bold text-outline-variant">
-                <a class="hover:text-on-surface transition-colors" href="#">Privacy Policy</a>
-                <a class="hover:text-on-surface transition-colors" href="#">Terms of Service</a>
-                <a class="hover:text-on-surface transition-colors" href="#">Security</a>
+                <a class="hover:text-on-surface transition-colors" href="<?= e(basePath('index.php?page=privacy-policy')); ?>">Privacy Policy</a>
+                <a class="hover:text-on-surface transition-colors" href="<?= e(basePath('index.php?page=terms-of-service')); ?>">Terms of Service</a>
+                <a class="hover:text-on-surface transition-colors" href="<?= e(basePath('index.php?page=security')); ?>">Security</a>
             </footer>
 
         </div>

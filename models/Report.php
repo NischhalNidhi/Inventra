@@ -289,7 +289,25 @@ class Report
              ORDER BY st.sale_date DESC, st.id DESC'
         );
         $stmt->execute($params);
+<<<<<<< Updated upstream
         return $stmt->fetchAll();
+=======
+
+        return array_map(static function (array $row): array {
+            return [
+                'sale_date' => (string) ($row['sale_date'] ?? ''),
+                'invoice_id' => (string) ($row['invoice_id'] ?? ''),
+                'product_name' => (string) ($row['product_name'] ?? ''),
+                'category_name' => (string) ($row['category_name'] ?? ''),
+                'region' => (string) ($row['region'] ?? ''),
+                'quantity' => (int) ($row['quantity'] ?? 0),
+                'unit_price' => round((float) ($row['unit_price'] ?? 0), 2),
+                'total' => round((float) ($row['total'] ?? 0), 2),
+                'payment_method' => (string) ($row['payment_method'] ?? ''),
+                'source' => (string) ($row['source'] ?? ''),
+            ];
+        }, $stmt->fetchAll());
+>>>>>>> Stashed changes
     }
 
     /**
@@ -422,4 +440,188 @@ class Report
         $stmt->execute();
         return $stmt->fetchAll();
     }
+<<<<<<< Updated upstream
+=======
+
+    private function buildSalesDateWhere(?string $fromDate, ?string $toDate, string $column = 'sale_date'): array
+    {
+        $conditions = [];
+        $params = [];
+
+        if ($fromDate) {
+            $conditions[] = $column . ' >= :from_date';
+            $params['from_date'] = $fromDate;
+        }
+        if ($toDate) {
+            $conditions[] = $column . ' <= :to_date';
+            $params['to_date'] = $toDate;
+        }
+
+        return [$conditions ? 'WHERE ' . implode(' AND ', $conditions) : '', $params];
+    }
+
+    public function getSalesSummaryPublic(?string $fromDate = null, ?string $toDate = null): array
+    {
+        [$whereSql, $params] = $this->buildSalesDateWhere($fromDate, $toDate);
+        $stmt = $this->pdo->prepare(
+            'SELECT COALESCE(SUM(quantity * unit_price), 0) AS revenue,
+                    COUNT(*) AS orders,
+                    COALESCE(SUM(quantity), 0) AS units,
+                    COALESCE(AVG(quantity * unit_price), 0) AS average_order_value
+             FROM sales_transactions ' . $whereSql
+        );
+        $stmt->execute($params);
+        $summary = $stmt->fetch() ?: [];
+
+        return [
+            'revenue' => round((float) ($summary['revenue'] ?? 0), 2),
+            'orders' => (int) ($summary['orders'] ?? 0),
+            'units' => (int) ($summary['units'] ?? 0),
+            'average_order_value' => round((float) ($summary['average_order_value'] ?? 0), 2),
+        ];
+    }
+
+    private function getTopProducts(?string $fromDate, ?string $toDate, int $limit = 5): array
+    {
+        [$whereSql, $params] = $this->buildSalesDateWhere($fromDate, $toDate, 'st.sale_date');
+        $stmt = $this->pdo->prepare(
+            'SELECT p.name,
+                    SUM(st.quantity) AS units_sold,
+                    SUM(st.quantity * st.unit_price) AS revenue
+             FROM sales_transactions st
+             INNER JOIN products p ON p.id = st.product_id
+             ' . $whereSql . '
+             GROUP BY p.id, p.name
+             ORDER BY revenue DESC, units_sold DESC, p.name ASC
+             LIMIT ' . (int) $limit
+        );
+        $stmt->execute($params);
+
+        return array_map(static function (array $row): array {
+            return [
+                'name' => (string) ($row['name'] ?? ''),
+                'units_sold' => (int) ($row['units_sold'] ?? 0),
+                'revenue' => round((float) ($row['revenue'] ?? 0), 2),
+            ];
+        }, $stmt->fetchAll());
+    }
+
+    private function getCategoryBreakdown(?string $fromDate, ?string $toDate): array
+    {
+        [$whereSql, $params] = $this->buildSalesDateWhere($fromDate, $toDate, 'st.sale_date');
+        $stmt = $this->pdo->prepare(
+            'SELECT COALESCE(c.name, "Unassigned") AS name,
+                    SUM(st.quantity * st.unit_price) AS total
+             FROM sales_transactions st
+             INNER JOIN products p ON p.id = st.product_id
+             LEFT JOIN categories c ON c.id = p.category_id
+             ' . $whereSql . '
+             GROUP BY c.id, c.name
+             ORDER BY total DESC'
+        );
+        $stmt->execute($params);
+
+        return array_map(static function (array $row): array {
+            return [
+                'name' => (string) ($row['name'] ?? ''),
+                'total' => round((float) ($row['total'] ?? 0), 2),
+            ];
+        }, $stmt->fetchAll());
+    }
+
+    private function resolveInsightPeriod(?string $fromDate, ?string $toDate): array
+    {
+        if ($fromDate && $toDate) {
+            $baseStart = new DateTimeImmutable($fromDate);
+            $baseEnd = new DateTimeImmutable($toDate);
+        } else {
+            $stmt = $this->pdo->query('SELECT MAX(sale_date) FROM sales_transactions');
+            $maxDate = $stmt->fetchColumn() ?: date('Y-m-d');
+            $baseDate = new DateTimeImmutable((string) $maxDate);
+            $baseStart = $baseDate->modify('first day of this month');
+            $baseEnd = $baseDate->modify('last day of this month');
+        }
+
+        $rangeDays = (int) $baseStart->diff($baseEnd)->days + 1;
+        $prevEnd = $baseStart->modify('-1 day');
+        $prevStart = $prevEnd->modify('-' . max($rangeDays - 1, 0) . ' days');
+
+        return [
+            'start_date' => $baseStart->format('Y-m-d'),
+            'end_date' => $baseEnd->format('Y-m-d'),
+            'previous_start_date' => $prevStart->format('Y-m-d'),
+            'previous_end_date' => $prevEnd->format('Y-m-d'),
+            'label' => $this->buildPeriodLabel($baseStart->format('Y-m-d'), $baseEnd->format('Y-m-d')),
+        ];
+    }
+
+    private function buildPeriodLabel(?string $fromDate, ?string $toDate): string
+    {
+        if ($fromDate && $toDate) {
+            return $fromDate . ' to ' . $toDate;
+        }
+        if ($fromDate) {
+            return 'From ' . $fromDate;
+        }
+        if ($toDate) {
+            return 'Until ' . $toDate;
+        }
+
+        return 'All available data';
+    }
+
+    public function getUniqueRegions(): array
+    {
+        $stmt = $this->pdo->query('SELECT DISTINCT region FROM sales_transactions WHERE region IS NOT NULL AND region != "" ORDER BY region ASC');
+        return $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+    }
+
+    public function getGeographicSalesData(?int $productId = null, ?string $fromDate = null, ?string $toDate = null, ?string $region = null): array
+    {
+        $conditions = ['region IS NOT NULL', 'region != ""'];
+        $params = [];
+
+        if ($productId !== null) {
+            $conditions[] = 'product_id = :product_id';
+            $params['product_id'] = $productId;
+        }
+        if ($fromDate) {
+            $conditions[] = 'sale_date >= :from_date';
+            $params['from_date'] = $fromDate;
+        }
+        if ($toDate) {
+            $conditions[] = 'sale_date <= :to_date';
+            $params['to_date'] = $toDate;
+        }
+        if ($region) {
+            $conditions[] = 'region = :region';
+            $params['region'] = $region;
+        }
+
+        $whereSql = $conditions ? 'WHERE ' . implode(' AND ', $conditions) : '';
+
+        $stmt = $this->pdo->prepare(
+            "SELECT region, SUM(quantity) AS total_quantity, SUM(quantity * unit_price) AS total_revenue
+             FROM sales_transactions
+             $whereSql
+             GROUP BY region
+             ORDER BY total_quantity DESC"
+        );
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $totalQtyAll = array_sum(array_column($rows, 'total_quantity'));
+
+        return array_map(function (array $row) use ($totalQtyAll): array {
+            $qty = (int) $row['total_quantity'];
+            $share = $totalQtyAll > 0 ? ($qty / $totalQtyAll) * 100 : 0.0;
+            return [
+                'region' => (string) $row['region'],
+                'total_quantity' => $qty,
+                'total_revenue' => round((float) $row['total_revenue'], 2),
+                'percentage_share' => round($share, 2)
+            ];
+        }, $rows);
+    }
+>>>>>>> Stashed changes
 }
