@@ -565,7 +565,7 @@ switch ($page) {
         $authController->authorize('stock.in');
         $products = $stockModel->getProductOptions();
         $title = 'Inventra | Stock In';
-        $currentPage = 'reports';
+        $currentPage = 'stock-in';
         require __DIR__ . '/../views/stock-in/in.php';
         break;
 
@@ -573,7 +573,7 @@ switch ($page) {
         $authController->authorize('stock.out');
         $products = $stockModel->getProductOptions();
         $title = 'Inventra | Stock Out';
-        $currentPage = 'reports';
+        $currentPage = 'stock-out';
         require __DIR__ . '/../views/stock-in/out.php';
         break;
 
