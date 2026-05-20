@@ -16,6 +16,43 @@ $categoryId = trim($_GET['category_id'] ?? '');
 $lowCategoryId = $categoryId !== '' ? (int) $categoryId : null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    if ($type === 'geographic-data') {
+        if (!$authController->can('reports.heatmap')) {
+            jsonResponse(['error' => 'Forbidden', 'code' => 'FORBIDDEN'], 403);
+        }
+        $productId = isset($_GET['product_id']) && $_GET['product_id'] !== '' ? (int)$_GET['product_id'] : null;
+        $region = trim($_GET['region'] ?? '') ?: null;
+        
+        $data = $reportModel->getGeographicSalesData($productId, $fromDate, $toDate, $region);
+        jsonResponse(['success' => true, 'data' => $data]);
+    }
+
+    if ($type === 'geographic-insight') {
+        if (!$authController->can('reports.heatmap')) {
+            jsonResponse(['error' => 'Forbidden', 'code' => 'FORBIDDEN'], 403);
+        }
+        
+        try {
+            $productId = isset($_GET['product_id']) && $_GET['product_id'] !== '' ? (int)$_GET['product_id'] : null;
+            $region = trim($_GET['region'] ?? '') ?: null;
+            
+            $distributionData = $reportModel->getGeographicSalesData($productId, $fromDate, $toDate, $region);
+            
+            if (session_status() === PHP_SESSION_ACTIVE) {
+                session_write_close();
+            }
+            
+            $insight = $aiSalesInsightService->generateGeographicInsight($distributionData);
+            jsonResponse([
+                'success' => true,
+                'insight' => $insight
+            ]);
+        } catch (Throwable $exception) {
+            error_log("[Inventra Heatmap AI Error] " . $exception->getMessage());
+            jsonResponse(['error' => 'Insight unavailable', 'code' => 'INSIGHT_UNAVAILABLE'], 502);
+        }
+    }
+
     if ($type === 'sales-insight') {
         if (!$authController->can('reports.sales.insight')) {
             jsonResponse(['error' => 'Forbidden', 'code' => 'FORBIDDEN'], 403);
@@ -177,6 +214,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             ];
         }, $monthlySales);
         downloadCsv('monthly-sales-report', ['Month', 'Transactions', 'Units Sold', 'Total Revenue'], $csvRows);
+        return;
+    }
+    if ($type === 'export-summary-html') {
+        $authController->authorize('reports.export');
+        $dashboard = $reportModel->getReportDashboard($fromDate, $toDate, $lowFromDate, $lowToDate, $lowCategoryId);
+        $salesData = $reportModel->getAdvancedSalesInsightData($fromDate, $toDate);
+        $analysis = [];
+        try {
+            $analysis = $aiSalesInsightService->generateMonthlySalesInsight($salesData);
+        } catch (Throwable $e) {
+            error_log("Failed to generate AI sales insight for HTML export: " . $e->getMessage());
+        }
+        $html = buildReportExportHtml($dashboard, $analysis);
+        header('Content-Type: text/html; charset=utf-8');
+        header('Content-Disposition: attachment; filename="inventra-executive-report-' . date('Y-m-d') . '.html"');
+        echo $html;
         return;
     }
 }

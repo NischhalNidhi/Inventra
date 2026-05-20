@@ -247,4 +247,94 @@ class AiSalesInsightService
             'period' => $salesData['period'] ?? null,
         ];
     }
+
+    /**
+     * Generates a geographic/regional business insight.
+     *
+     * @param array $distributionData
+     * @return string
+     */
+    public function generateGeographicInsight(array $distributionData): string
+    {
+        $endpoint = env('AI_INSIGHTS_ENDPOINT', '');
+        if ($endpoint === '') {
+            $endpoint = 'https://api.groq.com/openai/v1/chat/completions';
+        }
+        $apiKey = env('AI_INSIGHTS_API_KEY', '');
+        $model = env('AI_INSIGHTS_MODEL', 'llama-3.3-70b-versatile');
+
+        if ($apiKey === '') {
+            throw new RuntimeException('AI insight service is not fully configured. Missing API Key.');
+        }
+
+        if (!function_exists('curl_init')) {
+            throw new RuntimeException('cURL is required for AI insights.');
+        }
+
+        $dataStr = '';
+        foreach ($distributionData as $row) {
+            $region = isset($row['region']) ? (string)$row['region'] : 'Unknown';
+            $qty = isset($row['total_quantity']) ? (int)$row['total_quantity'] : 0;
+            $rev = isset($row['total_revenue']) ? number_format((float)$row['total_revenue'], 2) : '0.00';
+            $share = isset($row['percentage_share']) ? (float)$row['percentage_share'] : 0;
+            $dataStr .= "- Region: {$region}, Quantity: {$qty}, Revenue: NPR {$rev} ({$share}% share)\n";
+        }
+
+        $prompt = "You are a business analytics assistant.\nYour task is to analyze geographic distribution sales data and generate a concise business insight.\nCURRENCY RULE: Always use NPR as the currency symbol. Never use $ or any other currency symbol.\nINPUT DATA:\n{$dataStr}\nINSTRUCTIONS:\n- Generate a 2–3 sentence summary highlighting the top and underperforming regions.\n- Use plain, clear business language.\n- Always refer to monetary values using NPR (e.g. NPR 10,000). Never use $.\n- Focus only on meaningful trends (growth, decline, anomalies, top/low performers).\n- Highlight 1 key insight that a manager can act on.\n- Do NOT repeat raw numbers unnecessarily.\n- Do NOT explain calculations.\n- Do NOT speculate beyond the provided data.\nOUTPUT FORMAT:\nA short paragraph (2–3 sentences max).";
+
+        $payload = [
+            'model' => $model,
+            'messages' => [
+                ['role' => 'user', 'content' => $prompt]
+            ]
+        ];
+
+        $headers = [
+            'Accept: application/json',
+            'Content-Type: application/json',
+            'Authorization: Bearer ' . $apiKey,
+        ];
+
+        $ch = curl_init($endpoint);
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_SLASHES),
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_IPRESOLVE => defined('CURL_IPRESOLVE_V4') ? CURL_IPRESOLVE_V4 : 0,
+            CURLOPT_SSL_VERIFYPEER => env('APP_ENV') === 'production',
+            CURLOPT_SSL_VERIFYHOST => env('APP_ENV') === 'production' ? 2 : 0,
+        ]);
+
+        $response = curl_exec($ch);
+        $statusCode = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($response === false || $error !== '') {
+            throw new RuntimeException("AI insight cURL request failed: $error (Endpoint: $endpoint)");
+        }
+
+        $decoded = json_decode((string)$response, true);
+        if ($statusCode >= 400 || !isset($decoded['choices'][0]['message']['content'])) {
+            $preview = mb_substr((string)$response, 0, 100);
+            throw new RuntimeException("AI insight service error (HTTP $statusCode). Response: $preview");
+        }
+
+        $summary = trim((string) $decoded['choices'][0]['message']['content']);
+        if ($summary === '') {
+            throw new RuntimeException('AI insight response did not include a summary.');
+        }
+
+        return $this->normalizeSummary($summary);
+    }
+
+    private function normalizeSummary(string $text): string
+    {
+        $text = preg_replace('/^```[\s\S]*?```$/m', '', $text) ?? $text;
+        $text = preg_replace('/\s+/', ' ', $text) ?? $text;
+        return trim($text);
+    }
 }

@@ -430,6 +430,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+if (in_array($page, ['privacy-policy', 'terms-of-service', 'security'])) {
+    require __DIR__ . '/../views/public/info.php';
+    exit;
+}
+
 if (!isLoggedIn()) {
     $requestedMode = $_GET['mode'] ?? '';
     $authMode = match (true) {
@@ -612,6 +617,16 @@ switch ($page) {
         $title = 'Inventra | AI Sales Insights';
         $currentPage = 'ai-insights';
         require __DIR__ . '/../views/reports/ai-insights.php';
+        break;
+
+    case 'heatmap':
+        $authController->authorize('reports.heatmap');
+        $productsData = $productModel->getAll(1, 200, '', ['archived' => '0']);
+        $products = $productsData['data'];
+        $regions = $reportModel->getUniqueRegions();
+        $title = 'Inventra | Geographic Sales Heatmap';
+        $currentPage = 'heatmap';
+        require __DIR__ . '/../views/reports/heatmap.php';
         break;
 
     case 'reports':

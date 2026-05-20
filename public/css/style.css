@@ -1392,11 +1392,18 @@ textarea:focus {
 
 .table-wrap {
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
+}
+
+@media (max-width: 768px) {
+    .table-wrap table {
+        min-width: 760px;
+    }
 }
 
 th,
@@ -1417,7 +1424,7 @@ th {
 
 td {
     white-space: normal;
-    word-break: break-word;
+    word-break: normal;
 }
 
 tbody tr {
@@ -2801,3 +2808,4 @@ body.theme-dark .auth-card {
     from { opacity: 0; transform: translateY(-8px); }
     to { opacity: 1; transform: translateY(0); }
 }
+

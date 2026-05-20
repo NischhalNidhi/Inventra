@@ -51,7 +51,7 @@ $topSearchPlaceholder = $topSearchPlaceholderMap[$topSearchPage] ?? 'Search prod
                 <nav class="top-nav-links">
                     <a class="<?= $currentPage === 'dashboard' ? 'active' : ''; ?>" href="<?= e(basePath('index.php?page=dashboard')); ?>">Dashboard</a>
                     <a class="<?= in_array($currentPage, ['products', 'new-entry'], true) ? 'active' : ''; ?>" href="<?= e(basePath('index.php?page=products')); ?>">Inventory</a>
-                    <a class="<?= in_array($currentPage, ['reports'], true) ? 'active' : ''; ?>" href="<?= e(basePath('index.php?page=reports')); ?>">Analytics</a>
+                    <a class="<?= in_array($currentPage, ['reports', 'heatmap', 'ai-insights'], true) ? 'active' : ''; ?>" href="<?= e(basePath('index.php?page=reports')); ?>">Analytics</a>
                 </nav>
             </div>
             <div class="top-nav-right">
