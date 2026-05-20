@@ -257,3 +257,35 @@ SELECT * FROM (
 
 ) AS seed_users
 WHERE NOT EXISTS (SELECT 1 FROM users WHERE users.username = seed_users.username);
+
+-- Salesman stock allocation tables
+CREATE TABLE IF NOT EXISTS salesman_stock_allocations (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    salesman_id INT UNSIGNED NOT NULL,
+    product_id INT UNSIGNED NOT NULL,
+    quantity_allocated INT UNSIGNED NOT NULL,
+    quantity_remaining INT UNSIGNED NOT NULL,
+    note VARCHAR(255) DEFAULT NULL,
+    created_by INT UNSIGNED NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_allocations_salesman FOREIGN KEY (salesman_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_allocations_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    CONSTRAINT fk_allocations_created_by FOREIGN KEY (created_by) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS salesman_stock_movements (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    allocation_id INT UNSIGNED NOT NULL,
+    product_id INT UNSIGNED NOT NULL,
+    user_id INT UNSIGNED NOT NULL,
+    movement_type ENUM('allocate', 'sale', 'return', 'adjust') NOT NULL,
+    quantity INT UNSIGNED NOT NULL,
+    previous_allocation INT NOT NULL,
+    new_allocation INT NOT NULL,
+    reason VARCHAR(255) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_smov_allocation FOREIGN KEY (allocation_id) REFERENCES salesman_stock_allocations(id) ON DELETE CASCADE,
+    CONSTRAINT fk_smov_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    CONSTRAINT fk_smov_user FOREIGN KEY (user_id) REFERENCES users(id)
+);

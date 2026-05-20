@@ -176,7 +176,6 @@ class AiSalesInsightService
         ];
     }
 
-<<<<<<< Updated upstream
     private function cleanList(mixed $value): array
     {
         if (!is_array($value)) {
@@ -200,10 +199,11 @@ class AiSalesInsightService
         $text = trim($text);
 
         return $text;
-=======
+    }
+
     /**
      * Generates a geographic/regional business insight.
-     * 
+     *
      * @param array $distributionData
      * @return string
      */
@@ -226,26 +226,14 @@ class AiSalesInsightService
 
         $dataStr = '';
         foreach ($distributionData as $row) {
-            $dataStr .= "- Region: {$row['region']}, Quantity: {$row['total_quantity']}, Revenue: NPR " . number_format($row['total_revenue'], 2) . " ({$row['percentage_share']}% share)\n";
+            $region = isset($row['region']) ? (string)$row['region'] : 'Unknown';
+            $qty = isset($row['total_quantity']) ? (int)$row['total_quantity'] : 0;
+            $rev = isset($row['total_revenue']) ? number_format((float)$row['total_revenue'], 2) : '0.00';
+            $share = isset($row['percentage_share']) ? (float)$row['percentage_share'] : 0;
+            $dataStr .= "- Region: {$region}, Quantity: {$qty}, Revenue: NPR {$rev} ({$share}% share)\n";
         }
 
-        $prompt = "You are a business analytics assistant.
-Your task is to analyze geographic distribution sales data and generate a concise business insight.
-CURRENCY RULE: Always use NPR as the currency symbol. Never use $ or any other currency symbol.
-INPUT DATA:
-{$dataStr}
-
-INSTRUCTIONS:
-- Generate a 2–3 sentence summary highlighting the top and underperforming regions.
-- Use plain, clear business language.
-- Always refer to monetary values using NPR (e.g. NPR 10,000). Never use $.
-- Focus only on meaningful trends (growth, decline, anomalies, top/low performers).
-- Highlight 1 key insight that a manager can act on.
-- Do NOT repeat raw numbers unnecessarily.
-- Do NOT explain calculations.
-- Do NOT speculate beyond the provided data.
-OUTPUT FORMAT:
-A short paragraph (2–3 sentences max).";
+        $prompt = "You are a business analytics assistant.\nYour task is to analyze geographic distribution sales data and generate a concise business insight.\nCURRENCY RULE: Always use NPR as the currency symbol. Never use $ or any other currency symbol.\nINPUT DATA:\n{$dataStr}\nINSTRUCTIONS:\n- Generate a 2–3 sentence summary highlighting the top and underperforming regions.\n- Use plain, clear business language.\n- Always refer to monetary values using NPR (e.g. NPR 10,000). Never use $.\n- Focus only on meaningful trends (growth, decline, anomalies, top/low performers).\n- Highlight 1 key insight that a manager can act on.\n- Do NOT repeat raw numbers unnecessarily.\n- Do NOT explain calculations.\n- Do NOT speculate beyond the provided data.\nOUTPUT FORMAT:\nA short paragraph (2–3 sentences max).";
 
         $payload = [
             'model' => $model,
@@ -268,7 +256,7 @@ A short paragraph (2–3 sentences max).";
             CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_SLASHES),
             CURLOPT_TIMEOUT => 30,
             CURLOPT_CONNECTTIMEOUT => 5,
-            CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
+            CURLOPT_IPRESOLVE => defined('CURL_IPRESOLVE_V4') ? CURL_IPRESOLVE_V4 : 0,
             CURLOPT_SSL_VERIFYPEER => env('APP_ENV') === 'production',
             CURLOPT_SSL_VERIFYHOST => env('APP_ENV') === 'production' ? 2 : 0,
         ]);
@@ -282,7 +270,7 @@ A short paragraph (2–3 sentences max).";
             throw new RuntimeException("AI insight cURL request failed: $error (Endpoint: $endpoint)");
         }
 
-        $decoded = json_decode($response, true);
+        $decoded = json_decode((string)$response, true);
         if ($statusCode >= 400 || !isset($decoded['choices'][0]['message']['content'])) {
             $preview = mb_substr((string)$response, 0, 100);
             throw new RuntimeException("AI insight service error (HTTP $statusCode). Response: $preview");
@@ -294,6 +282,12 @@ A short paragraph (2–3 sentences max).";
         }
 
         return $this->normalizeSummary($summary);
->>>>>>> Stashed changes
+    }
+
+    private function normalizeSummary(string $text): string
+    {
+        $text = preg_replace('/^```[\s\S]*?```$/m', '', $text) ?? $text;
+        $text = preg_replace('/\s+/', ' ', $text) ?? $text;
+        return trim($text);
     }
 }

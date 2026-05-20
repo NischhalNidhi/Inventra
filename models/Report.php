@@ -289,9 +289,6 @@ class Report
              ORDER BY st.sale_date DESC, st.id DESC'
         );
         $stmt->execute($params);
-<<<<<<< Updated upstream
-        return $stmt->fetchAll();
-=======
 
         return array_map(static function (array $row): array {
             return [
@@ -307,7 +304,6 @@ class Report
                 'source' => (string) ($row['source'] ?? ''),
             ];
         }, $stmt->fetchAll());
->>>>>>> Stashed changes
     }
 
     /**
@@ -440,8 +436,6 @@ class Report
         $stmt->execute();
         return $stmt->fetchAll();
     }
-<<<<<<< Updated upstream
-=======
 
     private function buildSalesDateWhere(?string $fromDate, ?string $toDate, string $column = 'sale_date'): array
     {
@@ -623,5 +617,4 @@ class Report
             ];
         }, $rows);
     }
->>>>>>> Stashed changes
 }
