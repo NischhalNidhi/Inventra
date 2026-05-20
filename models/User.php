@@ -110,22 +110,36 @@ class User
 
     public function update(int $id, array $data): void
     {
-        $stmt = $this->pdo->prepare(
-            'UPDATE users
-             SET full_name = :full_name, email = :email, role = :role
-             WHERE id = :id'
-        );
-        $stmt->execute([
+        $fields = ['full_name = :full_name', 'email = :email', 'role = :role'];
+        $params = [
             'id' => $id,
             'full_name' => $data['full_name'],
             'email' => $data['email'],
             'role' => $data['role'],
-        ]);
+        ];
+
+        if (!empty($data['password_hash'])) {
+            $fields[] = 'password_hash = :password_hash';
+            $fields[] = 'must_change_password = :must_change_password';
+            $params['password_hash'] = $data['password_hash'];
+            $params['must_change_password'] = (int) ($data['must_change_password'] ?? 0);
+        }
+
+        $stmt = $this->pdo->prepare(
+            'UPDATE users SET ' . implode(', ', $fields) . ' WHERE id = :id'
+        );
+        $stmt->execute($params);
     }
 
     public function deactivate(int $id): void
     {
         $stmt = $this->pdo->prepare('UPDATE users SET is_active = 0 WHERE id = :id');
+        $stmt->execute(['id' => $id]);
+    }
+
+    public function activate(int $id): void
+    {
+        $stmt = $this->pdo->prepare('UPDATE users SET is_active = 1 WHERE id = :id');
         $stmt->execute(['id' => $id]);
     }
 

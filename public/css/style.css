@@ -550,7 +550,8 @@ body.theme-dark .media-card,
 body.theme-dark .form-errors,
 body.theme-dark .profile-dropdown,
 body.theme-dark .icon-dropdown,
-body.theme-dark .user-pill {
+body.theme-dark .user-pill,
+body.theme-dark .report-chart-card {
     background: var(--surface-mid);
     border-color: var(--outline-variant);
 }
@@ -610,13 +611,6 @@ body.theme-dark .heatmap-row-label {
         linear-gradient(to bottom, rgba(179, 177, 180, 0.35) 1px, transparent 0);
     background-size: 38px 38px;
     opacity: 0.15;
-}
-
-body.theme-dark .blueprint-grid {
-    background-image:
-        linear-gradient(to right, rgba(255, 255, 255, 0.1) 1px, transparent 0),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 1px, transparent 0);
-    opacity: 0.08;
 }
 
 .main-bubble {
@@ -1209,6 +1203,81 @@ body.lightbox-open {
     margin: 0;
     color: var(--text-muted);
     font-weight: 600;
+}
+
+.report-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.report-filter-grid {
+    display: grid;
+    gap: 18px;
+}
+
+.sales-insight-panel .sales-insight-state,
+.sales-insight-panel .sales-insight-copy {
+    font-size: 1rem;
+    line-height: 1.7;
+}
+
+.sales-insight-details {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.sales-insight-details h3 {
+    margin: 0 0 10px;
+    font-size: 0.92rem;
+}
+
+.sales-insight-details ul,
+.sales-insight-details p {
+    margin: 0;
+    color: var(--text-muted);
+    line-height: 1.7;
+}
+
+.report-chart-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.report-chart-card {
+    padding: 18px;
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgba(248, 250, 252, 0.96) 0%, rgba(241, 245, 249, 0.96) 100%);
+    border: 1px solid rgba(203, 213, 225, 0.65);
+}
+
+.report-chart-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.report-chart-head h3 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.report-chart-head span {
+    color: var(--text-muted);
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 700;
+}
+
+.report-chart-card canvas {
+    width: 100%;
+    display: block;
 }
 
 .insight-stats {
@@ -2596,7 +2665,9 @@ body.theme-dark .auth-card {
         .stock-layout,
         .entry-grid,
         .filter-grid,
-        .form-grid {
+        .form-grid,
+        .sales-insight-details,
+        .report-chart-grid {
             grid-template-columns: 1fr;
         }
 
@@ -2658,8 +2729,6 @@ body.theme-dark .auth-card {
             padding: 14px;
         }
     }
-<<<<<<< Updated upstream
-=======
 
 /* AI Visual Insights */
 .report-chart-head {
@@ -2740,38 +2809,3 @@ body.theme-dark .auth-card {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Mobile Optimization Enhancements for Tiny Devices */
-@media (max-width: 520px) {
-    .sidebar {
-        width: 64px !important;
-    }
-    .main-content {
-        padding-left: 64px !important;
-    }
-    .sidebar:hover~.main-content,
-    .sidebar:focus-within~.main-content {
-        padding-left: 64px !important;
-    }
-    .sidebar:hover,
-    .sidebar:focus-within {
-        width: 240px !important;
-    }
-    .stats-grid {
-        grid-template-columns: 1fr !important;
-        gap: 12px;
-    }
-    .topbar h1 {
-        font-size: 1.85rem !important;
-        letter-spacing: -0.04em;
-    }
-    .main-content-inner {
-        padding: 10px 8px 24px !important;
-    }
-    .table-wrap {
-        margin: 0 -8px;
-        border-radius: 0;
-        border-left: none;
-        border-right: none;
-    }
-}
->>>>>>> Stashed changes

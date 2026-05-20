@@ -34,6 +34,13 @@ header('Referrer-Policy: same-origin');
 
 extract(buildAppDependencies(), EXTR_SKIP);
 
+// Development Safety Check: Ensure critical dependencies were extracted
+if (env('APP_ENV') !== 'production') {
+    if (!isset($stockModel) || !isset($stockController)) {
+        die('Critical Error: stockModel or stockController is missing from dependencies.php');
+    }
+}
+
 $page = $_GET['page'] ?? 'dashboard';
 $errors = [];
 $editingProduct = null;
@@ -80,13 +87,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($validated['errors']) {
                     setFlash('error', implode(' ', $validated['errors']));
                 } else {
-                    $userModel->createPendingSetup($validated['data']);
-                    $createdUser = $userModel->findByIdentifier((string) $validated['data']['email']);
-                    $mailResult = $createdUser ? $authController->sendAccountSetupEmail($createdUser) : ['success' => false];
-                    if ($mailResult['success']) {
-                        setFlash('success', 'User account created. A setup link was sent to the staff member.');
+                    if (!empty($validated['data']['manual_password'])) {
+                        $userModel->create($validated['data']);
+                        setFlash('success', 'User account created. They will be required to change their password on first login.');
                     } else {
-                        setFlash('error', 'User account created, but the setup email could not be sent. Check mail configuration.');
+                        $userModel->createPendingSetup($validated['data']);
+                        $createdUser = $userModel->findByIdentifier((string) $validated['data']['email']);
+                        $mailResult = $createdUser ? $authController->sendAccountSetupEmail($createdUser) : ['success' => false];
+                        if ($mailResult['success']) {
+                            setFlash('success', 'User account created. A setup link was sent to the staff member.');
+                        } else {
+                            setFlash('error', 'User account created, but the setup email could not be sent. User will need to use "Forgot Password" or you can Edit and set a password manually.');
+                        }
                     }
                 }
                 redirectTo(basePath('index.php?page=users'));
@@ -140,14 +152,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     setFlash('error', implode(' ', $validated['errors']));
                 } else {
                     $userModel->update($userId, $validated['data']);
-                    setFlash('success', 'User account updated.');
+                    $msg = 'User account updated.';
+                    if (!empty($validated['data']['password_hash'])) {
+                        $msg .= ' Password reset successfully. User must change it on next login.';
+                    }
+                    setFlash('success', $msg);
                 }
+                redirectTo(basePath('index.php?page=users'));
+                break;
+
+            case 'activate_user':
+                $authController->authorize('users.activate');
+                $userModel->activate((int) ($_POST['user_id'] ?? 0));
+                setFlash('success', 'User reactivated.');
                 redirectTo(basePath('index.php?page=users'));
                 break;
 
             case 'deactivate_user':
                 $authController->authorize('users.deactivate');
-                $userModel->deactivate((int) ($_POST['user_id'] ?? 0));
+                $targetUserId = (int) ($_POST['user_id'] ?? 0);
+
+                if ($targetUserId === (int) currentUser()['id']) {
+                    setFlash('error', 'You cannot deactivate your own account.');
+                    redirectTo(basePath('index.php?page=users'));
+                }
+
+                $userModel->deactivate($targetUserId);
                 setFlash('success', 'User deactivated.');
                 redirectTo(basePath('index.php?page=users'));
                 break;
@@ -306,6 +336,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 redirectTo(basePath('index.php?page=reports'));
                 break;
 
+            case 'stock_in':
+                $authController->authorize('stock.in');
+                persistOldInput($_POST);
+                $result = $stockController->handleStockIn($_POST, (int) currentUser()['id']);
+                clearOldInput();
+                if ($result['success']) {
+                    setFlash('success', $result['message']);
+                } else {
+                    setFlash('error', implode(' ', $result['errors']));
+                }
+                redirectTo(basePath('index.php?page=stock-in'));
+                break;
+
+            case 'stock_out':
+                $authController->authorize('stock.out');
+                persistOldInput($_POST);
+                $result = $stockController->handleStockOut($_POST, (int) currentUser()['id']);
+                clearOldInput();
+                if ($result['success']) {
+                    setFlash('success', $result['message']);
+                } else {
+                    setFlash('error', implode(' ', $result['errors']));
+                }
+                redirectTo(basePath('index.php?page=stock-out'));
+                break;
+
             case 'import_sales':
                 $authController->authorize('reports.import');
                 $result = $reportController->importSales($_FILES['sales_import'] ?? [], (int) currentUser()['id']);
@@ -414,6 +470,13 @@ switch ($page) {
         $authController->authorize('users.view');
         $search = trim($_GET['search'] ?? '');
         $users = $userModel->getAll($pagination['limit'], $pagination['offset'], $search);
+        
+        $editingUser = null;
+        if (isset($_GET['edit_id'])) {
+            $authController->authorize('users.edit');
+            $editingUser = $userModel->findById((int) $_GET['edit_id']);
+        }
+
         $totalItems = $userModel->countAll($search);
         $currentPageNum = $pagination['page'];
         $perPage = $pagination['limit'];
@@ -509,6 +572,22 @@ switch ($page) {
         require __DIR__ . '/../views/logistics/reorder.php';
         break;
 
+    case 'stock-in':
+        $authController->authorize('stock.in');
+        $products = $stockModel->getProductOptions();
+        $title = 'Inventra | Log Stock In';
+        $currentPage = 'stock-in';
+        require __DIR__ . '/../views/stock-in/index.php';
+        break;
+
+    case 'stock-out':
+        $authController->authorize('stock.out');
+        $products = $stockModel->getProductOptions();
+        $title = 'Inventra | Log Stock Out';
+        $currentPage = 'stock-out';
+        require __DIR__ . '/../views/stock-out/index.php';
+        break;
+
     case 'ai-insights':
         $authController->authorize('reports.sales.insight');
         
@@ -521,18 +600,18 @@ switch ($page) {
             'recommendation' => '',
             'model' => $aiSalesInsightService->getConfiguredModel(),
         ];
+
         if (env('AI_INSIGHTS_API_KEY')) {
-            try {
-                $insightData = $reportModel->getAdvancedSalesInsightData();
-                $aiAnalysis = $aiSalesInsightService->generateSalesAnalysis($insightData);
-                $aiInsight = $aiAnalysis['summary'];
-            } catch (Throwable $e) {
-                // Show real error in development so it is easy to diagnose
-                $aiInsight = env('APP_ENV') !== 'production'
-                    ? '⚠ AI Error: ' . $e->getMessage()
-                    : 'AI Insight temporarily unavailable.';
-                $aiAnalysis['summary'] = $aiInsight;
-            }
+                try {
+                    $insightData = $reportModel->getAdvancedSalesInsightData();
+                    $aiAnalysis = $aiSalesInsightService->generateSalesAnalysis($insightData);
+                    $aiInsight = $aiAnalysis['summary'];
+                } catch (Throwable $e) {
+                    $aiInsight = env('APP_ENV') !== 'production'
+                        ? '⚠ AI Error: ' . $e->getMessage()
+                        : 'AI Insight temporarily unavailable.';
+                    $aiAnalysis['summary'] = $aiInsight;
+                }
         }
 
         $title = 'Inventra | AI Sales Insights';
@@ -563,14 +642,23 @@ switch ($page) {
         $inventoryReport = $canViewInventory ? $reportModel->getInventoryReport($fromDate ?: null, $toDate ?: null) : [];
         $monthlySales = $canViewMonthly ? $reportModel->getMonthlySales($fromDate ?: null, $toDate ?: null) : [];
         $dailySales = $canViewDaily ? $reportModel->getDailySales($fromDate ?: null, $toDate ?: null) : [];
+        $detailedSales = $canViewDaily ? $reportModel->getSalesTransactionsForExport($fromDate ?: null, $toDate ?: null) : [];
         $lowStockCategoryId = $lowCategoryId !== '' ? (int) $lowCategoryId : null;
         // Use low stock filters only when the user can access the low stock report.
         $lowStockReport = $canViewLow ? $reportModel->getLowStockReport($lowFromDate ?: null, $lowToDate ?: null, $lowStockCategoryId) : [];
         $movementSummary = $canViewMovement ? $reportModel->getStockMovementSummary($fromDate ?: null, $toDate ?: null) : [];
+        $movementLog = $canViewMovement ? $reportModel->getStockMovementLog($fromDate ?: null, $toDate ?: null) : [];
         $importBatches = $authController->can('reports.import') ? $reportModel->getImportBatches(12) : [];
         $productsData = $productModel->getAll(1, 200, '', ['archived' => '0']);
         $products = $productsData['data'];
         $categories = $productModel->getCategories();
+        $salesSummary = $reportModel->getSalesSummaryPublic($fromDate ?: null, $toDate ?: null);
+        $insightData = $reportModel->getAdvancedSalesInsightData($fromDate ?: null, $toDate ?: null);
+        $salesSummary['growth_percentage'] = percentageChange(
+            (float) ($insightData['summary']['total_revenue'] ?? 0),
+            (float) ($insightData['summary']['prev_month_revenue'] ?? 0)
+        );
+        $reportCharts = $reportModel->getChartDatasets($fromDate ?: null, $toDate ?: null, $lowFromDate ?: null, $lowToDate ?: null, $lowStockCategoryId);
 
         $title = 'Inventra | Reports';
         $currentPage = 'reports';
@@ -610,6 +698,28 @@ switch ($page) {
         $dashboardAlerts = $productModel->getDashboardAlerts();
         $recentActivity = $authController->can('dashboard.activity') ? $productModel->getRecentActivity() : [];
         $categories = $productModel->getCategories();
+
+        // AI Insight logic for dashboard
+        $aiInsight = 'Configure AI endpoint to see smart business insights.';
+        $aiAnalysis = [
+            'summary' => $aiInsight,
+            'opportunities' => [],
+            'risks' => [],
+            'recommendation' => '',
+            'model' => $aiSalesInsightService->getConfiguredModel(),
+        ];
+        $canViewSalesInsight = $authController->can('reports.sales.insight'); // Check permission
+
+        if ($canViewSalesInsight && env('AI_INSIGHTS_API_KEY')) {
+                try {
+                    $insightData = $reportModel->getAdvancedSalesInsightData();
+                    $aiInsight = $aiSalesInsightService->generateMonthlySalesInsight($insightData);
+                    $aiAnalysis['summary'] = $aiInsight;
+                } catch (Throwable $e) {
+                    $aiInsight = env('APP_ENV') !== 'production' ? '⚠ AI Error: ' . $e->getMessage() : 'AI Insight temporarily unavailable.';
+                    $aiAnalysis['summary'] = $aiInsight;
+                }
+        }
         
         $title = 'Inventra | Dashboard';
         $currentPage = 'dashboard';

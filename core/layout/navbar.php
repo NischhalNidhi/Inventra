@@ -54,6 +54,18 @@ $user = currentUser();
                 <span>Reorder</span>
             </a>
         <?php endif; ?>
+        <?php if ($authController->can('stock.in')): ?>
+            <a class="nav-link <?= $currentPage === 'stock-in' ? 'active' : ''; ?>" href="<?= e(basePath('index.php?page=stock-in')); ?>" title="Stock In">
+                <span class="material-symbols-outlined nav-icon">login</span>
+                <span>Stock In</span>
+            </a>
+        <?php endif; ?>
+        <?php if ($authController->can('stock.out')): ?>
+            <a class="nav-link <?= $currentPage === 'stock-out' ? 'active' : ''; ?>" href="<?= e(basePath('index.php?page=stock-out')); ?>" title="Stock Out">
+                <span class="material-symbols-outlined nav-icon">logout</span>
+                <span>Stock Out</span>
+            </a>
+        <?php endif; ?>
         <?php if ($authController->can('reports.sales.insight')): ?>
             <a class="nav-link <?= $currentPage === 'ai-insights' ? 'active' : ''; ?>" href="<?= e(basePath('index.php?page=ai-insights')); ?>" title="AI Insights">
                 <span class="material-symbols-outlined nav-icon">auto_awesome</span>

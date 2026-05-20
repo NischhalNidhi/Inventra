@@ -14,7 +14,7 @@ function buildAppDependencies(): array
     $poModel = new PurchaseOrder($pdo);
     $reportModel = new Report($pdo);
     $supplierModel = new Supplier($pdo);
-    $salesmanStockModel = new SalesmanStock($pdo);
+    $stockModel = new Stock($pdo);
     $mailer = new Mailer();
     $aiSalesInsightService = new AiSalesInsightService();
 
@@ -27,7 +27,7 @@ function buildAppDependencies(): array
         'poModel' => $poModel,
         'reportModel' => $reportModel,
         'supplierModel' => $supplierModel,
-        'salesmanStockModel' => $salesmanStockModel,
+        'stockModel' => $stockModel,
         'aiSalesInsightService' => $aiSalesInsightService,
         'authController' => new AuthController($userModel, $mailer, $pdo),
         'userController' => new UserController($userModel),
@@ -36,5 +36,6 @@ function buildAppDependencies(): array
         'poController' => new PurchaseOrderController($poModel),
         'reportController' => new ReportController($reportModel, new ReportImportParser()),
         'supplierController' => new SupplierController($supplierModel),
+        'stockController' => new StockController($stockModel),
     ];
 }
