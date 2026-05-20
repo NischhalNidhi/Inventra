@@ -37,19 +37,16 @@ class Stock
         try {
             $this->pdo->beginTransaction();
 
-            $stmt = $this->pdo->prepare(
-                'UPDATE products SET stock_quantity = stock_quantity + :quantity WHERE id = :id'
-            );
-            $stmt->execute([
-                'quantity' => $quantity,
-                'id' => $productId,
-            ]);
-
+            // Lock the row first
             $stockStmt = $this->pdo->prepare(
-                'SELECT stock_quantity FROM products WHERE id = :id'
+                'SELECT stock_quantity FROM products WHERE id = :id FOR UPDATE'
             );
             $stockStmt->execute(['id' => $productId]);
-            $currentStock = (int) $stockStmt->fetchColumn();
+            $previous = (int) $stockStmt->fetchColumn();
+            $next = $previous + $quantity;
+
+            $stmt = $this->pdo->prepare('UPDATE products SET stock_quantity = :next WHERE id = :id');
+            $stmt->execute(['next' => $next, 'id' => $productId]);
 
             $movementStmt = $this->pdo->prepare(
                 'INSERT INTO stock_movements (product_id, user_id, movement_type, quantity, previous_quantity, new_quantity, reason)
@@ -59,8 +56,8 @@ class Stock
                 'product_id' => $productId,
                 'user_id' => $userId,
                 'quantity' => $quantity,
-                'previous_quantity' => $currentStock - $quantity,
-                'new_quantity' => $currentStock,
+                'previous_quantity' => $previous,
+                'new_quantity' => $next,
                 'reason' => $reason !== '' ? $reason : null,
             ]);
 
@@ -92,19 +89,20 @@ class Stock
         try {
             $this->pdo->beginTransaction();
 
-            $stmt = $this->pdo->prepare(
-                'UPDATE products SET stock_quantity = stock_quantity - :quantity WHERE id = :id'
-            );
-            $stmt->execute([
-                'quantity' => $quantity,
-                'id' => $productId,
-            ]);
-
+            // Lock row and check final stock inside transaction
             $stockStmt = $this->pdo->prepare(
-                'SELECT stock_quantity FROM products WHERE id = :id'
+                'SELECT stock_quantity FROM products WHERE id = :id FOR UPDATE'
             );
             $stockStmt->execute(['id' => $productId]);
-            $currentStock = (int) $stockStmt->fetchColumn();
+            $previous = (int) $stockStmt->fetchColumn();
+            
+            if ($quantity > $previous) {
+                throw new RuntimeException("Insufficient stock available.");
+            }
+            $next = $previous - $quantity;
+
+            $stmt = $this->pdo->prepare('UPDATE products SET stock_quantity = :next WHERE id = :id');
+            $stmt->execute(['next' => $next, 'id' => $productId]);
 
             $movementStmt = $this->pdo->prepare(
                 'INSERT INTO stock_movements (product_id, user_id, movement_type, quantity, previous_quantity, new_quantity, reason)
@@ -114,8 +112,8 @@ class Stock
                 'product_id' => $productId,
                 'user_id' => $userId,
                 'quantity' => $quantity,
-                'previous_quantity' => $currentStock + $quantity,
-                'new_quantity' => $currentStock,
+                'previous_quantity' => $previous,
+                'new_quantity' => $next,
                 'reason' => $reason !== '' ? $reason : null,
             ]);
 

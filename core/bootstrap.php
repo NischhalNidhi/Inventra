@@ -12,9 +12,9 @@ require_once __DIR__ . '/../models/Category.php';
 require_once __DIR__ . '/../models/Product.php';
 require_once __DIR__ . '/../models/PurchaseOrder.php';
 require_once __DIR__ . '/../models/Report.php';
+require_once __DIR__ . '/../models/Stock.php';
 require_once __DIR__ . '/../models/ReportImportParser.php';
 require_once __DIR__ . '/../models/Supplier.php';
-require_once __DIR__ . '/../models/Stock.php';
 
 require_once __DIR__ . '/../controllers/authController.php';
 require_once __DIR__ . '/../controllers/userController.php';
