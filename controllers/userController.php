@@ -60,8 +60,10 @@ class UserController
     {
         $fullName = trim($input['full_name'] ?? '');
         $email = strtolower(trim($input['email'] ?? ''));
+        $username = strtolower(trim($input['username'] ?? ''));
         $role = trim($input['role'] ?? '');
         $password = trim($input['password'] ?? '');
+        $passwordConfirm = trim($input['password_confirm'] ?? '');
         $errors = [];
 
         if ($fullName === '') {
@@ -70,30 +72,44 @@ class UserController
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $errors[] = 'Valid email is required.';
         }
+        if (!preg_match('/^[a-z0-9._-]{3,30}$/', $username)) {
+            $errors[] = 'Username must be 3-30 chars using lowercase letters, numbers, dot, underscore, hyphen.';
+        }
         if (!in_array($role, ['Manager', 'Supervisor', 'Salesman', 'Logistic Handler'], true)) {
             $errors[] = 'Invalid role.';
         }
-        
-        if ($password !== '' && !preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/', $password)) {
-            $errors[] = 'Password must be at least 8 characters and include uppercase, lowercase, a number, and a special character.';
+        if ($this->userModel->usernameOrEmailExists($username, $email, $userId)) {
+            $errors[] = 'Email or username already exists for another user.';
         }
 
-        $existing = $this->userModel->findById($userId);
-        if (!$existing) {
-            $errors[] = 'User not found.';
-        } elseif ($this->userModel->usernameOrEmailExists($existing['username'], $email, $userId)) {
-            $errors[] = 'Email already exists.';
-        }
-
-        $data = ['full_name' => $fullName, 'email' => $email, 'role' => $role];
+        $passwordHash = null;
+        $mustChangePassword = 0;
         if ($password !== '') {
-            $data['password_hash'] = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
-            $data['must_change_password'] = 1;
+            if (strlen($password) < 8) {
+                $errors[] = 'New password must be at least 8 characters.';
+            }
+            if ($password !== $passwordConfirm) {
+                $errors[] = 'New password confirmation does not match.';
+            }
+            if (!preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/', $password)) {
+                $errors[] = 'New password must include uppercase, lowercase, a number, and a special character.';
+            }
+            if (empty($errors)) {
+                $passwordHash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
+                $mustChangePassword = 0;
+            }
         }
 
         return [
             'errors' => $errors,
-            'data' => $data,
+            'data' => [
+                'full_name' => $fullName,
+                'email' => $email,
+                'username' => $username,
+                'role' => $role,
+                'password_hash' => $passwordHash,
+                'must_change_password' => $mustChangePassword,
+            ],
         ];
     }
 }

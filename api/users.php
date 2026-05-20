@@ -20,10 +20,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     ]);
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT' || $_SERVER['REQUEST_METHOD'] === 'PATCH') {
-    if (!verifyCsrfToken($_POST['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? null)) {
-        jsonResponse(['error' => 'Invalid request token.', 'code' => 'INVALID_TOKEN'], 422);
-    }
+if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
+    jsonResponse(['error' => 'Invalid request token.', 'code' => 'INVALID_TOKEN'], 422);
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -33,10 +31,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         jsonResponse(['error' => implode(' ', $validated['errors']), 'code' => 'VALIDATION_ERROR'], 422);
     }
 
-    // BUG FIX (Task 3): Previously called $userModel->create() which skipped token
-    // generation and welcome email dispatch entirely. Now uses createPendingSetup()
-    // (is_active=0) to match the form-based flow, then fires the welcome email.
-    $newId       = $userModel->createPendingSetup($validated['data']);
+    if ($validated['data']['manual_password']) {
+        $newId = $userModel->create($validated['data']);
+    } else {
+        $newId = $userModel->createPendingSetup($validated['data']);
+    }
+    
     $createdUser = $userModel->findById($newId);
 
     // --- Respond first, then send email ---
@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // --- Send welcome email (fire-and-forget) ---
     // Failures are logged but must never roll back the already-created account.
-    if ($createdUser) {
+    if ($createdUser && !$validated['data']['manual_password']) {
         $mailResult = $authController->sendAccountSetupEmail($createdUser);
         if (!$mailResult['success']) {
             error_log('[Inventra] Welcome email failed for user ID ' . ((int) $createdUser['id']) . ': ' . implode('; ', $mailResult['errors'] ?? ['Unknown error']));
@@ -85,19 +85,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
     jsonResponse(['user' => $userModel->findById($id)]);
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'PATCH' && ($_GET['action'] ?? '') === 'activate') {
-    $authController->authorize('users.activate');
-    $userModel->activate($id);
-    jsonResponse(['message' => 'User reactivated.']);
-}
-
 if ($_SERVER['REQUEST_METHOD'] === 'PATCH' && ($_GET['action'] ?? '') === 'deactivate') {
     $authController->authorize('users.deactivate');
-    if ($id === (int) currentUser()['id']) {
-        jsonResponse(['error' => 'You cannot deactivate your own account.', 'code' => 'SELF_DEACTIVATION'], 422);
-    }
     $userModel->deactivate($id);
     jsonResponse(['message' => 'User deactivated.']);
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'PATCH' && ($_GET['action'] ?? '') === 'activate') {
+    $authController->authorize('users.deactivate');
+    $userModel->activate($id);
+    jsonResponse(['message' => 'User reactivated.']);
 }
 
 jsonResponse(['error' => 'Method not allowed.', 'code' => 'METHOD_NOT_ALLOWED'], 405);

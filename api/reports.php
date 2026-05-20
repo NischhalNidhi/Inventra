@@ -136,10 +136,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         echo $html;
         return;
     }
+
+    if ($type === 'export-inventory-csv') {
+        $authController->authorize('reports.export');
+        $inventory = $reportModel->getInventoryReport($fromDate, $toDate);
+        downloadCsv('inventory-report', ['Product', 'SKU', 'Price', 'Stock', 'Min Threshold', 'Category', 'Updated', 'Value', 'Status'], $inventory);
+        return;
+    }
+
+    if ($type === 'export-low-stock-csv') {
+        $authController->authorize('reports.export');
+        $lowStock = $reportModel->getLowStockReport($lowFromDate, $lowToDate, $lowCategoryId);
+        // Map the model data to clean CSV columns
+        $csvRows = array_map(fn($row) => [$row['name'], $row['sku'], $row['category_name'], $row['stock_quantity'], $row['min_threshold'], $row['gap'], number_format($row['severity'], 1) . '%', $row['days_below_threshold']], $lowStock);
+        downloadCsv('low-stock-report', ['Product', 'SKU', 'Category', 'Stock', 'Threshold', 'Gap', 'Severity', 'Days Below'], $csvRows);
+        return;
+    }
+
+    if ($type === 'export-stock-movement-csv') {
+        $authController->authorize('reports.export');
+        $movements = $reportModel->getStockMovementLog($fromDate, $toDate);
+        // Map the log data to human-readable CSV columns
+        $csvRows = array_map(fn($row) => [$row['created_at'], $row['product_name'], $row['sku'], strtoupper($row['movement_type']), $row['quantity'], $row['previous_quantity'], $row['new_quantity'], $row['full_name'], $row['reason']], $movements);
+        downloadCsv('stock-movement-report', ['Date', 'Product', 'SKU', 'Type', 'Qty', 'Prev', 'New', 'User', 'Reason'], $csvRows);
+        return;
+    }
 }
 
-if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-    jsonResponse(['error' => 'Invalid request token.', 'code' => 'INVALID_TOKEN'], 422);
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
+        jsonResponse(['error' => 'Invalid request token.', 'code' => 'INVALID_TOKEN'], 422);
+    }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $type === 'sales') {

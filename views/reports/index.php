@@ -55,12 +55,6 @@
         </div>
         <?php if ($authController->can('reports.export')): ?>
             <div class="report-actions">
-                <?php if ($authController->can('stock.in')): ?>
-                    <a class="button ghost small" href="<?= e(basePath('index.php?page=stock-in')); ?>">Stock In</a>
-                <?php endif; ?>
-                <?php if ($authController->can('stock.out')): ?>
-                    <a class="button ghost small" href="<?= e(basePath('index.php?page=stock-out')); ?>">Stock Out</a>
-                <?php endif; ?>
                 <a class="button ghost small" href="<?= e(appRootPath('api/reports.php?type=export-daily-csv' . ($fromDate ? '&from_date=' . urlencode($fromDate) : '') . ($toDate ? '&to_date=' . urlencode($toDate) : ''))); ?>">Export Daily CSV</a>
                 <a class="button ghost small" href="<?= e(appRootPath('api/reports.php?type=export-monthly-csv' . ($fromDate ? '&from_date=' . urlencode($fromDate) : '') . ($toDate ? '&to_date=' . urlencode($toDate) : ''))); ?>">Export Monthly CSV</a>
                 <a class="button primary small" href="<?= e(appRootPath('api/reports.php?type=export-summary-html' . ($fromDate ? '&from_date=' . urlencode($fromDate) : '') . ($toDate ? '&to_date=' . urlencode($toDate) : '') . ($lowFromDate ? '&low_from_date=' . urlencode($lowFromDate) : '') . ($lowToDate ? '&low_to_date=' . urlencode($lowToDate) : '') . ($lowCategoryId !== null ? '&category_id=' . urlencode((string) $lowCategoryId) : ''))); ?>">Export Insight Report</a>

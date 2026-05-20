@@ -80,6 +80,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $validated = $userController->validateCreate($_POST);
                 if ($validated['errors']) {
                     setFlash('error', implode(' ', $validated['errors']));
+                } elseif ($validated['data']['manual_password']) {
+                    $userModel->create($validated['data']);
+                    setFlash('success', 'User account created. They can now log in with the password provided.');
                 } else {
                     $userModel->createPendingSetup($validated['data']);
                     $createdUser = $userModel->findByIdentifier((string) $validated['data']['email']);
@@ -135,10 +138,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             case 'update_user':
                 $authController->authorize('users.edit');
-                $userId = (int) ($_GET['id'] ?? $_POST['id'] ?? $_POST['user_id'] ?? 0);
+                $userId = (int) ($_POST['user_id'] ?? $_POST['id'] ?? $_GET['edit_id'] ?? $_GET['id'] ?? 0);
                 $validated = $userController->validateUpdate($userId, $_POST);
                 if ($validated['errors']) {
                     setFlash('error', implode(' ', $validated['errors']));
+                    persistOldInput($_POST);
+                    redirectTo(basePath('index.php?page=users&edit_id=' . $userId));
                 } else {
                     $userModel->update($userId, $validated['data']);
                     setFlash('success', 'User account updated.');
@@ -151,6 +156,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $userId = (int) ($_GET['id'] ?? $_POST['id'] ?? $_POST['user_id'] ?? 0);
                 $userModel->deactivate($userId);
                 setFlash('success', 'User deactivated.');
+                redirectTo(basePath('index.php?page=users'));
+                break;
+
+            case 'activate_user':
+                $authController->authorize('users.deactivate');
+                $userId = (int) ($_GET['id'] ?? $_POST['id'] ?? $_POST['user_id'] ?? 0);
+                $userModel->activate($userId);
+                setFlash('success', 'User reactivated.');
                 redirectTo(basePath('index.php?page=users'));
                 break;
 
@@ -442,8 +455,14 @@ $lowCategoryId = trim($_GET['category_id'] ?? '');
 switch ($page) {
     case 'users':
         $authController->authorize('users.view');
-        if (isset($_GET['id'])) {
-            $editingUser = $userModel->findById((int) $_GET['id']);
+        // Check for 'edit_id' parameter to determine if a user is being edited.
+        // This parameter is typically set when an 'Edit' button is clicked.
+        if (isset($_GET['edit_id'])) {
+            $editingUser = $userModel->findById((int) $_GET['edit_id']);
+            if (!$editingUser) {
+                setFlash('error', 'User not found for editing.');
+                redirectTo(basePath('index.php?page=users'));
+            }
         }
         $search = trim($_GET['search'] ?? '');
         $users = $userModel->getAll($pagination['limit'], $pagination['offset'], $search);
@@ -547,7 +566,7 @@ switch ($page) {
         $products = $stockModel->getProductOptions();
         $title = 'Inventra | Stock In';
         $currentPage = 'reports';
-        require __DIR__ . '/../views/stock/in.php';
+        require __DIR__ . '/../views/stock-in/in.php';
         break;
 
     case 'stock-out':
@@ -555,7 +574,7 @@ switch ($page) {
         $products = $stockModel->getProductOptions();
         $title = 'Inventra | Stock Out';
         $currentPage = 'reports';
-        require __DIR__ . '/../views/stock/out.php';
+        require __DIR__ . '/../views/stock-in/out.php';
         break;
 
     case 'ai-insights':
@@ -621,6 +640,44 @@ switch ($page) {
         $productsData = $productModel->getAll(1, 200, '', ['archived' => '0']);
         $products = $productsData['data'];
         $categories = $productModel->getCategories();
+        $detailedSales = $canViewDaily ? $reportModel->getSalesTransactionsForExport($fromDate ?: null, $toDate ?: null) : [];
+
+        // Fetch summary and trend data for the visual analytics charts
+        $advancedData = $reportModel->getAdvancedSalesInsightData($fromDate ?: null, $toDate ?: null);
+        $salesSummary = $reportModel->getSalesSummaryPublic($fromDate ?: null, $toDate ?: null);
+        
+        // Calculate growth percentage for the stats grid
+        $currRev = (float)($salesSummary['revenue'] ?? 0);
+        $prevRev = (float)($advancedData['summary']['prev_month_revenue'] ?? 0);
+        $salesSummary['growth_percentage'] = $prevRev > 0 ? (($currRev - $prevRev) / $prevRev) * 100 : 0;
+
+        // Prepare the chart data object expected by app.js
+        $reportCharts = [
+            'daily_sales' => [
+                'labels' => array_column($dailySales, 'sale_date'),
+                'values' => array_column($dailySales, 'total')
+            ],
+            'monthly_sales' => [
+                'labels' => array_column($monthlySales, 'month'),
+                'values' => array_column($monthlySales, 'total')
+            ],
+            'top_products' => [
+                'labels' => array_column($advancedData['top_products'] ?? [], 'name'),
+                'values' => array_column($advancedData['top_products'] ?? [], 'total')
+            ],
+            'category_breakdown' => [
+                'labels' => array_column($advancedData['category_breakdown'] ?? [], 'name'),
+                'values' => array_column($advancedData['category_breakdown'] ?? [], 'total')
+            ],
+            'low_stock_severity' => [
+                'labels' => array_column($lowStockReport, 'name'),
+                'values' => array_column($lowStockReport, 'severity')
+            ],
+            'stock_movement' => [
+                'labels' => array_map('strtoupper', array_column($movementSummary, 'movement_type')),
+                'values' => array_column($movementSummary, 'total_quantity')
+            ]
+        ];
 
         $title = 'Inventra | Reports';
         $currentPage = 'reports';

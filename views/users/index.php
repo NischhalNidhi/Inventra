@@ -60,7 +60,6 @@
                 </select>
             </label>
             <label><span>Password</span><input type="password" name="password" placeholder="Optional: Set password now"></label>
-            <p class="lead wide">Leave password blank to email a setup link. Providing a password activates the account immediately.</p>
             <button class="button primary wide" type="submit">Create Account and Send Welcome Email</button>
         </form>
     <?php endif; ?>

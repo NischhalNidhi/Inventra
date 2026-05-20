@@ -116,23 +116,44 @@ class User
             return;
         }
 
-        $stmt = $this->pdo->prepare(
-            'UPDATE users
-             SET full_name = :full_name, email = :email, username = :username, role = :role
-             WHERE id = :id'
-        );
-        $stmt->execute([
-            'id' => $id,
+        $fieldsToUpdate = [
             'full_name' => $data['full_name'] ?? $existing['full_name'],
             'email' => $data['email'] ?? $existing['email'],
             'username' => $data['username'] ?? $existing['username'],
             'role' => $data['role'] ?? $existing['role'],
-        ]);
+        ];
+        $sqlParts = [];
+        $params = ['id' => $id];
+
+        foreach ($fieldsToUpdate as $field => $value) {
+            $sqlParts[] = "$field = :$field";
+            $params[$field] = $value;
+        }
+
+        if (isset($data['password_hash']) && $data['password_hash'] !== null) {
+            $sqlParts[] = 'password_hash = :password_hash';
+            $params['password_hash'] = $data['password_hash'];
+            $sqlParts[] = 'must_change_password = :must_change_password';
+            $params['must_change_password'] = $data['must_change_password'] ?? 0;
+        }
+
+        if (empty($sqlParts)) {
+            return;
+        }
+
+        $stmt = $this->pdo->prepare('UPDATE users SET ' . implode(', ', $sqlParts) . ' WHERE id = :id');
+        $stmt->execute($params);
     }
 
     public function deactivate(int $id): void
     {
         $stmt = $this->pdo->prepare('UPDATE users SET is_active = 0 WHERE id = :id');
+        $stmt->execute(['id' => $id]);
+    }
+
+    public function activate(int $id): void
+    {
+        $stmt = $this->pdo->prepare('UPDATE users SET is_active = 1 WHERE id = :id');
         $stmt->execute(['id' => $id]);
     }
 
